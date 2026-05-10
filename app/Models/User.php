@@ -69,7 +69,7 @@ class User extends Authenticatable
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'username', 'status'])
+            ->logOnly(['name', 'email', 'username', 'status', 'deleted_at'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }
@@ -97,5 +97,34 @@ class User extends Authenticatable
     public function trustedDevices()
     {
         return $this->hasMany(TrustedDevice::class);
+    }
+
+    public function sessions()
+    {
+        return $this->hasMany(\Illuminate\Support\Facades\DB::table('sessions')->getProcessors()[0] ? 'sessions' : 'sessions'); // Fallback check
+    }
+
+    public function isOnline()
+    {
+        return \DB::table('sessions')
+            ->where('user_id', $this->id)
+            ->where('last_activity', '>=', now()->subMinutes(5)->getTimestamp())
+            ->exists();
+    }
+
+    public function getActiveDevice()
+    {
+        $session = \DB::table('sessions')
+            ->where('user_id', $this->id)
+            ->latest('last_activity')
+            ->first();
+
+        if (!$session) return null;
+
+        $ua = $session->user_agent;
+        if (preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i', $ua)) {
+            return 'mobile';
+        }
+        return 'desktop';
     }
 }

@@ -26,5 +26,11 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
             return $user->hasRole('Super Admin') ? true : null;
         });
+
+        // Register Activity Log Listeners
+        \Illuminate\Support\Facades\Event::listen(
+            [\Illuminate\Auth\Events\Login::class, \Illuminate\Auth\Events\Logout::class, \Illuminate\Auth\Events\Failed::class],
+            \App\Listeners\LogAuthenticationActivity::class
+        );
     }
 }

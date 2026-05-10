@@ -16,7 +16,7 @@ class Team extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'description'])
+            ->logOnly(['name', 'description', 'deleted_at'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

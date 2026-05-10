@@ -17,7 +17,20 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $query = User::query()->with('roles');
+        $query = User::query()->with('roles')
+            ->select('users.*')
+            ->addSelect([
+                'last_session_activity' => \DB::table('sessions')
+                    ->select('last_activity')
+                    ->whereColumn('user_id', 'users.id')
+                    ->latest('last_activity')
+                    ->limit(1),
+                'last_session_ua' => \DB::table('sessions')
+                    ->select('user_agent')
+                    ->whereColumn('user_id', 'users.id')
+                    ->latest('last_activity')
+                    ->limit(1),
+            ]);
 
         if ($request->input('filter') === 'trashed') {
             $query->onlyTrashed();
@@ -43,6 +56,8 @@ class UserController extends Controller
                 $q->where('name', $request->role);
             });
         }
+
+        $query->orderBy('last_session_activity', 'DESC');
 
         $perPage = $request->input('perPage', 10);
         $users = $query->paginate($perPage)->withQueryString();
@@ -181,30 +196,44 @@ class UserController extends Controller
         if (empty($ids)) return back()->with('error', 'No users selected.');
 
         $ids = array_filter($ids, fn($id) => $id !== auth()->id());
-        User::whereIn('id', $ids)->delete();
+        if (is_array($ids) && count($ids) > 0) {
+            $ids = array_filter($ids, fn($id) => $id !== auth()->id());
+            User::whereIn('id', $ids)->delete();
 
-        return back()->with('success', count($ids) . ' users moved to trash.');
+            activity('bulk')
+                ->withProperties(['ids' => $ids])
+                ->log("Bulk moved " . count($ids) . " users to trash");
+        }
+        return back()->with('success', 'Selected users moved to trash.');
     }
 
     public function bulkRestore(Request $request)
     {
         $ids = json_decode($request->ids, true);
-        if (empty($ids)) return back()->with('error', 'No users selected.');
+        if (is_array($ids) && count($ids) > 0) {
+            User::withTrashed()->whereIn('id', $ids)->restore();
 
-        User::withTrashed()->whereIn('id', $ids)->restore();
+            activity('bulk')
+                ->withProperties(['ids' => $ids])
+                ->log("Bulk restored " . count($ids) . " users");
+        }
 
-        return back()->with('success', count($ids) . ' users restored.');
+        return back()->with('success', 'Selected users restored.');
     }
 
     public function bulkForceDelete(Request $request)
     {
         $ids = json_decode($request->ids, true);
-        if (empty($ids)) return back()->with('error', 'No users selected.');
+        if (is_array($ids) && count($ids) > 0) {
+            $ids = array_filter($ids, fn($id) => $id !== auth()->id());
+            User::withTrashed()->whereIn('id', $ids)->forceDelete();
 
-        $ids = array_filter($ids, fn($id) => $id !== auth()->id());
-        User::withTrashed()->whereIn('id', $ids)->forceDelete();
+            activity('bulk')
+                ->withProperties(['ids' => $ids])
+                ->log("Bulk permanently deleted " . count($ids) . " users");
+        }
 
-        return back()->with('success', count($ids) . ' users permanently deleted.');
+        return back()->with('success', 'Selected users permanently deleted.');
     }
 
     public function bulkStatus(Request $request)
@@ -212,10 +241,14 @@ class UserController extends Controller
         $ids = json_decode($request->ids, true);
         $status = $request->status;
 
-        if (empty($ids)) return back()->with('error', 'No users selected.');
+        if (is_array($ids) && count($ids) > 0) {
+            User::whereIn('id', $ids)->update(['status' => $status]);
 
-        User::whereIn('id', $ids)->update(['status' => $status]);
+            activity('bulk')
+                ->withProperties(['ids' => $ids, 'status' => $status])
+                ->log("Bulk updated status to {$status} for " . count($ids) . " users");
+        }
 
-        return back()->with('success', 'Status updated for ' . count($ids) . ' users.');
+        return back()->with('success', 'Selected users status updated.');
     }
 }

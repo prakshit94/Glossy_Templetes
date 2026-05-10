@@ -59,6 +59,10 @@ class ActivityController extends Controller
         $ids = json_decode($request->ids, true);
         if (is_array($ids) && count($ids) > 0) {
             Activity::whereIn('id', $ids)->delete();
+
+            activity('maintenance')
+                ->withProperties(['ids' => $ids])
+                ->log("Bulk deleted " . count($ids) . " activity log records");
         }
         return back()->with('success', 'Selected activities permanently deleted.');
     }
