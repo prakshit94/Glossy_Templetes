@@ -31,5 +31,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/verify', [AuthController::class, 'verifyMfa']);
             Route::post('/disable', [AuthController::class, 'disableMfa']);
         });
+
+        // Village Service Management
+        Route::prefix('logistics')->group(function () {
+            Route::get('/villages', [\App\Http\Controllers\Api\VillageApiController::class, 'index']);
+            Route::get('/villages/search', [\App\Http\Controllers\Api\VillageApiController::class, 'search']);
+            Route::get('/serviceability/check', [\App\Http\Controllers\Api\VillageApiController::class, 'checkServiceability']);
+            Route::post('/village-services/bulk-import', [\App\Http\Controllers\Api\VillageApiController::class, 'bulkImport']);
+        });
     });
 });

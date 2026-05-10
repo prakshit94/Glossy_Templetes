@@ -24,6 +24,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'audit.view',
             'teams.view', 'teams.manage',
             'settings.view',
+            
+            // Village Management
+            'villages.view', 'villages.create', 'villages.edit', 'villages.delete', 'villages.import',
+            
+            // Service Catalog
+            'services.view', 'services.create', 'services.edit', 'services.delete',
         ];
 
         foreach ($permissions as $permission) {
@@ -35,13 +41,21 @@ class RolesAndPermissionsSeeder extends Seeder
         // Super Admin gets all permissions via Gate::before in AuthServiceProvider
 
         $admin = Role::firstOrCreate(['name' => 'Admin']);
-        $admin->givePermissionTo(['users.view', 'users.create', 'users.edit', 'reports.view', 'audit.view', 'settings.view']);
+        $admin->givePermissionTo([
+            'users.view', 'users.create', 'users.edit', 
+            'reports.view', 'audit.view', 'settings.view',
+            'villages.view', 'villages.create', 'villages.edit', 'villages.import',
+            'services.view', 'services.create', 'services.edit'
+        ]);
 
         $manager = Role::firstOrCreate(['name' => 'Manager']);
-        $manager->givePermissionTo(['users.view', 'reports.view']);
+        $manager->givePermissionTo([
+            'users.view', 'reports.view',
+            'villages.view', 'services.view'
+        ]);
 
         $employee = Role::firstOrCreate(['name' => 'Employee']);
-        $employee->givePermissionTo(['reports.view']);
+        $employee->givePermissionTo(['reports.view', 'villages.view']);
 
         $customer = Role::firstOrCreate(['name' => 'Customer']);
     }

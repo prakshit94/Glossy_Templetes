@@ -137,6 +137,45 @@
             @endif
         </div>
 
+        <!-- SECTION: LOGISTICS -->
+        <div class="space-y-1">
+            @if(auth()->user()->can('villages.view') || auth()->user()->can('services.view'))
+            <div class="px-3 mb-2 transition-opacity duration-300"
+                :class="sidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'">
+                <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">
+                    Logistics
+                </h3>
+            </div>
+            @endif
+
+            @can('villages.view')
+            <x-layout.nav-link title="Villages" url="/villages" :active="request()->is('villages*')">
+                <x-slot name="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                        class="size-5">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                        <circle cx="12" cy="10" r="3" />
+                    </svg>
+                </x-slot>
+            </x-layout.nav-link>
+            @endcan
+
+            @can('services.view')
+            <x-layout.nav-link title="Services" url="/services" :active="request()->is('services*')">
+                <x-slot name="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                        class="size-5">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.29 7 12 12 20.71 7" />
+                        <line x1="12" y1="22" x2="12" y2="12" />
+                    </svg>
+                </x-slot>
+            </x-layout.nav-link>
+            @endcan
+        </div>
+
         <!-- SECTION: SYSTEM -->
         @can('settings.view')
         <div class="space-y-1">

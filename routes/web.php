@@ -7,6 +7,7 @@ Route::get('/', function () {
 });
 
 use App\Http\Controllers\Web\UserController;
+use App\Http\Controllers\Web\ServiceController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
@@ -36,6 +37,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/update', [\App\Http\Controllers\Web\SettingsController::class, 'update'])->name('update');
         Route::post('/clear-cache', [\App\Http\Controllers\Web\SettingsController::class, 'clearCache'])->name('clear-cache');
     });
+
+    // Village & Service Management
+    Route::post('/villages/import', [\App\Http\Controllers\Web\VillageController::class, 'import'])->name('villages.import');
+    Route::post('/villages/bulk-delete', [\App\Http\Controllers\Web\VillageController::class, 'bulkDelete'])->name('villages.bulk-delete');
+    Route::post('/villages/bulk-service', [\App\Http\Controllers\Web\VillageController::class, 'bulkServiceUpdate'])->name('villages.bulk-service');
+    Route::resource('villages', \App\Http\Controllers\Web\VillageController::class);
+    Route::post('/services/bulk-delete', [ServiceController::class, 'bulkDelete'])->name('services.bulk-delete');
+    Route::post('/services/bulk-status', [ServiceController::class, 'bulkStatusUpdate'])->name('services.bulk-status');
+    Route::get('/services/{service}/villages', [ServiceController::class, 'getVillages'])->name('services.villages');
+    Route::resource('services', ServiceController::class);
 });
 
 Route::post('/logout', function () {
