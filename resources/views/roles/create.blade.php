@@ -54,11 +54,11 @@
         }
     }">
         <div class="max-w-5xl mx-auto space-y-6">
-            <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-white/[0.03] dark:bg-white/[0.02] backdrop-blur-2xl rounded-[24px]">
-                <x-ui.card-header class="border-b border-white/10 bg-white/[0.02] p-6">
+            <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-[24px]">
+                <x-ui.card-header class="border-b border-border/40 bg-muted/10 p-6">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div class="flex items-center gap-4">
-                            <div class="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                            <div class="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
                                 <x-ui.icon name="shield" size="6" />
                             </div>
                             <div>
@@ -70,7 +70,7 @@
                         <div class="relative group w-full max-w-xs">
                             <x-ui.icon name="search" size="4" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                             <input type="text" x-model="permSearch" placeholder="Search Permissions..." 
-                                class="pl-11 pr-5 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm uppercase font-bold tracking-widest">
+                                class="pl-11 pr-5 py-2.5 rounded-xl border border-border/60 bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm uppercase font-bold tracking-widest text-foreground placeholder:text-muted-foreground/40">
                         </div>
                     </div>
                 </x-ui.card-header>
@@ -78,23 +78,23 @@
                 <form action="{{ route('roles.store') }}" method="POST">
                     @csrf
                     <x-ui.card-content class="p-0">
-                        <div class="p-8 border-b border-white/5 bg-white/[0.01]">
+                        <div class="p-8 border-b border-border/40 bg-muted/5">
                             <div class="max-w-xl space-y-2">
-                                <label class="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/60">Role Name</label>
+                                <label class="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/80">Role Name</label>
                                 <input type="text" name="name" value="{{ old('name') }}" required 
                                     placeholder="e.g. Finance Manager"
-                                    class="w-full px-5 py-3.5 rounded-xl bg-white/[0.05] border-white/10 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold text-base tracking-tight shadow-inner">
+                                    class="w-full px-5 py-3.5 rounded-xl bg-background/50 border border-border/60 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold text-base tracking-tight shadow-inner text-foreground placeholder:text-muted-foreground/40">
                                 @error('name') <p class="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
 
                         <x-ui.table>
-                            <x-ui.table-header class="bg-white/[0.02]">
-                                <x-ui.table-row class="border-b border-white/5 hover:bg-transparent">
+                            <x-ui.table-header class="bg-muted/10">
+                                <x-ui.table-row class="border-b border-border/40 hover:bg-transparent">
                                     <x-ui.table-head class="py-5 px-8 w-1/3">
                                         <label class="flex items-center gap-3 cursor-pointer group/global">
                                             <input type="checkbox" x-model="allChecked" @change="toggleAll" 
-                                                class="rounded-lg border-white/20 bg-transparent text-primary focus:ring-primary/20 size-5 cursor-pointer">
+                                                class="rounded-lg border-border/60 bg-background/50 text-primary focus:ring-primary/20 size-5 cursor-pointer">
                                             <span class="text-[10px] font-black uppercase tracking-[0.25em] text-primary group-hover/global:translate-x-1 transition-transform">Master Select</span>
                                         </label>
                                     </x-ui.table-head>
@@ -108,8 +108,8 @@
                                     <x-ui.table-row 
                                         x-show="hasVisiblePerms('{{ $group }}', {{ json_encode($groupPermissions->keyBy('name')->toArray()) }})"
                                         x-transition
-                                        class="hover:bg-primary/[0.03] transition-colors border-b border-white/5 last:border-0 group/row">
-                                        <x-ui.table-cell class="py-6 px-8 bg-white/[0.01]">
+                                        class="hover:bg-primary/[0.03] transition-colors border-b border-border/40 last:border-0 group/row">
+                                        <x-ui.table-cell class="py-6 px-8 bg-muted/5">
                                             <div class="flex items-center justify-between">
                                                 <div class="flex items-center gap-4">
                                                     <div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover/row:scale-110 transition-transform">
@@ -122,7 +122,7 @@
                                                         x-model="groupStates['{{ $group }}']"
                                                         data-group-toggle="{{ $group }}"
                                                         @change="toggleGroup('{{ $group }}', $event.target.checked)"
-                                                        class="rounded border-white/20 bg-transparent text-primary focus:ring-primary/20 size-4">
+                                                        class="rounded border-border/60 bg-background/50 text-primary focus:ring-primary/20 size-4">
                                                     <span class="text-[8px] font-black uppercase tracking-widest text-primary/40 group-hover/group:text-primary transition-colors">All</span>
                                                 </label>
                                             </div>
@@ -131,11 +131,11 @@
                                             <div class="flex flex-wrap gap-3">
                                                 @foreach($groupPermissions as $permission)
                                                     <label x-show="isMatch('{{ $group }}', '{{ $permission->name }}')" 
-                                                        class="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group/perm">
+                                                        class="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-muted/10 border border-border/40 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group/perm">
                                                         <input type="checkbox" name="permissions[]" value="{{ $permission->name }}" 
                                                             data-group="{{ $group }}"
                                                             @change="syncGroupCheckbox('{{ $group }}')"
-                                                            class="rounded-lg border-white/20 bg-transparent text-primary focus:ring-primary/20 size-5 transition-all">
+                                                            class="rounded-lg border-border/60 bg-background/50 text-primary focus:ring-primary/20 size-5 transition-all">
                                                         <span class="text-[11px] font-bold text-muted-foreground group-hover/perm:text-foreground transition-colors uppercase tracking-tight">
                                                             {{ str_replace($group . '.', '', $permission->name) }}
                                                         </span>
@@ -149,11 +149,11 @@
                         </x-ui.table>
                     </x-ui.card-content>
 
-                    <div class="p-6 bg-white/[0.02] border-t border-white/10 flex justify-end gap-3 rounded-b-[24px]">
-                        <x-ui.button variant="outline" type="button" onclick="history.back()" class="rounded-xl h-11 px-6 font-bold uppercase tracking-widest text-[10px]">
+                    <div class="p-6 bg-muted/10 border-t border-border/40 flex justify-end gap-3 rounded-b-[24px]">
+                        <x-ui.button variant="outline" type="button" onclick="history.back()" class="rounded-xl h-11 px-6 font-bold uppercase tracking-widest text-[10px] border-border text-muted-foreground hover:bg-muted">
                             Discard
                         </x-ui.button>
-                        <x-ui.button type="submit" class="rounded-xl h-11 px-8 font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
+                        <x-ui.button type="submit" class="rounded-xl h-11 px-8 font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
                             Create Role
                         </x-ui.button>
                     </div>

@@ -23,6 +23,9 @@ return new class extends Migration {
             $table->integer('min_stock_level')->default(0);
             $table->boolean('batch_tracking')->default(false);
             $table->boolean('expiry_tracking')->default(false);
+            $table->boolean('allow_overselling')->default(false);
+            $table->boolean('manage_stock')->default(true);
+            $table->text('application_instructions')->nullable();
             $table->string('status')->default('active')->index();
             $table->boolean('is_active')->default(true);
             $table->text('description')->nullable();

@@ -8,6 +8,9 @@ Route::get('/', function () {
 
 use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\ServiceController;
+use App\Http\Controllers\Web\ProductController;
+use App\Http\Controllers\Web\CategoryController;
+use App\Http\Controllers\Web\InventoryController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
@@ -47,6 +50,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/services/bulk-status', [ServiceController::class, 'bulkStatusUpdate'])->name('services.bulk-status');
     Route::get('/services/{service}/villages', [ServiceController::class, 'getVillages'])->name('services.villages');
     Route::resource('services', ServiceController::class);
+
+    // Catalog & Inventory
+    Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
+    Route::resource('products', ProductController::class);
+    Route::resource('categories', CategoryController::class);
+    Route::resource('inventory', InventoryController::class);
 });
 
 Route::post('/logout', function () {
