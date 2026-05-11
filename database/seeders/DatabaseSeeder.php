@@ -29,5 +29,20 @@ class DatabaseSeeder extends Seeder
 
         // Create 25 dummy users to test pagination and filters
         User::factory(25)->create();
+
+        // New Advanced Module Seeders
+        $this->call([
+            VillageSeeder::class,
+            ServiceSeeder::class,
+            MasterDataSeeder::class,
+            ProductDataSeeder::class,
+            PartyDataSeeder::class,
+            InventoryDataSeeder::class,
+            OrderDataSeeder::class,
+            LogisticsDataSeeder::class,
+            AccountingDataSeeder::class,
+            HRDataSeeder::class,
+            MarketingDataSeeder::class,
+        ]);
     }
 }
