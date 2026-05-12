@@ -28,7 +28,7 @@
                     </div>
                 </x-ui.card-header>
 
-                <x-ui.card-content class="p-8">
+                <x-ui.card-content class="p-8" x-data="{ allowOverselling: false }">
                     <form action="{{ route('products.store') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
                         @csrf
 
@@ -78,6 +78,19 @@
                                                 <option value="{{ $brand->id }}" {{ old('brand_id') == $brand->id ? 'selected' : '' }} class="bg-card">{{ $brand->name }}</option>
                                             @endforeach
                                         </select>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="space-y-2">
+                                        <label for="barcode" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Barcode / UPC</label>
+                                        <input type="text" name="barcode" id="barcode" value="{{ old('barcode') }}" 
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="Scan or enter barcode">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label for="weight" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Weight / Volume</label>
+                                        <input type="text" name="weight" id="weight" value="{{ old('weight') }}" 
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="e.g. 1kg, 500ml">
                                     </div>
                                 </div>
 
@@ -148,15 +161,24 @@
                                         </label>
                                     </div>
 
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <p class="text-sm font-bold text-foreground">Allow Overselling</p>
-                                            <p class="text-[10px] text-muted-foreground">Allow customers to buy even if out of stock</p>
+                                    <div class="flex flex-col gap-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="text-sm font-bold text-foreground">Allow Overselling</p>
+                                                <p class="text-[10px] text-muted-foreground">Allow customers to buy even if out of stock</p>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" name="allow_overselling" value="1" x-model="allowOverselling" class="sr-only peer">
+                                                <div class="w-11 h-6 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
                                         </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="allow_overselling" value="1" class="sr-only peer">
-                                            <div class="w-11 h-6 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                        </label>
+
+                                        <div x-show="allowOverselling" x-transition class="space-y-2 pl-4 border-l-2 border-primary/20">
+                                            <label for="overselling_qty" class="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Overselling Limit (Qty)</label>
+                                            <input type="number" name="overselling_qty" id="overselling_qty" value="{{ old('overselling_qty', 0) }}" 
+                                                class="w-full h-10 px-4 rounded-xl border border-primary/20 bg-primary/5 focus:bg-primary/10 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-black text-primary placeholder:text-primary/20" placeholder="Max units to oversell">
+                                            <p class="text-[8px] text-muted-foreground mt-1 ml-1 font-bold italic">How many extra units can be sold beyond zero stock?</p>
+                                        </div>
                                     </div>
                                 </div>
 

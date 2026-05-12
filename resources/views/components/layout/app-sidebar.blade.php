@@ -78,29 +78,13 @@
                Overview
             </h3>
          </div>
-         <x-layout.nav-link
+          <x-layout.nav-link
             title="Dashboard"
             url="/dashboard"
             :active="request()->is('dashboard')"
             >
             <x-slot name="icon">
-               <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="size-5"
-                  >
-                  <rect width="7" height="9" x="3" y="3" rx="1" />
-                  <rect width="7" height="5" x="14" y="3" rx="1" />
-                  <rect width="7" height="9" x="14" y="12" rx="1" />
-                  <rect width="7" height="5" x="3" y="16" rx="1" />
-               </svg>
+               <x-ui.icon name="dashboard" size="5" />
             </x-slot>
          </x-layout.nav-link>
       </div>
@@ -120,63 +104,35 @@
          'url' => '/users',
          'active' => request()->is('users*'),
          'permission' => 'users.view',
-         'icon' => '
-         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-         </svg>
-         ',
+         'icon' => '<x-ui.icon name="users" size="4" />',
          ],
          [
          'title' => 'Teams',
          'url' => '/teams',
          'active' => request()->is('teams*'),
          'permission' => 'teams.view',
-         'icon' => '
-         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M17 3.13a4 4 0 0 1 0 7.75"/>
-         </svg>
-         ',
+         'icon' => '<x-ui.icon name="users-2" size="4" />',
          ],
          [
          'title' => 'Roles',
          'url' => '/roles',
          'active' => request()->is('roles*'),
          'permission' => 'roles.view',
-         'icon' => '
-         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-            <rect width="18" height="18" x="3" y="3" rx="2"/>
-            <path d="M9 3v18"/>
-         </svg>
-         ',
+         'icon' => '<x-ui.icon name="shield" size="4" />',
          ],
          [
          'title' => 'Permissions',
          'url' => '/permissions',
          'active' => request()->is('permissions*'),
          'permission' => 'permissions.view',
-         'icon' => '
-         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-         </svg>
-         ',
+         'icon' => '<x-ui.icon name="lock" size="4" />',
          ],
          [
          'title' => 'System Activity',
          'url' => '/activities',
          'active' => request()->is('activities*'),
          'permission' => 'audit.view',
-         'icon' => '
-         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-            <path d="M12 20h9"/>
-            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
-         </svg>
-         ',
+         'icon' => '<x-ui.icon name="activity" size="4" />',
          ],
          ];
          $managementItems = array_filter($allManagementItems, function ($item) {
@@ -196,21 +152,7 @@
             :items="$managementItems"
             >
             <x-slot name="icon">
-               <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="size-5"
-                  >
-                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-               </svg>
+               <x-ui.icon name="lock" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
          @endif
@@ -231,25 +173,14 @@
          'url' => '/villages',
          'active' => request()->is('villages*'),
          'permission' => 'villages.view',
-         'icon' => '
-         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-            <circle cx="12" cy="10" r="3"/>
-         </svg>
-         ',
+         'icon' => '<x-ui.icon name="map-pin" size="4" />',
          ],
          [
          'title' => 'Services',
          'url' => '/services',
          'active' => request()->is('services*'),
          'permission' => 'services.view',
-         'icon' => '
-         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            <polyline points="3.29 7 12 12 20.71 7"/>
-            <line x1="12" y1="22" x2="12" y2="12"/>
-         </svg>
-         ',
+         'icon' => '<x-ui.icon name="box" size="4" />',
          ],
          ];
          $logisticsItems = array_filter($allLogisticsItems, function ($item) {
@@ -266,22 +197,7 @@
             :items="$logisticsItems"
             >
             <x-slot name="icon">
-               <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="size-5"
-                  >
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                  <polyline points="3.29 7 12 12 20.71 7"/>
-                  <line x1="12" y1="22" x2="12" y2="12"/>
-               </svg>
+               <x-ui.icon name="box" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
          @endif
@@ -328,9 +244,7 @@
             ]"
             >
             <x-slot name="icon">
-               <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7 12 3 4 7m16 0v10l-8 4m8-14-8 4m0 0L4 7m8 4v10"/>
-               </svg>
+               <x-ui.icon name="product" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
          {{-- Inventory Operations --}}
@@ -339,8 +253,8 @@
             :active="
             request()->is('inventory*') ||
             request()->is('warehouses*') ||
-            request()->is('stock-transfer*') ||
-            request()->is('stock-adjustment*')
+            request()->is('stock-transfers*') ||
+            request()->is('stock-adjustments*')
             "
             :items="[
             [
@@ -355,20 +269,18 @@
             ],
             [
             'title' => 'Stock Transfer',
-            'url' => '/stock-transfer',
-            'active' => request()->is('stock-transfer*'),
+            'url' => '/stock-transfers',
+            'active' => request()->is('stock-transfers*'),
             ],
             [
             'title' => 'Stock Adjustment',
-            'url' => '/stock-adjustment',
-            'active' => request()->is('stock-adjustment*'),
+            'url' => '/stock-adjustments',
+            'active' => request()->is('stock-adjustments*'),
             ],
             ]"
             >
             <x-slot name="icon">
-               <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7l9-4 9 4-9 4-9-4zm0 5l9 4 9-4m-18 5l9 4 9-4"/>
-               </svg>
+               <x-ui.icon name="warehouse" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
          {{-- Sales & Orders --}}
@@ -422,9 +334,7 @@
             ]"
             >
             <x-slot name="icon">
-               <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-6h13v6M3 5h18v6H3V5z"/>
-               </svg>
+               <x-ui.icon name="shopping-bag" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
          {{-- Procurement & Vendors --}}
@@ -454,9 +364,7 @@
             ]"
             >
             <x-slot name="icon">
-               <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6M5 4h14v16H5z"/>
-               </svg>
+               <x-ui.icon name="purchase" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
          {{-- Logistics & Delivery --}}
@@ -492,9 +400,7 @@
             ]"
             >
             <x-slot name="icon">
-               <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M1 3h15v13H1zm15 4h4l3 3v6h-7"/>
-               </svg>
+               <x-ui.icon name="truck" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
          {{-- Finance & Accounting --}}
@@ -530,9 +436,7 @@
             ]"
             >
             <x-slot name="icon">
-               <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-2 0-4 1-4 3s2 3 4 3 4 1 4 3-2 3-4 3"/>
-               </svg>
+               <x-ui.icon name="credit-card" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
 
@@ -548,8 +452,8 @@
     :items="[
     [
     'title' => 'Customers',
-    'url' => '/customers',
-    'active' => request()->is('customers*'),
+    'url' => route('customers.index'),
+    'active' => request()->routeIs('customers.*'),
     ],
     [
     'title' => 'Customer Groups',
@@ -569,9 +473,7 @@
     ]"
     >
     <x-slot name="icon">
-        <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
+        <x-ui.icon name="users" size="5" />
     </x-slot>
 </x-layout.nav-collapsible>
 
@@ -608,9 +510,7 @@
             ]"
             >
             <x-slot name="icon">
-               <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-               </svg>
+               <x-ui.icon name="employees" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
          {{-- Marketing & CRM --}}
@@ -640,9 +540,7 @@
             ]"
             >
             <x-slot name="icon">
-               <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5h18v14H3V5zm0 0 9 7 9-7"/>
-               </svg>
+               <x-ui.icon name="mail" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
          {{-- Analytics & Reports --}}
@@ -678,9 +576,7 @@
             ]"
             >
             <x-slot name="icon">
-               <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3v18h18"/>
-               </svg>
+               <x-ui.icon name="bar-chart" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
       </div>
@@ -702,28 +598,12 @@
             'title' => 'Settings',
             'url' => '/settings',
             'active' => request()->is('settings*'),
-            'icon' => '<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\' class=\'size-4\'><path d=\'M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.72V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.17a2 2 0 0 1 1-1.74l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z\'/><circle cx=\'12\' cy=\'12\' r=\'3\'/></svg>',
+            'icon' => '<x-ui.icon name=\'settings\' size=\'4\' />',
             ]
             ]"
             >
             <x-slot name="icon">
-               <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="size-5"
-                  >
-                  <path
-                     d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.72V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.17a2 2 0 0 1 1-1.74l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
-                     />
-                  <circle cx="12" cy="12" r="3" />
-               </svg>
+               <x-ui.icon name="settings" size="5" />
             </x-slot>
          </x-layout.nav-collapsible>
       </div>

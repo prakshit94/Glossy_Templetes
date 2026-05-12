@@ -110,7 +110,7 @@
 
                 @canany(['services.edit', 'services.delete'])
                 <x-ui.table-cell class="text-right">
-                    <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div class="flex items-center justify-end gap-1 transition-opacity">
                         @can('services.edit')
                         <a href="{{ route('services.edit', $service) }}">
                             <x-ui.button variant="ghost" size="icon" class="size-8 hover:bg-primary/5">

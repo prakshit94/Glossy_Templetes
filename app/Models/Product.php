@@ -35,6 +35,9 @@ class Product extends Model
         'is_active',
         'description',
         'default_warehouse_id',
+        'overselling_qty',
+        'image_path',
+        'weight',
     ];
 
     protected $casts = [
@@ -46,6 +49,7 @@ class Product extends Model
         'purchase_price' => 'decimal:2',
         'mrp' => 'decimal:2',
         'selling_price' => 'decimal:2',
+        'overselling_qty' => 'integer',
     ];
 
     public function category(): BelongsTo

@@ -69,7 +69,7 @@
                 
                 @canany(['villages.edit', 'villages.delete'])
                 <x-ui.table-cell class="text-right">
-                    <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <div class="flex justify-end gap-1 transition-all duration-300">
                         @can('villages.edit')
                         <a href="{{ route('villages.edit', $village) }}">
                             <x-ui.button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/5">

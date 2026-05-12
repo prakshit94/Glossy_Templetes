@@ -28,12 +28,22 @@ class InventoryController extends Controller
 
         $stocks = $query->paginate(15)->withQueryString();
         $warehouses = Warehouse::all();
+        
+        $stats = [
+            'total' => Stock::count(),
+            'low_stock' => Stock::where('quantity', '<=', 10)->count(),
+            'out_of_stock' => Stock::where('quantity', '<=', 0)->count(),
+            'warehouses_count' => Warehouse::count(),
+        ];
 
         if ($request->ajax()) {
-            return view('inventory.partials.table', compact('stocks'))->render();
+            return response()->json([
+                'table' => view('inventory.partials.table', compact('stocks'))->render(),
+                'stats' => $stats
+            ]);
         }
 
-        return view('inventory.index', compact('stocks', 'warehouses'));
+        return view('inventory.index', compact('stocks', 'warehouses', 'stats'));
     }
 
     public function update(Request $request, Stock $stock)

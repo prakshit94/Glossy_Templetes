@@ -120,7 +120,7 @@
             </div>
 
             <div class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-red-500/5 transition-all duration-500 overflow-hidden shadow-2xl">
-                <div class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-red-500/10 blur-[50px] rounded-full group-hover:bg-red-500/20 transition-all"></div>
+                <div class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-red-500/10 blur-[50px] rounded-full group-hover:bg-red-500/20 transition-all duration-500"></div>
                 <div class="flex items-center gap-5 relative z-10">
                     <div class="size-14 rounded-2xl bg-gradient-to-tr from-red-500/20 to-red-500/5 border border-red-500/10 text-red-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
                         <x-ui.icon name="x-circle" size="7" />
@@ -153,11 +153,11 @@
                                     class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest">
                                     Live
                                 </button>
-                                <button @click="filter = 'trashed'; performSearch()" 
-                                    :class="filter === 'trashed' ? 'bg-card shadow-sm text-destructive ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'" 
-                                    class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest">
-                                    Archive
-                                </button>
+                                    <button @click="filter = 'trashed'; performSearch()" 
+                                        :class="filter === 'trashed' ? 'bg-card shadow-sm text-destructive ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'" 
+                                        class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest">
+                                        Disabled Items
+                                    </button>
                             </div>
 
                             <div x-show="selectedItems.length > 0" x-cloak class="flex items-center gap-2">
@@ -225,11 +225,8 @@
             </x-ui.card-header>
 
             <x-ui.card-content class="p-0 relative">
-                <div x-show="isLoading" x-cloak class="absolute inset-0 z-50 bg-background/40 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-300">
-                    <div class="flex flex-col items-center gap-4">
-                        <x-ui.icon name="refresh-cw" class="animate-spin text-primary" size="8" />
-                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Refreshing Catalog</span>
-                    </div>
+                <div x-show="isLoading" x-cloak class="absolute inset-0 z-50 bg-background/50 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in duration-300">
+                    <x-ui.icon name="refresh-cw" class="animate-spin text-primary" size="6" />
                 </div>
                 <div id="table-container">
                     @include('products.partials.table')

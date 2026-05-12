@@ -56,6 +56,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('products', ProductController::class);
     Route::resource('categories', CategoryController::class);
     Route::resource('inventory', InventoryController::class);
+    Route::resource('warehouses', \App\Http\Controllers\Web\WarehouseController::class);
+    Route::get('warehouses/{warehouse}/stock', [\App\Http\Controllers\Web\WarehouseController::class, 'getStock'])->name('warehouses.stock');
+    
+    Route::resource('stock-transfers', \App\Http\Controllers\Web\StockTransferController::class)->names('transfers');
+    Route::post('stock-transfers/{transfer}/send', [\App\Http\Controllers\Web\StockTransferController::class, 'send'])->name('transfers.send');
+    Route::post('stock-transfers/{transfer}/receive', [\App\Http\Controllers\Web\StockTransferController::class, 'receive'])->name('transfers.receive');
+    Route::post('stock-transfers/{transfer}/cancel', [\App\Http\Controllers\Web\StockTransferController::class, 'cancel'])->name('transfers.cancel');
+
+    Route::resource('stock-adjustments', \App\Http\Controllers\Web\StockAdjustmentController::class)->names('adjustments');
+    Route::post('stock-adjustments/{adjustment}/approve', [\App\Http\Controllers\Web\StockAdjustmentController::class, 'approve'])->name('adjustments.approve');
+    Route::post('stock-adjustments/{adjustment}/reject', [\App\Http\Controllers\Web\StockAdjustmentController::class, 'reject'])->name('adjustments.reject');
+
+    // Customer Management
+    Route::post('/customers/bulk-delete', [\App\Http\Controllers\Web\CustomerController::class, 'bulkDelete'])->name('customers.bulk-delete');
+    Route::post('/customers/bulk-restore', [\App\Http\Controllers\Web\CustomerController::class, 'bulkRestore'])->name('customers.bulk-restore');
+    Route::post('/customers/bulk-force-delete', [\App\Http\Controllers\Web\CustomerController::class, 'bulkForceDelete'])->name('customers.bulk-force-delete');
+    Route::post('/customers/bulk-status', [\App\Http\Controllers\Web\CustomerController::class, 'bulkStatus'])->name('customers.bulk-status');
+    Route::post('/customers/{id}/restore', [\App\Http\Controllers\Web\CustomerController::class, 'restore'])->name('customers.restore');
+    Route::delete('/customers/{id}/force-delete', [\App\Http\Controllers\Web\CustomerController::class, 'forceDelete'])->name('customers.force-delete');
+    Route::resource('customers', \App\Http\Controllers\Web\CustomerController::class);
 });
 
 Route::post('/logout', function () {

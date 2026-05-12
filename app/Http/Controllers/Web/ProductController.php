@@ -112,11 +112,14 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'image' => 'nullable|image|max:2048',
             'attributes' => 'nullable|array',
+            'overselling_qty' => 'required_if:allow_overselling,1|nullable|integer|min:0',
+            'weight' => 'nullable|string|max:255',
         ]);
 
         $data['slug'] = Str::slug($data['name']);
         $data['allow_overselling'] = $request->has('allow_overselling');
         $data['manage_stock'] = $request->has('manage_stock');
+        $data['overselling_qty'] = $request->input('overselling_qty', 0);
         
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
@@ -170,11 +173,14 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'image' => 'nullable|image|max:2048',
             'attributes' => 'nullable|array',
+            'overselling_qty' => 'required_if:allow_overselling,1|nullable|integer|min:0',
+            'weight' => 'nullable|string|max:255',
         ]);
 
         $data['slug'] = Str::slug($data['name']);
         $data['allow_overselling'] = $request->has('allow_overselling');
         $data['manage_stock'] = $request->has('manage_stock');
+        $data['overselling_qty'] = $request->input('overselling_qty', 0);
 
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
