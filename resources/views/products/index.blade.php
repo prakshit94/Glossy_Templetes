@@ -5,13 +5,20 @@
         </h2>
     </x-slot>
 
+    @php
+        $qCategory = request('category') ? explode(',', request('category')) : [];
+        $qStatus = request('status') ? explode(',', request('status')) : [];
+    @endphp
+
     <div class="p-6 lg:p-10" x-data="{ 
         selectedItems: [], 
         allSelected: false,
         search: '{{ request('search', '') }}',
         perPage: '{{ request('perPage', 10) }}',
-        statusFilter: '{{ request('status', '') }}',
-        categoryFilter: '{{ request('category', '') }}',
+        categoryFilter: @js($qCategory),
+        statusFilter: @js($qStatus),
+        categoriesList: @js($categoriesList ?? []),
+        statusList: @js($statusList ?? []),
         filter: '{{ request('filter', 'active') }}',
         stats: @js($stats),
         isLoading: false,
@@ -31,35 +38,41 @@
             let params = new URLSearchParams({
                 search: this.search,
                 perPage: this.perPage,
-                status: this.statusFilter,
-                category: this.categoryFilter,
+                category: this.categoryFilter.join(','),
+                status: this.statusFilter.join(','),
                 filter: this.filter
             });
 
             // Persist to URL
             window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
 
-            const res = await fetch(
-                `{{ route('products.index') }}?${params.toString()}`,
-                { headers: { 
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                } }
-            );
-            
-            const data = await res.json();
-            document.getElementById('table-container').innerHTML = data.table;
-            this.stats = data.stats;
-
-            this.isLoading = false;
-            this.selectedItems = [];
-            this.allSelected = false;
+            try {
+                const res = await fetch(
+                    `{{ route('products.index') }}?${params.toString()}`,
+                    { headers: { 
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    } }
+                );
+                
+                const data = await res.json();
+                document.getElementById('table-container').innerHTML = data.table;
+                this.categoriesList = data.categoriesList;
+                this.statusList = data.statusList;
+                this.stats = data.stats;
+            } catch (error) {
+                console.error('Search failed:', error);
+            } finally {
+                this.isLoading = false;
+                this.selectedItems = [];
+                this.allSelected = false;
+            }
         },
 
         clearFilters() {
             this.search = '';
-            this.statusFilter = '';
-            this.categoryFilter = '';
+            this.categoryFilter = [];
+            this.statusFilter = [];
             this.filter = 'active';
             this.performSearch();
         }
@@ -122,37 +135,37 @@
 
         <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
             <x-ui.card-header class="border-b border-border/40 bg-muted/10 p-8">
-                <div class="flex flex-col gap-8">
+                <div class="flex flex-col gap-6">
                     
-                    <!-- Row 1: Title & Primary Actions -->
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                        <!-- Left Side: Title & Bulk Actions -->
+                    <!-- Row 1: Actions -->
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div class="flex flex-wrap items-center gap-3">
-                            <div class="flex bg-muted/50 px-4 py-1.5 rounded-xl border border-border/50 shadow-inner">
-                                <span class="text-xs font-bold text-primary tracking-widest uppercase">Master Catalog</span>
+                            <div class="flex bg-muted/50 p-1 rounded-xl border border-border/50 shadow-inner">
+                                <button @click="clearFilters" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-background shadow-sm text-primary ring-1 ring-border/50 uppercase tracking-tight hover:bg-muted">
+                                    Clear All Filters
+                                </button>
                             </div>
 
-                            <!-- View Toggle (Product Specific) -->
-                            <div class="flex bg-muted/20 p-1.5 rounded-2xl border border-border/60 shadow-inner">
+                            <!-- View Toggle -->
+                            <div class="flex bg-muted/20 p-1 rounded-xl border border-border/60 shadow-inner">
                                 <button @click="filter = 'active'; performSearch()" 
-                                    :class="filter === 'active' ? 'bg-card shadow-lg text-primary ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'" 
-                                    class="px-6 py-2 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest">
+                                    :class="filter === 'active' ? 'bg-card shadow-sm text-primary ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'" 
+                                    class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest">
                                     Live
                                 </button>
                                 <button @click="filter = 'trashed'; performSearch()" 
-                                    :class="filter === 'trashed' ? 'bg-card shadow-lg text-destructive ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'" 
-                                    class="px-6 py-2 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest">
+                                    :class="filter === 'trashed' ? 'bg-card shadow-sm text-destructive ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'" 
+                                    class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest">
                                     Archive
                                 </button>
                             </div>
 
-                            <!-- Bulk Actions Dropdown -->
-                            <div x-show="selectedItems.length > 0" x-cloak class="animate-in fade-in zoom-in duration-300">
+                            <div x-show="selectedItems.length > 0" x-cloak class="flex items-center gap-2">
                                 <x-ui.dropdown>
                                     <x-slot name="trigger">
-                                        <x-ui.button variant="outline" class="h-12 rounded-2xl border-primary/30 bg-primary/5 text-primary font-black uppercase tracking-widest text-[10px] px-6">
-                                            <span x-text="selectedItems.length" class="mr-1.5"></span> Selected
-                                            <x-ui.icon name="chevron-down" size="3" class="ml-2 opacity-50" />
+                                        <x-ui.button variant="outline" size="sm" class="rounded-xl border-primary/20 bg-primary/5 text-primary font-bold h-9">
+                                            <span x-text="selectedItems.length"></span> Selected
+                                            <x-ui.icon name="chevron-down" size="3" class="ml-2" />
                                         </x-ui.button>
                                     </x-slot>
                                     <x-slot name="content">
@@ -160,8 +173,9 @@
                                         <form action="{{ route('products.bulk-delete') }}" method="POST" onsubmit="return confirm('Delete selected items?')">
                                             @csrf
                                             <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
-                                            <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-black hover:bg-destructive/10 rounded-xl flex items-center text-destructive uppercase tracking-widest transition-colors">
-                                                <x-ui.icon name="trash" size="3.5" class="mr-2" /> Delete Selected
+                                            <button type="submit" class="w-full text-left px-2 py-1.5 text-xs hover:bg-muted rounded-md flex items-center text-destructive">
+                                                <x-ui.icon name="trash" size="3" class="mr-2" />
+                                                Delete Selected
                                             </button>
                                         </form>
                                     </x-slot>
@@ -169,67 +183,42 @@
                             </div>
                         </div>
 
-                        <!-- Right Side: Action Buttons -->
-                        <div class="flex items-center gap-3">
-                            <x-ui.button variant="outline" class="h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-sm hover:bg-muted/10 transition-all" onclick="alert('Import feature coming soon!')">
-                                <x-ui.icon name="activity" size="4" class="mr-2" /> Import
+                        <div class="flex flex-wrap items-center gap-2">
+                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-9" onclick="alert('Import feature coming soon!')">
+                                <x-ui.icon name="upload" size="3" class="mr-2" /> Import
                             </x-ui.button>
-                            <x-ui.button variant="outline" class="h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-sm hover:bg-muted/10 transition-all" onclick="alert('Export feature coming soon!')">
-                                <x-ui.icon name="external-link" size="4" class="mr-2" /> Export
+                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-9" onclick="alert('Export feature coming soon!')">
+                                <x-ui.icon name="download" size="3" class="mr-2" /> Export
                             </x-ui.button>
                             <a href="{{ route('products.create') }}">
-                                <x-ui.button class="h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">
-                                    <x-ui.icon name="plus" size="4" class="mr-2" /> Add Product
+                                <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-9 shadow-lg shadow-primary/20">
+                                    <x-ui.icon name="plus" size="3" class="mr-2" /> Add Product
                                 </x-ui.button>
                             </a>
                         </div>
                     </div>
 
-                    <!-- Row 2: Filters & Search -->
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-6 border-t border-border/40">
-                        <!-- Left Side: Select Filters -->
-                        <div class="flex flex-wrap items-center gap-4">
-                            <!-- Per Page Selector -->
+                    <!-- Row 2: Filters -->
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2 border-t border-white/5">
+                        <div class="flex flex-wrap items-center gap-3">
+                            
                             <div class="flex items-center gap-2">
-                                <span class="text-[10px] font-black text-muted-foreground uppercase tracking-widest hidden sm:inline-block">Show</span>
-                                <select x-model="perPage" @change="performSearch" 
-                                    class="h-12 px-5 rounded-2xl border border-border/60 bg-card/40 text-[10px] font-black uppercase tracking-widest focus:ring-4 focus:ring-primary/10 transition-all text-foreground cursor-pointer">
+                                <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Show</span>
+                                <select x-model="perPage" @change="performSearch" class="h-9 px-3 rounded-xl border border-border bg-background/50 text-xs font-medium focus:ring-1 focus:ring-primary outline-none">
                                     <option value="10">10</option>
                                     <option value="25">25</option>
                                     <option value="50">50</option>
                                 </select>
                             </div>
 
-                            <!-- Custom Filters (Product Specific) -->
-                            <select x-model="categoryFilter" @change="performSearch" 
-                                class="h-12 px-5 rounded-2xl border border-border/60 bg-card/40 text-[10px] font-black uppercase tracking-widest focus:ring-4 focus:ring-primary/10 transition-all text-foreground cursor-pointer">
-                                <option value="">All Categories</option>
-                                @foreach(\App\Models\Category::whereNull('parent_id')->get() as $cat)
-                                    <option value="{{ $cat->slug }}">{{ $cat->name }}</option>
-                                @endforeach
-                            </select>
-
-                            <select x-model="statusFilter" @change="performSearch" 
-                                class="h-12 px-5 rounded-2xl border border-border/60 bg-card/40 text-[10px] font-black uppercase tracking-widest focus:ring-4 focus:ring-primary/10 transition-all text-foreground cursor-pointer">
-                                <option value="">Status: All</option>
-                                <option value="active">Active</option>
-                                <option value="draft">Draft</option>
-                                <option value="out_of_stock">Out of Stock</option>
-                            </select>
+                            <!-- Product Filters -->
+                            @include('products.partials.filters')
                         </div>
 
-                        <!-- Right Side: Search Input -->
-                        <div class="relative group w-full lg:max-w-md shrink-0">
-                            <x-ui.icon name="search" size="5" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-                            <input type="text" x-model="search" @input.debounce.500ms="performSearch" 
-                                placeholder="Search catalog..."
-                                class="w-full h-14 pl-12 pr-4 rounded-2xl bg-background/50 border border-border/60 focus:bg-background focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-sm font-bold shadow-inner">
-                            <div x-show="isLoading" class="absolute right-4 top-1/2 -translate-y-1/2">
-                                <svg class="animate-spin h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                            </div>
+                        <div class="relative group w-full lg:max-w-xs">
+                            <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <input type="text" x-model="search" @input.debounce.500ms="performSearch" placeholder="Search catalog..." 
+                                class="pl-9 pr-4 py-2 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
                         </div>
                     </div>
                 </div>

@@ -68,18 +68,18 @@
                 </div>
             </x-ui.table-cell>
 
-            <!-- Specifications (User Security Profile style) -->
+            <!-- Specifications -->
             <x-ui.table-cell>
                 <div class="flex flex-col items-center gap-2">
                     <div class="flex items-center gap-1.5">
                         <div class="size-6 rounded-lg flex items-center justify-center transition-colors {{ $product->weight ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20' : 'bg-muted/10 text-muted-foreground/20' }}" title="Weight: {{ $product->weight ?? 'N/A' }}">
-                            <x-ui.icon name="anchor" size="3.5" />
+                            <x-ui.icon name="monitor" size="3.5" />
                         </div>
                         <div class="size-6 rounded-lg flex items-center justify-center transition-colors {{ $product->manage_stock ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-muted/10 text-muted-foreground/20' }}" title="Inventory Managed">
-                            <x-ui.icon name="database" size="3.5" />
+                            <x-ui.icon name="archive" size="3.5" />
                         </div>
                         <div class="size-6 rounded-lg flex items-center justify-center transition-colors {{ $product->category ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'bg-muted/10 text-muted-foreground/20' }}" title="Category: {{ $product->category->name ?? 'None' }}">
-                            <x-ui.icon name="tag" size="3.5" />
+                            <x-ui.icon name="category" size="3.5" />
                         </div>
                     </div>
                     @if($product->manage_stock)
@@ -99,7 +99,7 @@
                             $percent = $product->total_stock > 0 ? min(100, ($product->total_stock / ($product->min_stock_level * 2 ?: 100)) * 100) : 0;
                             $barColor = $product->total_stock <= 0 ? 'bg-red-500' : ($product->total_stock <= $product->min_stock_level ? 'bg-orange-500' : 'bg-emerald-500');
                         @endphp
-                        <div class="h-full {{ $barColor }} transition-all duration-1000 shadow-[0_0_8px_rgba(var(--color-primary),0.4)]" style="width: {{ $percent }}%"></div>
+                        <div class="h-full {{ $barColor }} transition-all duration-1000" style="width: {{ $percent }}%"></div>
                     </div>
                     @php
                         $statusColors = [
@@ -115,11 +115,11 @@
                 </div>
             </x-ui.table-cell>
 
-            <!-- Inventory Ledger (User Activity Ledger style) -->
+            <!-- Inventory Ledger -->
             <x-ui.table-cell>
                 <div class="flex flex-col gap-1">
                     <div class="flex items-center gap-1.5">
-                        <x-ui.icon name="plus-square" size="3" class="text-muted-foreground/40" />
+                        <x-ui.icon name="plus" size="3" class="text-muted-foreground/40" />
                         <span class="text-[10px] font-bold text-foreground/80 tracking-tight">Added {{ $product->created_at?->diffForHumans() ?? 'N/A' }}</span>
                     </div>
                     <div class="flex items-center gap-1.5">
@@ -154,7 +154,7 @@
                         </a>
                         <a href="{{ route('products.edit', $product) }}">
                             <x-ui.button variant="ghost" size="icon" class="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
-                                <x-ui.icon name="edit-3" size="4" />
+                                <x-ui.icon name="edit" size="4" />
                             </x-ui.button>
                         </a>
                         <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('Move this product to trash?')">

@@ -34,26 +34,18 @@ class ProductController extends Controller
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $statuses = array_filter(array_map('trim', explode(',', $request->status)));
+            $query->whereIn('status', $statuses);
         }
 
         if ($request->filled('category')) {
-            $query->whereHas('category', function($q) use ($request) {
-                $q->where('slug', $request->category);
+            $categories = array_filter(array_map('trim', explode(',', $request->category)));
+            $query->whereHas('category', function($q) use ($categories) {
+                $q->whereIn('slug', $categories);
             });
         }
 
         $query->latest();
-
-        $perPage = $request->input('perPage', 10);
-        $products = $query->paginate($perPage)->withQueryString();
-
-        if ($request->ajax()) {
-            return response()->json([
-                'table' => view('products.partials.table', compact('products'))->render(),
-                'stats' => $stats
-            ]);
-        }
 
         $stats = [
             'total' => Product::count(),
@@ -62,7 +54,30 @@ class ProductController extends Controller
             'low_stock' => Product::whereRaw('min_stock_level > (select sum(quantity) from stocks where product_id = products.id)')->count(),
         ];
 
-        return view('products.index', compact('products', 'stats'));
+        // dynamic lists
+        $categoriesList = Category::whereNull('parent_id')->get()->map(function($c) {
+            return ['slug' => $c->slug, 'name' => $c->name];
+        });
+        
+        $statusList = [
+            ['value' => 'active', 'label' => 'Active'],
+            ['value' => 'draft', 'label' => 'Draft'],
+            ['value' => 'out_of_stock', 'label' => 'Out of Stock'],
+        ];
+
+        $perPage = (int) $request->input('perPage', 10);
+        $products = $query->paginate($perPage)->withQueryString();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'table' => view('products.partials.table', compact('products'))->render(),
+                'categoriesList' => $categoriesList,
+                'statusList' => $statusList,
+                'stats' => $stats
+            ]);
+        }
+
+        return view('products.index', compact('products', 'stats', 'categoriesList', 'statusList'));
     }
 
     public function create()
