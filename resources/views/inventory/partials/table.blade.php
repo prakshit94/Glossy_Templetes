@@ -16,17 +16,21 @@
                     <td class="p-4">
                         <div class="flex items-center gap-3">
                             <div class="size-10 rounded-xl bg-gradient-to-tr from-orange-500/20 to-orange-500/5 border border-orange-500/10 flex items-center justify-center overflow-hidden shrink-0 shadow-inner group-hover:scale-105 transition-transform">
-                                @if($stock->product->image_path)
+                                @if($stock->product?->image_path)
                                     <img src="{{ asset('storage/' . $stock->product->image_path) }}" alt="{{ $stock->product->name }}" class="size-full object-cover">
                                 @else
                                     <x-ui.icon name="package" size="5" class="text-orange-500/40" />
                                 @endif
                             </div>
                             <div>
-                                <a href="{{ route('products.show', $stock->product) }}" class="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight block">
-                                    {{ $stock->product->name }}
-                                </a>
-                                <div class="text-[10px] text-muted-foreground font-mono mt-1 uppercase tracking-tight">{{ $stock->product->sku }}</div>
+                                @if($stock->product)
+                                    <a href="{{ route('products.show', $stock->product) }}" class="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight block">
+                                        {{ $stock->product->name }}
+                                    </a>
+                                    <div class="text-[10px] text-muted-foreground font-mono mt-1 uppercase tracking-tight">{{ $stock->product->sku }}</div>
+                                @else
+                                    <span class="text-sm font-bold text-red-500 italic">Product Missing</span>
+                                @endif
                             </div>
                         </div>
                     </td>
@@ -39,20 +43,20 @@
                     <td class="p-4">
                         <div class="flex flex-col gap-1">
                             <div class="flex items-center gap-2">
-                                <span class="text-[9px] font-black uppercase tracking-widest {{ $stock->product->manage_stock ? 'text-emerald-500' : 'text-muted-foreground/30' }}">Manage Stock</span>
+                                <span class="text-[9px] font-black uppercase tracking-widest {{ $stock->product?->manage_stock ? 'text-emerald-500' : 'text-muted-foreground/30' }}">Manage Stock</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-[9px] font-black uppercase tracking-widest {{ $stock->product->allow_overselling ? 'text-orange-500' : 'text-muted-foreground/30' }}">Allow Oversell</span>
+                                <span class="text-[9px] font-black uppercase tracking-widest {{ $stock->product?->allow_overselling ? 'text-orange-500' : 'text-muted-foreground/30' }}">Allow Oversell</span>
                             </div>
                         </div>
                     </td>
                     <td class="p-4 text-center">
-                        <div class="inline-flex items-center px-4 py-1.5 rounded-2xl {{ $stock->quantity <= $stock->product->min_stock_level ? 'bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' }} border text-sm font-black tracking-tight">
+                        <div class="inline-flex items-center px-4 py-1.5 rounded-2xl {{ $stock->quantity <= ($stock->product?->min_stock_level ?? 0) ? 'bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' }} border text-sm font-black tracking-tight">
                             {{ number_format($stock->quantity) }}
                         </div>
                     </td>
                     <td class="p-4 text-center text-xs font-bold text-muted-foreground opacity-60">
-                        {{ number_format($stock->product->min_stock_level) }}
+                        {{ number_format($stock->product?->min_stock_level ?? 0) }}
                     </td>
                     <td class="p-4 text-right">
                         <form action="{{ route('inventory.update', $stock) }}" method="POST" class="flex items-center justify-end gap-2">

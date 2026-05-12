@@ -51,9 +51,9 @@
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div class="space-y-2">
-                                        <label for="category_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Category & Subcategory</label>
+                                        <label for="category_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Category</label>
                                         <select name="category_id" id="category_id" required 
                                             class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium text-foreground dark:text-foreground">
                                             <option value="" class="bg-card text-foreground">Select Category</option>
@@ -68,29 +68,43 @@
                                         </select>
                                         @error('category_id') <p class="text-[10px] text-destructive font-bold mt-1 ml-1">{{ $message }}</p> @enderror
                                     </div>
-
                                     <div class="space-y-2">
-                                        <label for="brand_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Brand (Optional)</label>
+                                        <label for="brand_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Brand</label>
                                         <select name="brand_id" id="brand_id" 
                                             class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium text-foreground">
-                                            <option value="" class="bg-card">Select Brand</option>
+                                            <option value="" class="bg-card">No Brand</option>
                                             @foreach($brands as $brand)
                                                 <option value="{{ $brand->id }}" {{ old('brand_id') == $brand->id ? 'selected' : '' }} class="bg-card">{{ $brand->name }}</option>
                                             @endforeach
                                         </select>
                                     </div>
-                                </div>
+                                    <div class="space-y-2">
+                                        <label for="uom_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Unit (UOM)</label>
+                                        <select name="uom_id" id="uom_id" 
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium text-foreground">
+                                            <option value="" class="bg-card">Select Unit</option>
+                                            @foreach($uoms as $uom)
+                                                <option value="{{ $uom->id }}" {{ old('uom_id') == $uom->id ? 'selected' : '' }} class="bg-card">{{ $uom->name }} ({{ $uom->short_name }})</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>v>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div class="space-y-2">
                                         <label for="barcode" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Barcode / UPC</label>
                                         <input type="text" name="barcode" id="barcode" value="{{ old('barcode') }}" 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="Scan or enter barcode">
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="Scan barcode">
                                     </div>
                                     <div class="space-y-2">
                                         <label for="weight" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Weight / Volume</label>
                                         <input type="text" name="weight" id="weight" value="{{ old('weight') }}" 
                                             class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="e.g. 1kg, 500ml">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label for="min_stock_level" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Min Stock Level</label>
+                                        <input type="number" name="min_stock_level" id="min_stock_level" value="{{ old('min_stock_level', 0) }}" 
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-black text-red-500/80">
                                     </div>
                                 </div>
 
@@ -148,9 +162,38 @@
                                 </div>
 
                                 <div class="p-6 rounded-3xl bg-muted/10 border border-border/40 space-y-4">
-                                    <h4 class="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Inventory Settings</h4>
+                                    <h4 class="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Inventory & Tracking</h4>
                                     
-                                    <div class="flex items-center justify-between">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                        <div class="space-y-2">
+                                            <label for="default_warehouse_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Default Warehouse</label>
+                                            <select name="default_warehouse_id" id="default_warehouse_id" 
+                                                class="w-full h-10 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-bold text-foreground">
+                                                <option value="" class="bg-card">No Default</option>
+                                                @foreach($warehouses as $warehouse)
+                                                    <option value="{{ $warehouse->id }}" {{ old('default_warehouse_id') == $warehouse->id ? 'selected' : '' }} class="bg-card">{{ $warehouse->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="flex flex-col justify-center gap-2">
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Batch Tracking</span>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" name="batch_tracking" value="1" class="sr-only peer">
+                                                    <div class="w-9 h-5 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                </label>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Expiry Tracking</span>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" name="expiry_tracking" value="1" class="sr-only peer">
+                                                    <div class="w-9 h-5 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between border-t border-border/20 pt-4">
                                         <div>
                                             <p class="text-sm font-bold text-foreground">Manage Stock</p>
                                             <p class="text-[10px] text-muted-foreground">Track inventory levels for this product</p>

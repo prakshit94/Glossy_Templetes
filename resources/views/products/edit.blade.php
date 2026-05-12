@@ -48,9 +48,9 @@
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div class="space-y-2">
-                                        <label for="category_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Category & Subcategory</label>
+                                        <label for="category_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Category</label>
                                         <select name="category_id" id="category_id" required 
                                             class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground dark:text-foreground">
                                             <option value="" class="bg-card">Select Category</option>
@@ -74,9 +74,19 @@
                                             @endforeach
                                         </select>
                                     </div>
+                                    <div class="space-y-2">
+                                        <label for="uom_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Unit (UOM)</label>
+                                        <select name="uom_id" id="uom_id" 
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground">
+                                            <option value="" class="bg-card">Select Unit</option>
+                                            @foreach($uoms as $uom)
+                                                <option value="{{ $uom->id }}" {{ old('uom_id', $product->uom_id) == $uom->id ? 'selected' : '' }} class="bg-card">{{ $uom->name }} ({{ $uom->short_name }})</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div class="space-y-2">
                                         <label for="barcode" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Barcode / UPC</label>
                                         <input type="text" name="barcode" id="barcode" value="{{ old('barcode', $product->barcode) }}" 
@@ -86,6 +96,11 @@
                                         <label for="weight" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Weight / Volume</label>
                                         <input type="text" name="weight" id="weight" value="{{ old('weight', $product->weight) }}" 
                                             class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label for="min_stock_level" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Min Stock Level</label>
+                                        <input type="number" name="min_stock_level" id="min_stock_level" value="{{ old('min_stock_level', $product->min_stock_level) }}" 
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-black text-red-500/80">
                                     </div>
                                 </div>
 
@@ -143,9 +158,38 @@
                                 </div>
 
                                 <div class="p-6 rounded-3xl bg-muted/10 border border-border/40 space-y-4">
-                                    <h4 class="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Inventory Settings</h4>
+                                    <h4 class="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Inventory & Tracking</h4>
                                     
-                                    <div class="flex items-center justify-between">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                        <div class="space-y-2">
+                                            <label for="default_warehouse_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Default Warehouse</label>
+                                            <select name="default_warehouse_id" id="default_warehouse_id" 
+                                                class="w-full h-10 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-bold text-foreground">
+                                                <option value="" class="bg-card">No Default</option>
+                                                @foreach($warehouses as $warehouse)
+                                                    <option value="{{ $warehouse->id }}" {{ old('default_warehouse_id', $product->default_warehouse_id) == $warehouse->id ? 'selected' : '' }} class="bg-card">{{ $warehouse->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="flex flex-col justify-center gap-2">
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Batch Tracking</span>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" name="batch_tracking" value="1" {{ $product->batch_tracking ? 'checked' : '' }} class="sr-only peer">
+                                                    <div class="w-9 h-5 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                </label>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Expiry Tracking</span>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" name="expiry_tracking" value="1" {{ $product->expiry_tracking ? 'checked' : '' }} class="sr-only peer">
+                                                    <div class="w-9 h-5 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between border-t border-border/20 pt-4">
                                         <div>
                                             <p class="text-sm font-bold text-foreground">Manage Stock</p>
                                             <p class="text-[10px] text-muted-foreground">Track inventory levels for this product</p>
@@ -197,7 +241,7 @@
                                         <label for="image" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Product Image</label>
                                         <div class="relative group">
                                             <input type="file" name="image" id="image" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="previewImage(this)">
-                                            <div id="image-preview" class="aspect-square rounded-2xl border border-border/60 bg-background/50 flex flex-col items-center justify-center overflow-hidden shadow-inner">
+                                            <div id="image-preview" class="aspect-square rounded-2xl border-2 {{ $product->image_path ? '' : 'border-dashed' }} border-border/60 bg-background/50 flex flex-col items-center justify-center text-muted-foreground group-hover:border-primary/40 group-hover:bg-primary/5 transition-all overflow-hidden shadow-inner">
                                                 @if($product->image_path)
                                                     <img src="{{ asset('storage/' . $product->image_path) }}" class="w-full h-full object-cover">
                                                 @else
@@ -246,4 +290,18 @@
             </x-ui.card>
         </div>
     </div>
+
+    <script>
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var preview = document.getElementById('image-preview');
+                    preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                    preview.classList.remove('border-dashed');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
 </x-layouts.app>

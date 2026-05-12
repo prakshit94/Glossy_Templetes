@@ -12,7 +12,7 @@ class InventoryController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Stock::with(['product', 'warehouse']);
+        $query = Stock::with(['product', 'warehouse'])->whereHas('product');
 
         if ($request->filled('warehouse_id')) {
             $query->where('warehouse_id', $request->warehouse_id);
