@@ -7,5 +7,5 @@ use Illuminate\Database\Eloquent\Model;
 class UnitOfMeasure extends Model
 {
     protected $table = 'units_of_measure';
-    protected $fillable = ['name', 'short_name', 'status', 'is_active'];
+    protected $fillable = ['name', 'code', 'status', 'is_base_unit'];
 }

@@ -10,6 +10,11 @@ use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\ServiceController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\CategoryController;
+use App\Http\Controllers\Web\BrandController;
+use App\Http\Controllers\Web\ProductAttributeController;
+use App\Http\Controllers\Web\UnitOfMeasureController;
+use App\Http\Controllers\Web\TaxRateController;
+use App\Http\Controllers\Web\HsnCodeController;
 use App\Http\Controllers\Web\InventoryController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -55,6 +60,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
     Route::resource('products', ProductController::class);
     Route::resource('categories', CategoryController::class);
+    Route::resource('brands', BrandController::class);
+    Route::resource('attributes', ProductAttributeController::class);
+    Route::post('attributes/{attribute}/values', [ProductAttributeController::class, 'storeValue'])->name('attributes.values.store');
+    Route::delete('attribute-values/{value}', [ProductAttributeController::class, 'destroyValue'])->name('attribute-values.destroy');
+    Route::resource('uoms', UnitOfMeasureController::class);
+    Route::resource('tax-rates', TaxRateController::class);
+    Route::resource('hsn-codes', HsnCodeController::class);
     Route::resource('inventory', InventoryController::class);
     Route::resource('warehouses', \App\Http\Controllers\Web\WarehouseController::class);
     Route::get('warehouses/{warehouse}/stock', [\App\Http\Controllers\Web\WarehouseController::class, 'getStock'])->name('warehouses.stock');

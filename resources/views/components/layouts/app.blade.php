@@ -1,4 +1,6 @@
-@extends('layouts.app')
+@props(['pageTitle' => ''])
+
+@extends('layouts.app', ['pageTitle' => $pageTitle])
 
 @section('content')
     {{ $slot }}

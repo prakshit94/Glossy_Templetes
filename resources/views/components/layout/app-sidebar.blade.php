@@ -218,7 +218,10 @@
             request()->is('products*') ||
             request()->is('categories*') ||
             request()->is('brands*') ||
-            request()->is('attributes*')
+            request()->is('attributes*') ||
+            request()->is('uoms*') ||
+            request()->is('tax-rates*') ||
+            request()->is('hsn-codes*')
             "
             :items="[
             [
@@ -240,6 +243,21 @@
             'title' => 'Attributes',
             'url' => '/attributes',
             'active' => request()->is('attributes*'),
+            ],
+            [
+            'title' => 'Units of Measure',
+            'url' => '/uoms',
+            'active' => request()->is('uoms*'),
+            ],
+            [
+            'title' => 'Tax Rates',
+            'url' => '/tax-rates',
+            'active' => request()->is('tax-rates*'),
+            ],
+            [
+            'title' => 'HSN Codes',
+            'url' => '/hsn-codes',
+            'active' => request()->is('hsn-codes*'),
             ],
             ]"
             >
