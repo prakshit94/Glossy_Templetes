@@ -15,7 +15,6 @@
             this.editingAddress = address;
             this.resetVillageSearch();
             if (address && address.village) {
-                this.villageSearch = address.village.village_name || '';
                 this.editingAddress.village_name = address.village.village_name;
                 this.editingAddress.post_office = address.village.post_so_name;
                 this.editingAddress.taluka = address.village.taluka_name;
@@ -292,23 +291,34 @@
                                             @if($address->address_line_2)
                                                 <p>{{ $address->address_line_2 }}</p>
                                             @endif
-                                            <p class="pt-2 border-t border-border/40 mt-2 flex items-start gap-1.5 leading-tight">
-                                                <x-ui.icon name="map-pin" size="3" class="opacity-50 shrink-0 mt-0.5" />
-                                                <span>
+                                            <div class="pt-3 mt-3 border-t border-border/40 grid grid-cols-2 gap-y-3 gap-x-4">
                                                 @if($address->village)
-                                                    {{ collect([
-                                                        $address->village->village_name,
-                                                        $address->village->post_so_name ? 'PO: ' . $address->village->post_so_name : null,
-                                                        $address->village->taluka_name ? 'TQ: ' . $address->village->taluka_name : null,
-                                                        $address->city, 
-                                                        $address->state, 
-                                                        $address->pincode
-                                                    ])->filter()->implode(', ') }}
-                                                @else
-                                                    {{ collect([$address->city, $address->state, $address->pincode])->filter()->implode(', ') }}
+                                                    <div>
+                                                        <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground block mb-0.5">Village</span>
+                                                        <span class="text-xs font-medium text-foreground">{{ $address->village->village_name ?: '—' }}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground block mb-0.5">Post Office</span>
+                                                        <span class="text-xs font-medium text-foreground">{{ $address->village->post_so_name ?: '—' }}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground block mb-0.5">Taluka</span>
+                                                        <span class="text-xs font-medium text-foreground">{{ $address->village->taluka_name ?: '—' }}</span>
+                                                    </div>
                                                 @endif
-                                                </span>
-                                            </p>
+                                                <div>
+                                                    <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground block mb-0.5">District / City</span>
+                                                    <span class="text-xs font-medium text-foreground">{{ $address->city ?: '—' }}</span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground block mb-0.5">State</span>
+                                                    <span class="text-xs font-medium text-foreground">{{ $address->state ?: '—' }}</span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground block mb-0.5">Pincode</span>
+                                                    <span class="text-xs font-medium text-foreground">{{ $address->pincode ?: '—' }}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     @endforeach
