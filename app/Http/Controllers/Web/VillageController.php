@@ -118,6 +118,33 @@ class VillageController extends Controller
         return view('villages.create');
     }
 
+    /**
+     * Search villages by name or pincode for dropdowns (AJAX)
+     */
+    public function search(Request $request)
+    {
+        if (!$request->filled('q') || strlen($request->q) < 3) {
+            return response()->json(['data' => []]);
+        }
+
+        $villages = Village::search($request->q)
+            ->limit(50)
+            ->get()
+            ->map(function ($village) {
+                return [
+                    'id' => $village->id,
+                    'name' => $village->village_name,
+                    'pincode' => $village->pincode,
+                    'post_office' => $village->post_so_name,
+                    'taluka' => $village->taluka_name,
+                    'district' => $village->district_name,
+                    'state' => $village->state_name,
+                ];
+            });
+
+        return response()->json(['data' => $villages]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

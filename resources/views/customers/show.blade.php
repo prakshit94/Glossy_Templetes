@@ -3,17 +3,92 @@
     <div class="p-6 lg:p-10" x-data="{ 
         editingAddress: null,
         deletingAddress: null,
+        villageSearch: '',
+        villages: [],
+        searchingVillages: false,
         openAddModal() {
             this.editingAddress = null;
+            this.resetVillageSearch();
             $dispatch('open-modal', { name: 'address-modal' });
         },
         openEditModal(address) {
             this.editingAddress = address;
+            this.resetVillageSearch();
+            if (address && address.village) {
+                this.villageSearch = address.village.village_name || '';
+                this.editingAddress.village_name = address.village.village_name;
+                this.editingAddress.post_office = address.village.post_so_name;
+                this.editingAddress.taluka = address.village.taluka_name;
+            } else {
+                if (this.editingAddress) {
+                    this.editingAddress.village_name = '';
+                    this.editingAddress.post_office = '';
+                    this.editingAddress.taluka = '';
+                }
+            }
             $dispatch('open-modal', { name: 'address-modal' });
         },
         openDeleteModal(address) {
             this.deletingAddress = address;
             $dispatch('open-modal', { name: 'delete-address-modal' });
+        },
+        resetVillageSearch() {
+            this.villageSearch = '';
+            this.villages = [];
+        },
+        async searchVillages() {
+            if (this.villageSearch.length < 3) {
+                this.villages = [];
+                return;
+            }
+            this.searchingVillages = true;
+            try {
+                const res = await fetch(`/villages-search?q=${this.villageSearch}`, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!res.ok) throw new Error('Network response was not ok');
+                const data = await res.json();
+                this.villages = data.data || [];
+            } catch (e) {
+                console.error('Search failed:', e);
+            } finally {
+                this.searchingVillages = false;
+            }
+        },
+        selectVillage(village) {
+            this.villageSearch = village.name;
+            this.villages = [];
+            
+            const villageIdInput = document.getElementById('village_id');
+            if (villageIdInput) villageIdInput.value = village.id;
+            
+            const villageNameInput = document.getElementById('village_name');
+            if (villageNameInput) villageNameInput.value = village.name || '';
+
+            const cityInput = document.getElementById('city');
+            if (cityInput) cityInput.value = village.district || '';
+            
+            const stateInput = document.getElementById('state');
+            if (stateInput) stateInput.value = village.state || '';
+            
+            const pincodeInput = document.getElementById('pincode');
+            if (pincodeInput) pincodeInput.value = village.pincode || '';
+            
+            const talukaInput = document.getElementById('taluka');
+            if (talukaInput) talukaInput.value = village.taluka || '';
+
+            const postOfficeInput = document.getElementById('post_office');
+            if (postOfficeInput) postOfficeInput.value = village.post_office || '';
+            
+            if (this.editingAddress) {
+                this.editingAddress.village_id = village.id;
+                this.editingAddress.village_name = village.name;
+                this.editingAddress.city = village.district;
+                this.editingAddress.state = village.state;
+                this.editingAddress.pincode = village.pincode;
+                this.editingAddress.taluka = village.taluka;
+                this.editingAddress.post_office = village.post_office;
+            }
         }
     }">
         <div class="max-w-6xl mx-auto">
@@ -217,9 +292,22 @@
                                             @if($address->address_line_2)
                                                 <p>{{ $address->address_line_2 }}</p>
                                             @endif
-                                            <p class="pt-2 border-t border-border/40 mt-2 flex items-center gap-1.5">
-                                                <x-ui.icon name="map-pin" size="3" class="opacity-50" />
-                                                {{ collect([$address->city, $address->state, $address->pincode])->filter()->implode(', ') }}
+                                            <p class="pt-2 border-t border-border/40 mt-2 flex items-start gap-1.5 leading-tight">
+                                                <x-ui.icon name="map-pin" size="3" class="opacity-50 shrink-0 mt-0.5" />
+                                                <span>
+                                                @if($address->village)
+                                                    {{ collect([
+                                                        $address->village->village_name,
+                                                        $address->village->post_so_name ? 'PO: ' . $address->village->post_so_name : null,
+                                                        $address->village->taluka_name ? 'TQ: ' . $address->village->taluka_name : null,
+                                                        $address->city, 
+                                                        $address->state, 
+                                                        $address->pincode
+                                                    ])->filter()->implode(', ') }}
+                                                @else
+                                                    {{ collect([$address->city, $address->state, $address->pincode])->filter()->implode(', ') }}
+                                                @endif
+                                                </span>
                                             </p>
                                         </div>
                                     </div>
@@ -315,6 +403,35 @@
                         </div>
                     </div>
 
+                    <div class="space-y-2 relative">
+                        <label for="villageSearch" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Search Village / Area (Optional)</label>
+                        <div class="relative">
+                            <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <input type="text" id="villageSearch" x-model="villageSearch" @input.debounce.500ms="searchVillages" placeholder="Search by village name or pincode..." autocomplete="off"
+                                class="w-full h-11 pl-9 pr-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
+                            <div x-show="searchingVillages" x-cloak class="absolute right-3 top-1/2 -translate-y-1/2">
+                                <x-ui.icon name="refresh-cw" size="4" class="animate-spin text-primary" />
+                            </div>
+                        </div>
+                        
+                        <!-- Search Results Dropdown -->
+                        <div x-show="villages.length > 0" x-cloak @click.away="villages = []" class="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-lg shadow-primary/5 max-h-60 overflow-y-auto backdrop-blur-xl">
+                            <template x-for="village in villages" :key="village.id">
+                                <div @click="selectVillage(village)" class="p-3 border-b border-border/40 hover:bg-primary/5 cursor-pointer transition-colors last:border-0 group">
+                                    <p class="text-sm font-bold text-foreground group-hover:text-primary transition-colors" x-text="village.name"></p>
+                                    <p class="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
+                                        <span x-text="village.taluka"></span>, <span x-text="village.district"></span> - <span x-text="village.pincode"></span>
+                                        <template x-if="village.post_office">
+                                            <span> | PO: <span x-text="village.post_office"></span></span>
+                                        </template>
+                                    </p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="village_id" id="village_id" :value="editingAddress ? editingAddress.village_id : ''">
+
                     <div class="space-y-2">
                         <label for="address_line_1" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Address Line 1</label>
                         <input type="text" name="address_line_1" id="address_line_1" :value="editingAddress ? editingAddress.address_line_1 : ''" required 
@@ -327,9 +444,27 @@
                             class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div class="space-y-2">
-                            <label for="city" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">City</label>
+                            <label for="village_name" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Village</label>
+                            <input type="text" name="village_name" id="village_name" :value="editingAddress ? editingAddress.village_name : ''" 
+                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
+                        </div>
+                        <div class="space-y-2">
+                            <label for="post_office" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Post Office</label>
+                            <input type="text" name="post_office" id="post_office" :value="editingAddress ? editingAddress.post_office : ''" 
+                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                        <div class="space-y-2">
+                            <label for="taluka" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Taluka</label>
+                            <input type="text" name="taluka" id="taluka" :value="editingAddress ? editingAddress.taluka : ''" 
+                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
+                        </div>
+                        <div class="space-y-2">
+                            <label for="city" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">District</label>
                             <input type="text" name="city" id="city" :value="editingAddress ? editingAddress.city : ''" required 
                                 class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
                         </div>

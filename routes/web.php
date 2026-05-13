@@ -51,6 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/villages/import', [\App\Http\Controllers\Web\VillageController::class, 'import'])->name('villages.import');
     Route::post('/villages/bulk-delete', [\App\Http\Controllers\Web\VillageController::class, 'bulkDelete'])->name('villages.bulk-delete');
     Route::post('/villages/bulk-service', [\App\Http\Controllers\Web\VillageController::class, 'bulkServiceUpdate'])->name('villages.bulk-service');
+    Route::get('/villages-search', [\App\Http\Controllers\Web\VillageController::class, 'search'])->name('villages.search');
     Route::resource('villages', \App\Http\Controllers\Web\VillageController::class);
     Route::post('/services/bulk-delete', [ServiceController::class, 'bulkDelete'])->name('services.bulk-delete');
     Route::post('/services/bulk-status', [ServiceController::class, 'bulkStatusUpdate'])->name('services.bulk-status');
@@ -140,6 +141,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/customers/{id}/restore', [\App\Http\Controllers\Web\CustomerController::class, 'restore'])->name('customers.restore');
     Route::delete('/customers/{id}/force-delete', [\App\Http\Controllers\Web\CustomerController::class, 'forceDelete'])->name('customers.force-delete');
     Route::resource('customers', \App\Http\Controllers\Web\CustomerController::class);
+
+    // Customer Addresses
+    Route::post('customers/{customer}/addresses', [\App\Http\Controllers\Web\CustomerAddressController::class, 'store'])->name('customers.addresses.store');
+    Route::put('customers/{customer}/addresses/{address}', [\App\Http\Controllers\Web\CustomerAddressController::class, 'update'])->name('customers.addresses.update');
+    Route::delete('customers/{customer}/addresses/{address}', [\App\Http\Controllers\Web\CustomerAddressController::class, 'destroy'])->name('customers.addresses.destroy');
 });
 
 Route::post('/logout', function () {

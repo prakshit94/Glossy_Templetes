@@ -93,7 +93,7 @@ class CustomerController extends Controller
 
     public function show(Customer $customer)
     {
-        $customer->load('addresses');
+        $customer->load('addresses.village');
         return view('customers.show', compact('customer'));
     }
 
@@ -101,7 +101,7 @@ class CustomerController extends Controller
 
     public function edit(Customer $customer)
     {
-        $customer->load('addresses');
+        $customer->load('addresses.village');
         return view('customers.edit', compact('customer'));
     }
 
