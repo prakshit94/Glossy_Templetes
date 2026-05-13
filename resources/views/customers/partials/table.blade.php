@@ -138,8 +138,13 @@
                             </x-ui.button>
                         </form>
                     @else
+                        <a href="{{ route('customers.show', $customer) }}">
+                            <x-ui.button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 rounded-xl border border-transparent hover:border-blue-500/20 transition-all" title="View Profile">
+                                <x-ui.icon name="eye" size="4" />
+                            </x-ui.button>
+                        </a>
                         <a href="{{ route('customers.edit', $customer) }}">
-                            <x-ui.button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
+                            <x-ui.button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all" title="Edit Customer">
                                 <x-ui.icon name="edit-3" size="4" />
                             </x-ui.button>
                         </a>

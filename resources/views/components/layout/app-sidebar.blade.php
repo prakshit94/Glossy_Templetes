@@ -134,12 +134,12 @@
             <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">Access & People</h3>
          </div>
          @if(count($accessControlItems) > 0)
-         <x-layout.nav-collapsible title="Access Controller" :active="request()->is('users*') || request()->is('teams*') || request()->is('roles*') || request()->is('permissions*') || request()->is('activities*')" :items="$accessControlItems">
+         <x-layout.nav-collapsible title="Users & Access" :active="request()->is('users*') || request()->is('teams*') || request()->is('roles*') || request()->is('permissions*') || request()->is('activities*')" :items="$accessControlItems">
             <x-slot name="icon"><x-ui.icon name="shield-check" size="5" /></x-slot>
          </x-layout.nav-collapsible>
          @endif
          @if(count($crmItems) > 0)
-         <x-layout.nav-collapsible title="Customers & CRM" :active="request()->is('customers*') || request()->is('customer-groups*') || request()->is('reviews*') || request()->is('support-tickets*')" :items="$crmItems">
+         <x-layout.nav-collapsible title="Customers" :active="request()->is('customers*') || request()->is('customer-groups*') || request()->is('reviews*') || request()->is('support-tickets*')" :items="$crmItems">
             <x-slot name="icon"><x-ui.icon name="users" size="5" /></x-slot>
          </x-layout.nav-collapsible>
          @endif
