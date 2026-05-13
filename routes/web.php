@@ -124,7 +124,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     foreach ($sidebarScaffoldModules as $uri => $meta) {
         Route::get($uri, function () use ($uri, $meta) {
-            return view('shared.module-index', [
+            return view("{$uri}.index", [
                 'moduleKey' => $uri,
                 'moduleTitle' => $meta['title'],
                 'moduleIcon' => $meta['icon'],
