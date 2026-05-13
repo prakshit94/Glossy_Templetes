@@ -1,9 +1,4 @@
-<x-layouts.app>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Team Management') }}
-        </h2>
-    </x-slot>
+<x-layouts.app pageTitle="Team Management">
 
     <div class="p-6 lg:p-10" x-data="{ 
         selectedTeams: [], 
@@ -38,8 +33,8 @@
         }
     }">
         <!-- Team Stats Widgets -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <x-ui.card className="bg-background shadow-sm border-border/40">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <x-ui.card className="group relative bg-card/40 border-border/60 shadow-2xl backdrop-blur-xl overflow-hidden rounded-3xl hover:bg-primary/5 transition-all duration-500">
                 <x-ui.card-content className="p-4 flex items-center gap-4">
                     <div class="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                         <x-ui.icon name="briefcase" size="6" />
@@ -50,7 +45,7 @@
                     </div>
                 </x-ui.card-content>
             </x-ui.card>
-            <x-ui.card className="bg-background shadow-sm border-border/40">
+            <x-ui.card className="group relative bg-card/40 border-border/60 shadow-2xl backdrop-blur-xl overflow-hidden rounded-3xl hover:bg-emerald-500/5 transition-all duration-500">
                 <x-ui.card-content className="p-4 flex items-center gap-4">
                     <div class="size-12 rounded-xl bg-green-500/10 text-green-500 flex items-center justify-center">
                         <x-ui.icon name="users" size="6" />
@@ -61,7 +56,7 @@
                     </div>
                 </x-ui.card-content>
             </x-ui.card>
-            <x-ui.card className="bg-background shadow-sm border-border/40">
+            <x-ui.card className="group relative bg-card/40 border-border/60 shadow-2xl backdrop-blur-xl overflow-hidden rounded-3xl hover:bg-blue-500/5 transition-all duration-500">
                 <x-ui.card-content className="p-4 flex items-center gap-4">
                     <div class="size-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                         <x-ui.icon name="plus" size="6" />
@@ -72,7 +67,7 @@
                     </div>
                 </x-ui.card-content>
             </x-ui.card>
-            <x-ui.card className="bg-background shadow-sm border-border/40">
+            <x-ui.card className="group relative bg-card/40 border-border/60 shadow-2xl backdrop-blur-xl overflow-hidden rounded-3xl hover:bg-orange-500/5 transition-all duration-500">
                 <x-ui.card-content className="p-4 flex items-center gap-4">
                     <div class="size-12 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center">
                         <x-ui.icon name="pie-chart" size="6" />

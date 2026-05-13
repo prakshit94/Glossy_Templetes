@@ -23,7 +23,7 @@
     }
 @endphp
 <header
-    class="sticky top-0 z-40 flex h-20 w-full items-center justify-between border-b border-zinc-200/50 dark:border-white/10 bg-white/70 dark:bg-zinc-950/80 px-6 backdrop-blur-3xl transition-all duration-500 ease-in-out shadow-[0_4px_30px_rgba(0,0,0,0.03)] group/header">
+    class="sticky top-0 z-40 flex h-20 w-full items-center justify-between border-b border-border/60 bg-background/70 px-6 backdrop-blur-3xl transition-all duration-500 ease-in-out shadow-[0_4px_30px_rgba(0,0,0,0.03)] group/header">
 
     <!-- Premium Ambient Glow -->
     <div class="absolute inset-0 z-[-1] overflow-hidden pointer-events-none">
@@ -31,7 +31,7 @@
             class="absolute top-0 left-1/4 w-[500px] h-full bg-primary/5 blur-[80px] opacity-50 transform -translate-y-1/2 rounded-full transition-opacity duration-700 group-hover/header:opacity-80">
         </div>
         <div
-            class="absolute top-0 right-1/4 w-[400px] h-full bg-purple-500/5 blur-[100px] opacity-20 transform -translate-y-1/2 rounded-full transition-opacity duration-700 group-hover/header:opacity-40">
+            class="absolute top-0 right-1/4 w-[400px] h-full bg-primary/10 blur-[100px] opacity-20 transform -translate-y-1/2 rounded-full transition-opacity duration-700 group-hover/header:opacity-40">
         </div>
     </div>
 
@@ -45,7 +45,7 @@
 
         @if(!$hideSidebarToggle)
             <button
-                class="hidden md:flex items-center justify-center rounded-2xl p-2.5 text-muted-foreground hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-foreground hover:shadow-inner transition-all duration-300 active:scale-95 focus-visible:outline-none focus:ring-2 focus:ring-primary/20 backdrop-blur-md border border-transparent hover:border-zinc-200 dark:hover:border-white/20"
+                class="hidden md:flex items-center justify-center rounded-2xl p-2.5 text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:shadow-inner transition-all duration-300 active:scale-95 focus-visible:outline-none focus:ring-2 focus:ring-primary/20 backdrop-blur-md border border-transparent hover:border-border/70"
                 @click="toggleSidebar()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
@@ -61,9 +61,9 @@
         <!-- Premium Breadcrumbs -->
         <nav class="hidden md:flex items-center gap-2">
             <div
-                class="flex items-center p-1 bg-secondary/20 dark:bg-white/5 rounded-xl border border-white/10 backdrop-blur-md shadow-sm">
+                class="flex items-center p-1 bg-secondary/20 rounded-xl border border-border/60 backdrop-blur-md shadow-sm">
                 <a href="#"
-                    class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-primary hover:bg-white/50 dark:hover:bg-white/10 transition-all">
+                    class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-primary hover:bg-secondary/40 transition-all">
                     <div
                         class="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]">
                     </div>
@@ -105,22 +105,22 @@
         <!-- Search -->
         <div x-data="{ searchOpen: false }">
             <button @click="searchOpen = true"
-                class="group flex items-center justify-center rounded-2xl p-2.5 text-muted-foreground hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-foreground transition-all">
+                class="group flex items-center justify-center rounded-2xl p-2.5 text-muted-foreground hover:bg-secondary/40 hover:text-foreground transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             </button>
 
             <!-- Generic Search Modal -->
             <template x-teleport="body">
                 <div x-show="searchOpen" x-cloak x-transition.opacity
-                    class="fixed inset-0 z-[9999] flex items-start justify-center pt-20 bg-zinc-950/80 backdrop-blur-sm p-4"
+                    class="fixed inset-0 z-[9999] flex items-start justify-center pt-20 bg-background/80 backdrop-blur-sm p-4"
                     @keydown.escape.window="searchOpen = false">
-                    <div class="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[32px] shadow-2xl border border-white/10 overflow-hidden flex flex-col animate-in slide-in-from-top-4 duration-300"
+                    <div class="bg-card w-full max-w-2xl rounded-[32px] shadow-2xl border border-border/60 overflow-hidden flex flex-col animate-in slide-in-from-top-4 duration-300"
                         @click.away="searchOpen = false">
                         <div class="p-4 border-b border-border/50">
                             <div class="relative flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-4 size-5 text-muted-foreground"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                                 <input type="text" placeholder="Search anything (Cmd+K)..." 
-                                    class="w-full pl-12 pr-4 py-3 bg-secondary/50 dark:bg-zinc-800/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all">
+                                    class="w-full pl-12 pr-4 py-3 bg-secondary/30 rounded-2xl border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all">
                             </div>
                         </div>
                         <div class="p-8 text-center text-muted-foreground">
@@ -133,7 +133,7 @@
 
         <!-- Premium Action Group -->
         <div
-            class="flex items-center gap-1.5 p-1 bg-secondary/20 dark:bg-white/5 border border-white/10 rounded-2xl shadow-inner backdrop-blur-md">
+            class="flex items-center gap-1.5 p-1 bg-secondary/20 border border-border/60 rounded-2xl shadow-inner backdrop-blur-md">
             <!-- Theme Toggle -->
             <x-layout.theme-toggle />
 
@@ -143,7 +143,7 @@
             @endphp
             <div class="relative" x-data="{ open: false, count: {{ $unreadCount }} }" @click.away="open = false">
                 <button @click="open = !open"
-                    class="group relative inline-flex items-center justify-center rounded-xl size-10 text-muted-foreground hover:bg-white/50 dark:hover:bg-white/10 hover:text-primary transition-all duration-300 active:scale-90">
+                    class="group relative inline-flex items-center justify-center rounded-xl size-10 text-muted-foreground hover:bg-secondary/40 hover:text-primary transition-all duration-300 active:scale-90">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
                         class="size-5 relative z-10 transition-all group-hover:rotate-[15deg] group-hover:scale-110 active:scale-95">
@@ -152,7 +152,7 @@
                     </svg>
                     <!-- Unread Badge -->
                     <template x-if="count > 0">
-                        <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 rounded-full bg-red-500 border-2 border-white dark:border-zinc-950 z-20 text-[9px] font-bold text-white shadow-sm">
+                        <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 rounded-full bg-red-500 border-2 border-background z-20 text-[9px] font-bold text-white shadow-sm">
                             <span x-text="count > 99 ? '99+' : count"></span>
                         </span>
                     </template>
@@ -162,9 +162,9 @@
                 <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-300"
                     x-transition:enter-start="opacity-0 translate-y-4 scale-[0.98]"
                     x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                    class="absolute right-0 mt-3 w-80 sm:w-96 rounded-3xl border border-white/20 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] z-50 overflow-hidden ring-1 ring-black/5">
+                    class="absolute right-0 mt-3 w-80 sm:w-96 rounded-3xl border border-border/70 bg-popover/95 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] z-50 overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
 
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-white/5 dark:bg-white/2">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-secondary/20">
                         <div class="flex items-center gap-2">
                             <h3 class="text-xs font-black uppercase tracking-widest">Recent Activity</h3>
                             <template x-if="count > 0">
@@ -207,11 +207,11 @@
                                                 default => 'info'
                                             };
                                             $color = match($activity->event) {
-                                                'created' => 'text-green-500 bg-green-500/10',
-                                                'updated' => 'text-blue-500 bg-blue-500/10',
-                                                'deleted' => 'text-red-500 bg-red-500/10',
-                                                'restored' => 'text-orange-500 bg-orange-500/10',
-                                                default => 'text-gray-500 bg-gray-500/10'
+                                                'created' => 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10',
+                                                'updated' => 'text-primary bg-primary/10',
+                                                'deleted' => 'text-destructive bg-destructive/10',
+                                                'restored' => 'text-amber-600 dark:text-amber-400 bg-amber-500/10',
+                                                default => 'text-muted-foreground bg-muted'
                                             };
                                         @endphp
                                         <div class="size-8 rounded-full flex items-center justify-center {{ $color }}">

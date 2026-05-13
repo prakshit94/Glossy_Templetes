@@ -239,6 +239,72 @@
   }
 }
 
+@layer components {
+  /* Unified surface style used across legacy blade screens */
+  .app-surface {
+    @apply rounded-3xl border border-border/60 bg-card/40 shadow-2xl backdrop-blur-xl;
+  }
+
+  .app-surface-header {
+    @apply border-b border-border/40 bg-muted/10 p-6;
+  }
+
+  .app-toolbar {
+    @apply flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between;
+  }
+
+  .app-form-control {
+    @apply h-10 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground transition-all;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20;
+  }
+
+  .app-label {
+    @apply text-[10px] font-black uppercase tracking-widest text-muted-foreground/80;
+  }
+
+  /* Apply professional defaults to plain tables in legacy pages */
+  .table, table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .table thead tr, table thead tr {
+    @apply border-b border-border/40 bg-muted/10;
+  }
+
+  .table th, table th {
+    @apply px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground/70;
+  }
+
+  .table td, table td {
+    @apply px-4 py-3 align-middle;
+  }
+
+  .table tbody tr, table tbody tr {
+    @apply border-b border-border/40 transition-colors;
+  }
+
+  .table tbody tr:hover, table tbody tr:hover {
+    @apply bg-muted/10;
+  }
+
+  /* Normalize unstyled forms across modules */
+  input[type='text'],
+  input[type='email'],
+  input[type='number'],
+  input[type='password'],
+  input[type='date'],
+  input[type='datetime-local'],
+  input[type='search'],
+  textarea,
+  select {
+    @apply border-input bg-background/50;
+  }
+
+  textarea {
+    @apply min-h-[90px] rounded-xl px-3 py-2 text-sm;
+  }
+}
+
 @utility container {
   margin-inline: auto;
   padding-inline: 2rem;

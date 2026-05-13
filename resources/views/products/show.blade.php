@@ -1,19 +1,14 @@
-<x-layouts.app>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Product Details') }}: {{ $product->name }}
-        </h2>
-    </x-slot>
+<x-layouts.app pageTitle="Product Details">
 
     <div class="p-6 lg:p-10">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <!-- Left Side: Product Info -->
             <div class="lg:col-span-2 space-y-8">
-                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-white/[0.03] dark:bg-white/[0.02] backdrop-blur-2xl rounded-3xl">
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
                     <div class="p-8">
                         <div class="flex flex-col md:flex-row gap-8">
-                            <div class="w-full md:w-64 aspect-square rounded-3xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                            <div class="w-full md:w-64 aspect-square rounded-3xl bg-muted/20 border border-border/50 overflow-hidden flex items-center justify-center shrink-0">
                                 @if($product->image_path)
                                     <img src="{{ asset('storage/' . $product->image_path) }}" class="w-full h-full object-cover">
                                 @else
@@ -28,7 +23,7 @@
                                         </span>
                                         @if($product->category->parent)
                                             <span class="text-muted-foreground opacity-20"><x-ui.icon name="chevron-right" size="3" /></span>
-                                            <span class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                                            <span class="px-2 py-1 rounded-lg bg-muted/30 border border-border/40 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                                                 {{ $product->category->name }}
                                             </span>
                                         @endif
@@ -37,7 +32,7 @@
                                     <div class="flex items-center gap-3 mt-1">
                                         <p class="text-sm font-mono text-muted-foreground">{{ $product->sku }}</p>
                                         @if($product->hsnCode)
-                                            <span class="text-[9px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground font-bold uppercase">HSN: {{ $product->hsnCode->code }}</span>
+                                            <span class="text-[9px] px-2 py-0.5 rounded-full bg-muted/30 border border-border/40 text-muted-foreground font-bold uppercase">HSN: {{ $product->hsnCode->code }}</span>
                                         @endif
                                     </div>
                                 </div>
@@ -59,7 +54,7 @@
                                 </div>
 
                                 @if($product->attributeValues->count() > 0)
-                                    <div class="pt-6 border-t border-white/5">
+                                    <div class="pt-6 border-t border-border/30">
                                         <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Product Attributes</p>
                                         <div class="flex flex-wrap gap-4">
                                             @foreach($product->attributeValues->groupBy('attribute_id') as $attrId => $values)
@@ -67,7 +62,7 @@
                                                     <span class="text-[9px] font-black uppercase text-muted-foreground/40">{{ $values->first()->attribute->name }}</span>
                                                     <div class="flex gap-1.5">
                                                         @foreach($values as $val)
-                                                            <span class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-foreground flex items-center gap-2">
+                                                            <span class="px-2 py-1 rounded-lg bg-muted/30 border border-border/40 text-[10px] font-bold text-foreground flex items-center gap-2">
                                                                 @if($val->attribute->type === 'color')
                                                                     <span class="size-2 rounded-full" style="background-color: {{ $val->color_code }}"></span>
                                                                 @endif
@@ -105,14 +100,14 @@
                 </x-ui.card>
 
                 <!-- Stock by Warehouse -->
-                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-white/[0.03] dark:bg-white/[0.02] backdrop-blur-2xl rounded-3xl">
-                    <x-ui.card-header class="border-b border-white/10 bg-white/[0.02] p-6">
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
+                    <x-ui.card-header class="border-b border-border/40 bg-muted/5 p-6">
                         <h3 class="text-sm font-black text-foreground uppercase tracking-widest">Stock Availability</h3>
                     </x-ui.card-header>
                     <x-ui.card-content class="p-0">
                         <table class="w-full text-left border-collapse">
                             <thead>
-                                <tr class="bg-white/[0.01] border-b border-white/10">
+                                <tr class="bg-muted/5 border-b border-border/40">
                                     <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Warehouse</th>
                                     <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Quantity</th>
                                     <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-right">Status</th>
@@ -120,7 +115,7 @@
                             </thead>
                             <tbody>
                                 @foreach($product->stocks as $stock)
-                                    <tr class="border-b border-white/5">
+                                    <tr class="border-b border-border/30">
                                         <td class="p-4 font-bold text-sm text-foreground">{{ $stock->warehouse->name }}</td>
                                         <td class="p-4 text-center font-black text-lg text-primary">{{ number_format($stock->quantity) }}</td>
                                         <td class="p-4 text-right">
@@ -136,7 +131,7 @@
 
             <!-- Right Side: Actions & Quick Info -->
             <div class="space-y-6">
-                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-white/[0.03] dark:bg-white/[0.02] backdrop-blur-2xl rounded-3xl">
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
                     <div class="p-6 space-y-4">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Current Status</span>
@@ -146,7 +141,7 @@
                                     'draft' => 'bg-blue-500/10 text-blue-500 border-blue-500/20',
                                     'out_of_stock' => 'bg-red-500/10 text-red-500 border-red-500/20',
                                 ];
-                                $colorClass = $statusColors[$product->status] ?? 'bg-white/10 text-white/60 border-white/20';
+                                $colorClass = $statusColors[$product->status] ?? 'bg-muted/40 text-muted-foreground border-border/40';
                             @endphp
                             <span class="px-2.5 py-1 rounded-full border {{ $colorClass }} text-[10px] font-black uppercase tracking-widest">
                                 {{ str_replace('_', ' ', $product->status) }}
@@ -159,7 +154,7 @@
                                 Edit Product
                             </x-ui.button>
                         </a>
-                        <x-ui.button variant="outline" class="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white/5">
+                        <x-ui.button variant="outline" class="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-muted/30">
                             <x-ui.icon name="refresh-cw" size="3.5" class="mr-2" />
                             Adjust Inventory
                         </x-ui.button>
@@ -167,8 +162,8 @@
                 </x-ui.card>
 
                 <!-- Quick Facts -->
-                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-white/[0.03] dark:bg-white/[0.02] backdrop-blur-2xl rounded-3xl">
-                    <x-ui.card-header class="border-b border-white/10 bg-white/[0.02] p-4">
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
+                    <x-ui.card-header class="border-b border-border/40 bg-muted/5 p-4">
                         <h4 class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Quick Facts</h4>
                     </x-ui.card-header>
                     <div class="p-6 space-y-4">

@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\InventoryAdjustment;
 use App\Models\Warehouse;
 use App\Models\Product;
+use App\Services\InventoryService;
+use Illuminate\Validation\ValidationException;
 
 class StockAdjustmentController extends Controller
 {
@@ -59,7 +61,7 @@ class StockAdjustmentController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, InventoryService $inventoryService)
     {
         $request->validate([
             'warehouse_id' => 'required|exists:warehouses,id',
@@ -69,7 +71,7 @@ class StockAdjustmentController extends Controller
             'items.*.new_qty' => 'required|numeric|min:0',
         ]);
 
-        \DB::transaction(function() use ($request) {
+        \DB::transaction(function() use ($request, $inventoryService) {
             $adjustment = InventoryAdjustment::create([
                 'reference_no' => 'ADJ-' . strtoupper(uniqid()),
                 'warehouse_id' => $request->warehouse_id,
@@ -79,12 +81,8 @@ class StockAdjustmentController extends Controller
             ]);
 
             foreach ($request->items as $item) {
-                // Fetch current qty for reference (usually from Stock model)
-                $currentStock = \App\Models\Stock::where('warehouse_id', $request->warehouse_id)
-                    ->where('product_id', $item['product_id'])
-                    ->first();
-                
-                $currentQty = $currentStock ? $currentStock->quantity : 0;
+                $currentStock = $inventoryService->getStock($item['product_id'], $request->warehouse_id);
+                $currentQty = $currentStock->quantity;
                 $difference = $item['new_qty'] - $currentQty;
 
                 $adjustment->items()->create([
@@ -127,7 +125,7 @@ class StockAdjustmentController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id, InventoryService $inventoryService)
     {
         $adjustment = InventoryAdjustment::findOrFail($id);
         
@@ -143,7 +141,7 @@ class StockAdjustmentController extends Controller
             'items.*.new_qty' => 'required|numeric|min:0',
         ]);
 
-        \DB::transaction(function() use ($request, $adjustment) {
+        \DB::transaction(function() use ($request, $adjustment, $inventoryService) {
             $adjustment->update([
                 'warehouse_id' => $request->warehouse_id,
                 'reason' => $request->reason,
@@ -152,11 +150,8 @@ class StockAdjustmentController extends Controller
             $adjustment->items()->delete();
 
             foreach ($request->items as $item) {
-                $currentStock = \App\Models\Stock::where('warehouse_id', $request->warehouse_id)
-                    ->where('product_id', $item['product_id'])
-                    ->first();
-                
-                $currentQty = $currentStock ? $currentStock->quantity : 0;
+                $currentStock = $inventoryService->getStock($item['product_id'], $request->warehouse_id);
+                $currentQty = $currentStock->quantity;
                 $difference = $item['new_qty'] - $currentQty;
 
                 $adjustment->items()->create([
@@ -171,23 +166,16 @@ class StockAdjustmentController extends Controller
         return redirect()->route('adjustments.index')->with('success', 'Stock adjustment updated successfully.');
     }
 
-    public function approve(string $id)
+    public function approve(string $id, InventoryService $inventoryService)
     {
         $adjustment = InventoryAdjustment::with('items')->findOrFail($id);
         if ($adjustment->status !== 'pending') return back()->with('error', 'Invalid status.');
 
-        \DB::transaction(function() use ($adjustment) {
-            foreach ($adjustment->items as $item) {
-                $stock = \App\Models\Stock::firstOrCreate(
-                    ['warehouse_id' => $adjustment->warehouse_id, 'product_id' => $item->product_id],
-                    ['quantity' => 0]
-                );
-                
-                // Update to the new quantity exactly
-                $stock->update(['quantity' => $item->new_qty]);
-            }
-            $adjustment->update(['status' => 'approved']);
-        });
+        try {
+            $inventoryService->applyAdjustment($adjustment);
+        } catch (ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to approve adjustment.');
+        }
 
         return back()->with('success', 'Adjustment approved and stock updated.');
     }

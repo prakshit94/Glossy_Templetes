@@ -5,8 +5,8 @@
 @endif
 
 <x-ui.table>
-    <x-ui.table-header>
-        <x-ui.table-row>
+    <x-ui.table-header class="bg-muted/20">
+        <x-ui.table-row class="border-b border-border/60">
             <x-ui.table-head class="w-10">
                 <input type="checkbox" x-model="allSelected" @change="toggleAll" 
                     class="rounded border-border bg-background text-primary focus:ring-primary/20">
@@ -21,14 +21,14 @@
     </x-ui.table-header>
     <x-ui.table-body>
         @forelse($teams as $team)
-        <x-ui.table-row x-bind:class="selectedTeams.includes({{ $team->id }}) ? 'bg-primary/5' : ''">
+        <x-ui.table-row x-bind:class="selectedTeams.includes({{ $team->id }}) ? 'bg-primary/5' : 'hover:bg-muted/10 transition-colors'" class="group">
             <x-ui.table-cell>
                 <input type="checkbox" name="team_ids[]" value="{{ $team->id }}" :checked="selectedTeams.includes({{ $team->id }})" @change="toggleTeam({{ $team->id }})"
                     class="rounded border-border bg-background text-primary focus:ring-primary/20">
             </x-ui.table-cell>
             <x-ui.table-cell>
                 <div class="flex items-center gap-3">
-                    <div class="size-9 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-600">
+                    <div class="size-9 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-600 group-hover:bg-orange-500/15 transition-colors">
                         <x-ui.icon name="users" size="4" />
                     </div>
                     <span class="font-bold text-sm">{{ $team->name }}</span>
@@ -65,14 +65,14 @@
             <x-ui.table-cell className="text-right">
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('teams.edit', $team) }}">
-                        <x-ui.button variant="ghost" size="icon" className="size-8">
+                        <x-ui.button variant="ghost" size="icon" className="size-8 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors">
                             <x-ui.icon name="edit" size="3" />
                         </x-ui.button>
                     </a>
                     <form action="{{ route('teams.destroy', $team) }}" method="POST" onsubmit="return confirm('Delete team?')">
                         @csrf
                         @method('DELETE')
-                        <x-ui.button variant="ghost" size="icon" type="submit" className="size-8 text-destructive">
+                        <x-ui.button variant="ghost" size="icon" type="submit" className="size-8 rounded-xl text-destructive hover:bg-destructive/10 transition-colors">
                             <x-ui.icon name="trash" size="3" />
                         </x-ui.button>
                     </form>
@@ -81,14 +81,19 @@
         </x-ui.table-row>
         @empty
         <x-ui.table-row>
-            <x-ui.table-cell colspan="6" class="h-24 text-center">
-                No teams found.
+            <x-ui.table-cell colspan="7" class="h-40 text-center">
+                <div class="flex flex-col items-center justify-center gap-2 opacity-50">
+                    <x-ui.icon name="users" size="10" />
+                    <p class="text-sm font-black uppercase tracking-widest">No teams found</p>
+                </div>
             </x-ui.table-cell>
         </x-ui.table-row>
         @endforelse
     </x-ui.table-body>
 </x-ui.table>
 
-<div class="p-4 border-t border-border/40">
-    {{ $teams->links() }}
-</div>
+@if($teams->hasPages())
+    <div class="p-4 border-t border-border/40 bg-muted/5">
+        {{ $teams->links() }}
+    </div>
+@endif

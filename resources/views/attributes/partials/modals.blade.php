@@ -53,7 +53,7 @@
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" name="is_filterable" value="1" :checked="editingAttribute && editingAttribute.is_filterable" class="sr-only peer">
-                    <div class="w-11 h-6 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <div class="w-11 h-6 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
             </div>
 
@@ -115,7 +115,7 @@
                         <div class="flex items-center justify-between p-3 rounded-xl bg-card border border-border/40 hover:border-primary/20 transition-all group">
                             <div class="flex items-center gap-3">
                                 <template x-if="managingValues.type == 'color'">
-                                    <div class="size-5 rounded-full border border-white/20 shadow-sm" :style="`background-color: ${val.color_code}`"></div>
+                                    <div class="size-5 rounded-full border border-border/50 shadow-sm" :style="`background-color: ${val.color_code}`"></div>
                                 </template>
                                 <span class="text-sm font-bold text-foreground" x-text="val.value"></span>
                             </div>

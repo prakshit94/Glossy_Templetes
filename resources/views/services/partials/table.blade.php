@@ -1,6 +1,6 @@
 <x-ui.table>
     <x-ui.table-header class="bg-muted/30">
-        <x-ui.table-row>
+        <x-ui.table-row class="border-b border-border/60">
             @canany(['services.edit', 'services.delete'])
             <x-ui.table-head class="w-10 text-left">
                 <input type="checkbox" x-model="allSelected" @change="toggleAll" class="rounded border-border text-primary focus:ring-primary/20">
@@ -134,8 +134,11 @@
             </x-ui.table-row>
         @empty
             <x-ui.table-row>
-                <x-ui.table-cell colspan="{{ auth()->user()->canAny(['services.edit', 'services.delete']) ? 6 : 4 }}" class="py-12 text-center">
-                    <p class="text-muted-foreground text-[10px] font-bold uppercase">No records found</p>
+            <x-ui.table-cell colspan="{{ auth()->user()->canAny(['services.edit', 'services.delete']) ? 6 : 4 }}" class="py-14 text-center">
+                    <div class="flex flex-col items-center justify-center gap-2 opacity-50">
+                        <x-ui.icon name="inbox" size="10" />
+                        <p class="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">No records found</p>
+                    </div>
                 </x-ui.table-cell>
             </x-ui.table-row>
         @endforelse

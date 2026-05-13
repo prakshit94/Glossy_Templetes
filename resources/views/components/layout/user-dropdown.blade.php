@@ -1,14 +1,14 @@
 <div x-data="{ open: false }" class="relative" @keydown.escape.window="open = false">
     <button @click="open = !open"
-        class="group relative flex items-center gap-3 p-1 text-left rounded-2xl border border-white/10 bg-secondary/20 hover:bg-white/50 dark:hover:bg-white/10 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/20 backdrop-blur-md">
+        class="group relative flex items-center gap-3 p-1 text-left rounded-2xl border border-border/60 bg-secondary/20 hover:bg-secondary/40 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/20 backdrop-blur-md">
         <div
             class="relative size-10 rounded-xl bg-gradient-to-tr from-primary/20 to-purple-500/20 p-[1.5px] group-hover:rotate-[5deg] transition-all duration-500">
             <div
-                class="flex h-full w-full items-center justify-center rounded-[10px] bg-white dark:bg-zinc-900 border border-white/20 text-xs font-black uppercase tracking-widest text-primary shadow-inner">
+                class="flex h-full w-full items-center justify-center rounded-[10px] bg-background border border-border/60 text-xs font-black uppercase tracking-widest text-primary shadow-inner">
                 {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 2)) }}
             </div>
             <div
-                class="absolute -bottom-1 -right-1 size-3 rounded-full bg-emerald-500 border-2 border-white dark:border-zinc-900 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                class="absolute -bottom-1 -right-1 size-3 rounded-full bg-emerald-500 border-2 border-background animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]">
             </div>
         </div>
         <div class="hidden xl:block pr-3">
@@ -33,7 +33,7 @@
         x-transition:leave="transition ease-in duration-200"
         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
         x-transition:leave-end="opacity-0 translate-y-4 scale-[0.98]"
-        class="absolute right-0 mt-3 w-64 rounded-[32px] border border-white/20 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-3xl shadow-[0_30px_70px_-15px_rgba(0,0,0,0.5)] z-50 overflow-hidden ring-1 ring-black/5">
+        class="absolute right-0 mt-3 w-64 rounded-[32px] border border-border/70 bg-popover/95 backdrop-blur-3xl shadow-[0_30px_70px_-15px_rgba(0,0,0,0.5)] z-50 overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
         <div class="p-6 relative overflow-hidden">
             <div class="absolute -top-10 -right-10 size-32 bg-primary/10 blur-[40px] rounded-full"></div>
             <div class="relative z-10 space-y-1">

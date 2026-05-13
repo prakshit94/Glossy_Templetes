@@ -227,4 +227,20 @@ class ProductController extends Controller
         }
         return back()->with('success', 'Selected products deleted.');
     }
+
+    public function restore(string $id)
+    {
+        $product = Product::withTrashed()->findOrFail($id);
+        $product->restore();
+
+        return back()->with('success', 'Product restored successfully.');
+    }
+
+    public function forceDelete(string $id)
+    {
+        $product = Product::withTrashed()->findOrFail($id);
+        $product->forceDelete();
+
+        return back()->with('success', 'Product permanently deleted.');
+    }
 }

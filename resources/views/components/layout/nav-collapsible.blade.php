@@ -16,11 +16,11 @@
      @mouseleave="closeTimer = setTimeout(() => hoverOpen = false, 150)"
      class="group/collapsible relative">
     <button @click="open = !open"
-            class="peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-xl p-2.5 text-start text-sm outline-none transition-all duration-300 hover:bg-primary/5 hover:text-primary focus-visible:ring-2 active:bg-primary/10 {{ $active ? 'font-bold text-primary border border-primary/10 bg-primary/5' : 'text-sidebar-foreground border border-transparent' }}"
+            class="peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-xl p-2.5 text-start text-sm outline-none transition-all duration-300 hover:bg-secondary/40 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/20 active:bg-primary/10 {{ $active ? 'font-bold text-primary border border-primary/20 bg-primary/10' : 'text-sidebar-foreground border border-transparent' }}"
             :class="sidebarCollapsed ? 'justify-center p-2' : ''"
     >
         @if($active)
-             <div class="absolute left-[-12px] top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full shadow-[2px_0_8px_rgba(var(--primary-rgb),0.4)] z-50"></div>
+             <div class="absolute left-[-12px] top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full shadow-primary/40 shadow-md z-50"></div>
         @endif
         @if($icon)
             <div class="shrink-0">
@@ -50,11 +50,11 @@
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0 -translate-y-1"
          x-transition:enter-end="opacity-100 translate-y-0"
-         class="ml-3.5 mt-1 flex flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5"
+         class="ml-3.5 mt-1 flex flex-col gap-1 border-l border-sidebar-border/70 px-2.5 py-0.5"
     >
         @foreach($items as $item)
             <a href="{{ $item['url'] ?? '#' }}" 
-               class="flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm text-sidebar-foreground hover:bg-primary/5 hover:text-primary transition-all duration-300 {{ ($item['active'] ?? false) ? 'bg-primary/5 font-bold text-primary border border-primary/10' : 'border border-transparent' }}">
+               class="flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm text-sidebar-foreground hover:bg-secondary/40 hover:text-primary transition-all duration-300 {{ ($item['active'] ?? false) ? 'bg-primary/10 font-bold text-primary border border-primary/20' : 'border border-transparent' }}">
                 @if($item['icon'] ?? null)
                     {!! $item['icon'] !!}
                 @endif

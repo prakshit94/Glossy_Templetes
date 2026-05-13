@@ -4,7 +4,7 @@
             <a href="{{ route('services.index') }}" class="inline-flex items-center justify-center size-10 rounded-2xl bg-muted border border-border/60 hover:bg-muted/80 transition-all duration-300 shadow-sm">
                 <x-ui.icon name="chevron-left" size="4" class="text-foreground" />
             </a>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            <h2 class="font-semibold text-xl text-foreground leading-tight">
                 {{ __('Edit Service') }}: {{ $service->name }}
             </h2>
         </div>

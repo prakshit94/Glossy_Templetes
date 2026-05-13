@@ -1,9 +1,4 @@
-<x-layouts.app>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Permission Reference') }}
-        </h2>
-    </x-slot>
+<x-layouts.app pageTitle="Permission Reference">
 
     <div class="p-6 lg:p-10">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -28,7 +23,7 @@
                                 <span class="text-xs font-bold text-foreground group-hover:text-primary transition-colors">{{ ucwords(str_replace(['.', '_', '-'], ' ', str_replace($group . '.', '', $permission->name))) }}</span>
                                 <span class="text-[9px] font-medium text-muted-foreground font-mono">{{ $permission->name }}</span>
                             </div>
-                            <div class="size-6 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
+                            <div class="size-6 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all shadow-sm">
                                 <x-ui.icon name="key" size="3" />
                             </div>
                         </div>

@@ -21,15 +21,16 @@
         'icon'    => 'h-9 w-9',
     ];
 
-    $classes = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 " . $variants[$variant] . " " . $sizes[$size] . " " . $className;
+    $extraClass = trim($className . ' ' . ($attributes->get('class') ?? ''));
+    $classes = "inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-50 " . ($variants[$variant] ?? $variants['default']) . " " . ($sizes[$size] ?? $sizes['default']) . " " . $extraClass;
 @endphp
 
 @if($attributes->has('href'))
-    <a {{ $attributes->merge(['class' => $classes]) }}>
+    <a {{ $attributes->except('class')->merge(['class' => $classes]) }}>
         {{ $slot }}
     </a>
 @else
-    <button {{ $attributes->merge(['class' => $classes]) }}>
+    <button {{ $attributes->except('class')->merge(['class' => $classes]) }}>
         {{ $slot }}
     </button>
 @endif

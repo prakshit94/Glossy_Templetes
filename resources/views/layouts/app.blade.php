@@ -91,7 +91,7 @@
     class="min-h-svh w-full bg-background text-foreground antialiased overflow-x-hidden selection:bg-primary/20 selection:text-primary transition-colors duration-300">
 
     <!-- Global Background Pattern -->
-    <div class="fixed inset-0 z-[-1] bg-[#fafafa] dark:bg-[#09090b]">
+    <div class="fixed inset-0 z-[-1] bg-background">
         <div
             class="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]">
         </div>
@@ -106,7 +106,7 @@
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-[100] bg-zinc-950/60 backdrop-blur-sm md:hidden"
+         class="fixed inset-0 z-[100] bg-background/70 backdrop-blur-sm md:hidden"
          @click="mobileMenuOpen = false">
     </div>
 

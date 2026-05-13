@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\StockTransfer;
 use App\Models\Warehouse;
 use App\Models\Product;
+use App\Services\InventoryService;
+use Illuminate\Validation\ValidationException;
 
 class StockTransferController extends Controller
 {
@@ -150,33 +152,23 @@ class StockTransferController extends Controller
         $transfer = StockTransfer::findOrFail($id);
         if ($transfer->status !== 'draft') return back()->with('error', 'Invalid status.');
 
-        $transfer->update(['status' => 'sent']);
+        $transfer->update([
+            'status' => 'sent',
+            'sent_at' => now(),
+        ]);
         return back()->with('success', 'Transfer marked as sent.');
     }
 
-    public function receive(string $id)
+    public function receive(string $id, InventoryService $inventoryService)
     {
         $transfer = StockTransfer::with('items')->findOrFail($id);
         if ($transfer->status !== 'sent') return back()->with('error', 'Invalid status.');
 
-        \DB::transaction(function() use ($transfer) {
-            foreach ($transfer->items as $item) {
-                // Deduct from Source
-                $sourceStock = \App\Models\Stock::firstOrCreate(
-                    ['warehouse_id' => $transfer->from_warehouse_id, 'product_id' => $item->product_id],
-                    ['quantity' => 0]
-                );
-                $sourceStock->decrement('quantity', $item->quantity);
-
-                // Add to Destination
-                $destStock = \App\Models\Stock::firstOrCreate(
-                    ['warehouse_id' => $transfer->to_warehouse_id, 'product_id' => $item->product_id],
-                    ['quantity' => 0]
-                );
-                $destStock->increment('quantity', $item->quantity);
-            }
-            $transfer->update(['status' => 'received']);
-        });
+        try {
+            $inventoryService->receiveTransfer($transfer);
+        } catch (ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to receive transfer.');
+        }
 
         return back()->with('success', 'Transfer received and stock updated.');
     }

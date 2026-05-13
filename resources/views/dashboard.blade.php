@@ -1,9 +1,4 @@
-<x-layouts.app>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot>
+<x-layouts.app pageTitle="Dashboard">
 
     <div class="p-6 lg:p-10 space-y-10">
         <!-- Stats Grid -->
@@ -25,7 +20,7 @@
                         <p class="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{{ $stat['title'] }}</p>
                         <h3 class="text-3xl font-black mt-2 tracking-tight text-foreground">{{ $stat['value'] }}</h3>
                         <div class="flex items-center gap-2 mt-2">
-                            <span class="px-1.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 font-black text-[10px]">
+                            <span class="px-1.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black text-[10px]">
                                 {{ $stat['change'] }}
                             </span>
                             <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">vs last period</span>

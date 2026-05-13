@@ -1,6 +1,6 @@
 <x-layouts.app>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+        <h2 class="font-semibold text-xl text-foreground leading-tight">
             {{ __('Stock Transfers') }}
         </h2>
     </x-slot>
@@ -123,7 +123,7 @@
                     </div>
 
                     <!-- Row 2: Filters -->
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2 border-t border-white/5">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2 border-t border-border/30">
                         <div class="flex flex-wrap items-center gap-3">
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status</span>

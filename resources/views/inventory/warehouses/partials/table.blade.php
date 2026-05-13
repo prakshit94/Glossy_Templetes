@@ -2,7 +2,7 @@
     <x-ui.table-header class="bg-muted/30">
         <x-ui.table-row class="border-b border-border/60">
             <x-ui.table-head>Warehouse Name & Code</x-ui.table-head>
-            <x-ui.table-head>Location</x-ui.table-head>
+            <x-ui.table-head>Address / State</x-ui.table-head>
             <x-ui.table-head class="text-center">Stock Items</x-ui.table-head>
             <x-ui.table-head class="text-center">Status</x-ui.table-head>
             <x-ui.table-head class="text-right">Actions</x-ui.table-head>
@@ -24,7 +24,7 @@
                     </div>
                 </x-ui.table-cell>
                 
-                <x-ui.table-cell class="text-xs font-medium text-muted-foreground">{{ $warehouse->location ?? 'N/A' }}</x-ui.table-cell>
+                <x-ui.table-cell class="text-xs font-medium text-muted-foreground">{{ $warehouse->address ?? 'N/A' }}{{ $warehouse->state ? ', ' . $warehouse->state : '' }}</x-ui.table-cell>
 
                 <x-ui.table-cell class="text-center font-black text-xs">
                     {{ number_format($warehouse->stocks_count) }}

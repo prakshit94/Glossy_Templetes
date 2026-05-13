@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\UnitOfMeasureController;
 use App\Http\Controllers\Web\TaxRateController;
 use App\Http\Controllers\Web\HsnCodeController;
 use App\Http\Controllers\Web\InventoryController;
+use App\Http\Controllers\Web\OrderController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
@@ -58,6 +59,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Catalog & Inventory
     Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
+    Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore');
+    Route::delete('/products/{id}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force-delete');
     Route::resource('products', ProductController::class);
     Route::resource('categories', CategoryController::class);
     Route::resource('brands', BrandController::class);
@@ -67,6 +70,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('uoms', UnitOfMeasureController::class);
     Route::resource('tax-rates', TaxRateController::class);
     Route::resource('hsn-codes', HsnCodeController::class);
+    Route::get('inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
+    Route::post('inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
     Route::resource('inventory', InventoryController::class);
     Route::resource('warehouses', \App\Http\Controllers\Web\WarehouseController::class);
     Route::get('warehouses/{warehouse}/stock', [\App\Http\Controllers\Web\WarehouseController::class, 'getStock'])->name('warehouses.stock');
@@ -79,6 +84,53 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('stock-adjustments', \App\Http\Controllers\Web\StockAdjustmentController::class)->names('adjustments');
     Route::post('stock-adjustments/{adjustment}/approve', [\App\Http\Controllers\Web\StockAdjustmentController::class, 'approve'])->name('adjustments.approve');
     Route::post('stock-adjustments/{adjustment}/reject', [\App\Http\Controllers\Web\StockAdjustmentController::class, 'reject'])->name('adjustments.reject');
+    Route::resource('orders', OrderController::class);
+    Route::post('orders/{order}/confirm', [OrderController::class, 'confirm'])->name('orders.confirm');
+    Route::post('orders/{order}/ship', [OrderController::class, 'ship'])->name('orders.ship');
+
+    $sidebarScaffoldModules = [
+        'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
+        'reviews' => ['title' => 'Reviews & Ratings', 'icon' => 'star'],
+        'support-tickets' => ['title' => 'Support Tickets', 'icon' => 'mail'],
+        'invoices' => ['title' => 'Invoices', 'icon' => 'finance'],
+        'payments' => ['title' => 'Payments', 'icon' => 'credit-card'],
+        'order-tracking' => ['title' => 'Order Tracking', 'icon' => 'target'],
+        'returns' => ['title' => 'Returns', 'icon' => 'return'],
+        'refunds' => ['title' => 'Refunds', 'icon' => 'refresh-cw'],
+        'replacement' => ['title' => 'Replacement', 'icon' => 'package'],
+        'purchase-orders' => ['title' => 'Purchase Orders', 'icon' => 'purchase'],
+        'suppliers' => ['title' => 'Suppliers', 'icon' => 'building'],
+        'vendors' => ['title' => 'Vendors', 'icon' => 'building'],
+        'transport' => ['title' => 'Transport', 'icon' => 'truck'],
+        'delivery' => ['title' => 'Delivery', 'icon' => 'truck-2'],
+        'shipment-tracking' => ['title' => 'Shipment Tracking', 'icon' => 'target'],
+        'drivers' => ['title' => 'Drivers', 'icon' => 'users-2'],
+        'accounts' => ['title' => 'Accounts', 'icon' => 'finance'],
+        'expenses' => ['title' => 'Expenses', 'icon' => 'activity'],
+        'transactions' => ['title' => 'Transactions', 'icon' => 'credit-card'],
+        'financial-reports' => ['title' => 'Financial Reports', 'icon' => 'bar-chart'],
+        'sales-reports' => ['title' => 'Sales Reports', 'icon' => 'reports'],
+        'inventory-reports' => ['title' => 'Inventory Reports', 'icon' => 'inventory'],
+        'customer-analytics' => ['title' => 'Customer Analytics', 'icon' => 'users'],
+        'performance-reports' => ['title' => 'Performance Reports', 'icon' => 'activity'],
+        'employees' => ['title' => 'Employees', 'icon' => 'employees'],
+        'attendance' => ['title' => 'Attendance', 'icon' => 'calendar'],
+        'payroll' => ['title' => 'Payroll', 'icon' => 'finance'],
+        'departments' => ['title' => 'Departments', 'icon' => 'building'],
+        'campaigns' => ['title' => 'Campaigns', 'icon' => 'marketing'],
+        'coupons' => ['title' => 'Coupons', 'icon' => 'gift'],
+        'email-marketing' => ['title' => 'Email Marketing', 'icon' => 'mail'],
+    ];
+
+    foreach ($sidebarScaffoldModules as $uri => $meta) {
+        Route::get($uri, function () use ($uri, $meta) {
+            return view('shared.module-index', [
+                'moduleKey' => $uri,
+                'moduleTitle' => $meta['title'],
+                'moduleIcon' => $meta['icon'],
+            ]);
+        })->name(str_replace('-', '.', $uri) . '.index');
+    }
 
     // Customer Management
     Route::post('/customers/bulk-delete', [\App\Http\Controllers\Web\CustomerController::class, 'bulkDelete'])->name('customers.bulk-delete');

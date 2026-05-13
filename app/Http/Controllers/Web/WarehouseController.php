@@ -20,7 +20,8 @@ class WarehouseController extends Controller
             $query->where(function($q) use ($s) {
                 $q->where('name', 'like', "%$s%")
                   ->orWhere('code', 'like', "%$s%")
-                  ->orWhere('location', 'like', "%$s%");
+                  ->orWhere('address', 'like', "%$s%")
+                  ->orWhere('state', 'like', "%$s%");
             });
         }
 
@@ -48,8 +49,7 @@ class WarehouseController extends Controller
      */
     public function create()
     {
-        $users = \App\Models\User::all();
-        return view('inventory.warehouses.create', compact('users'));
+        return view('inventory.warehouses.create');
     }
 
     /**
@@ -60,12 +60,16 @@ class WarehouseController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:warehouses,code',
-            'location' => 'required|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
-            'manager_id' => 'nullable|exists:users,id',
+            'is_default' => 'boolean',
         ]);
 
-        Warehouse::create($request->all());
+        $data = $request->all();
+        $data['is_default'] = $request->has('is_default');
+
+        Warehouse::create($data);
 
         return redirect()->route('warehouses.index')->with('success', 'Warehouse created successfully.');
     }
@@ -75,15 +79,14 @@ class WarehouseController extends Controller
      */
     public function show(string $id)
     {
-        $warehouse = Warehouse::with(['stocks.product', 'manager'])->findOrFail($id);
+        $warehouse = Warehouse::with(['stocks.product'])->findOrFail($id);
         return view('inventory.warehouses.show', compact('warehouse'));
     }
 
     public function edit(string $id)
     {
         $warehouse = Warehouse::findOrFail($id);
-        $users = \App\Models\User::all();
-        return view('inventory.warehouses.edit', compact('warehouse', 'users'));
+        return view('inventory.warehouses.edit', compact('warehouse'));
     }
 
     /**
@@ -116,12 +119,16 @@ class WarehouseController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:warehouses,code,' . $id,
-            'location' => 'required|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
-            'manager_id' => 'nullable|exists:users,id',
+            'is_default' => 'boolean',
         ]);
 
-        $warehouse->update($request->all());
+        $data = $request->all();
+        $data['is_default'] = $request->has('is_default');
+
+        $warehouse->update($data);
 
         return redirect()->route('warehouses.index')->with('success', 'Warehouse updated successfully.');
     }

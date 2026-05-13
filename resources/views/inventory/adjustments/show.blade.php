@@ -1,6 +1,6 @@
 <x-layouts.app>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+        <h2 class="font-semibold text-xl text-foreground leading-tight">
             {{ __('Adjustment Details') }}
         </h2>
     </x-slot>
@@ -16,7 +16,7 @@
                         </div>
                         <div>
                             <div class="flex items-center gap-3 mb-1">
-                                <h3 class="text-2xl font-black text-foreground tracking-tight">{{ $adjustment->adjustment_no }}</h3>
+                                <h3 class="text-2xl font-black text-foreground tracking-tight">{{ $adjustment->reference_no }}</h3>
                                 <x-ui.badge variant="{{ $adjustment->status === 'approved' ? 'success' : ($adjustment->status === 'rejected' ? 'destructive' : 'warning') }}" class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
                                     {{ $adjustment->status }}
                                 </x-ui.badge>

@@ -5,8 +5,8 @@
 @endif
 
 <x-ui.table>
-    <x-ui.table-header>
-        <x-ui.table-row>
+    <x-ui.table-header class="bg-muted/20">
+        <x-ui.table-row class="border-b border-border/60">
             <x-ui.table-head class="w-12 text-center">
                 <input type="checkbox" x-model="allSelected" @change="toggleAll" class="rounded border-border text-primary focus:ring-primary/20 bg-background/50">
             </x-ui.table-head>
@@ -20,7 +20,7 @@
     </x-ui.table-header>
     <x-ui.table-body>
         @forelse($activities as $activity)
-        <x-ui.table-row>
+        <x-ui.table-row class="hover:bg-muted/10 transition-colors">
             <x-ui.table-cell class="text-center">
                 <input type="checkbox" name="activity_ids[]" value="{{ $activity->id }}" :checked="selectedActivities.includes({{ $activity->id }})" @change="toggleActivity({{ $activity->id }})" class="rounded border-border text-primary focus:ring-primary/20 bg-background/50">
             </x-ui.table-cell>
@@ -38,7 +38,7 @@
                         'updated' => 'text-blue-500 bg-blue-500/10 border-blue-500/20',
                         'deleted' => 'text-red-500 bg-red-500/10 border-red-500/20',
                         'restored' => 'text-orange-500 bg-orange-500/10 border-orange-500/20',
-                        default => 'text-gray-500 bg-gray-500/10 border-gray-500/20'
+                        default => 'text-muted-foreground bg-muted/30 border-border/40'
                     };
                 @endphp
                 <div class="size-8 rounded-full border flex items-center justify-center {{ $color }}" title="{{ ucfirst($activity->event) }}">

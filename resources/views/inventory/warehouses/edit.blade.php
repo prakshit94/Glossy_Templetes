@@ -1,28 +1,11 @@
 <x-layouts.app>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+        <h2 class="font-semibold text-xl text-foreground leading-tight">
             {{ __('Edit Warehouse') }}
         </h2>
     </x-slot>
 
-    <div class="p-6 lg:p-10" x-data="{
-        managerSearch: '{{ $warehouse->manager?->name ?? '' }}',
-        managerOpen: false,
-        managerId: '{{ $warehouse->manager_id }}',
-        users: @js($users),
-
-        selectManager(user) {
-            this.managerId = user.id;
-            this.managerOpen = false;
-            this.managerSearch = user.name;
-        },
-
-        getFilteredUsers() {
-            const s = this.managerSearch.toLowerCase();
-            if (!s) return this.users;
-            return this.users.filter(u => u.name.toLowerCase().includes(s) || (u.email && u.email.toLowerCase().includes(s)));
-        }
-    }">
+    <div class="p-6 lg:p-10">
         <div class="max-w-4xl mx-auto">
             <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
                 <x-ui.card-header class="border-b border-border/40 bg-muted/10 p-6">
@@ -67,45 +50,27 @@
                         </div>
 
                         <div class="space-y-2">
-                            <label for="location" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Location / Address</label>
-                            <input type="text" name="location" id="location" value="{{ old('location', $warehouse->location) }}" required 
+                            <label for="address" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Address</label>
+                            <input type="text" name="address" id="address" value="{{ old('address', $warehouse->address) }}" 
                                 class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="Full address of the warehouse">
-                            @error('location') <p class="text-[10px] text-destructive font-bold mt-1 ml-1">{{ $message }}</p> @enderror
+                            @error('address') <p class="text-[10px] text-destructive font-bold mt-1 ml-1">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Manager</label>
-                                <div class="relative">
-                                    <input type="text" 
-                                        placeholder="Search manager..."
-                                        x-model="managerSearch"
-                                        @focus="managerOpen = true"
-                                        @click.away="managerOpen = false"
-                                        class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium pr-10">
-                                    <input type="hidden" name="manager_id" :value="managerId">
-                                    <div class="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 pointer-events-none">
-                                        <x-ui.icon name="search" size="4" />
-                                    </div>
+                                <label for="state" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">State</label>
+                                <input type="text" name="state" id="state" value="{{ old('state', $warehouse->state) }}" 
+                                    class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="State">
+                                @error('state') <p class="text-[10px] text-destructive font-bold mt-1 ml-1">{{ $message }}</p> @enderror
+                            </div>
 
-                                    <div x-show="managerOpen" 
-                                        x-transition:enter="transition ease-out duration-200"
-                                        x-transition:enter-start="opacity-0 translate-y-1"
-                                        x-transition:enter-end="opacity-100 translate-y-0"
-                                        class="absolute z-[100] mt-1 w-full bg-popover border border-border rounded-2xl shadow-2xl p-1 max-h-60 overflow-y-auto custom-scrollbar">
-                                        <template x-for="user in getFilteredUsers()" :key="user.id">
-                                            <button type="button" 
-                                                @click="selectManager(user)"
-                                                class="w-full text-left px-4 py-2.5 rounded-xl hover:bg-muted text-sm transition-colors flex flex-col gap-0.5">
-                                                <span class="font-bold text-foreground" x-text="user.name"></span>
-                                                <span class="text-[10px] text-muted-foreground uppercase" x-text="user.email"></span>
-                                            </button>
-                                        </template>
-                                        <div x-show="getFilteredUsers().length === 0" class="px-4 py-6 text-center text-xs text-muted-foreground italic font-medium">
-                                            No users found...
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1 block mb-2">Default Warehouse</label>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="is_default" value="1" class="sr-only peer" {{ old('is_default', $warehouse->is_default) ? 'checked' : '' }}>
+                                    <div class="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ring rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                    <span class="ml-3 text-sm font-medium text-foreground">Set as Default</span>
+                                </label>
                             </div>
 
                             <div class="space-y-2">

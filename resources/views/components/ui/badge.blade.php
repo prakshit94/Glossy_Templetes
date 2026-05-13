@@ -14,9 +14,10 @@
         'info' => 'bg-blue-500 text-white',
     ];
 
-    $classes = "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 " . $variants[$variant] . " " . $className;
+    $extraClass = trim($className . ' ' . ($attributes->get('class') ?? ''));
+    $classes = "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 " . ($variants[$variant] ?? $variants['default']) . " " . $extraClass;
 @endphp
 
-<div {{ $attributes->merge(['class' => $classes]) }}>
+<div {{ $attributes->except('class')->merge(['class' => $classes]) }}>
     {{ $slot }}
 </div>
