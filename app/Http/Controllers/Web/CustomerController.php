@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CustomerController extends Controller
 {
@@ -94,7 +97,8 @@ class CustomerController extends Controller
     public function show(Customer $customer)
     {
         $customer->load('addresses.village');
-        return view('customers.show', compact('customer'));
+        $categories = \App\Models\Category::whereNull('parent_id')->get();
+        return view('customers.show', compact('customer', 'categories'));
     }
 
     // ─── Edit ─────────────────────────────────────────────────────────────────
@@ -222,5 +226,28 @@ class CustomerController extends Controller
         }
 
         return back()->with('success', 'Selected customers status updated.');
+    }
+
+    // ─── Place Order ─────────────────────────────────────────────────────────
+    
+    public function placeOrder(Request $request, Customer $customer, \App\Services\OrderService $orderService)
+    {
+        $data = $request->validate([
+            'cart'                  => 'required|json',
+            'order_discount_amount' => 'required|numeric',
+            'coupon_discount'       => 'required|numeric',
+            'tax_amount'            => 'required|numeric',
+            'subtotal'              => 'required|numeric',
+            'grand_total'           => 'required|numeric',
+            'coupon_code'           => 'nullable|string',
+        ]);
+
+        try {
+            $order = $orderService->placeCustomerOrder($customer, $data);
+            return redirect()->route('customers.show', $customer)
+                ->with('success', 'Order #' . $order->order_no . ' placed successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to place order: ' . $e->getMessage());
+        }
     }
 }

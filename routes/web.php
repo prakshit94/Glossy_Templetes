@@ -59,6 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('services', ServiceController::class);
 
     // Catalog & Inventory
+    Route::get('/products-search-api', [ProductController::class, 'searchApi'])->name('products.search.api');
     Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
     Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore');
     Route::delete('/products/{id}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force-delete');
@@ -88,6 +89,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('orders', OrderController::class);
     Route::post('orders/{order}/confirm', [OrderController::class, 'confirm'])->name('orders.confirm');
     Route::post('orders/{order}/ship', [OrderController::class, 'ship'])->name('orders.ship');
+    Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
 
     $sidebarScaffoldModules = [
         'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
@@ -143,6 +145,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('customers', \App\Http\Controllers\Web\CustomerController::class);
 
     // Customer Addresses
+    Route::post('/customers/{customer}/orders/place', [\App\Http\Controllers\Web\CustomerController::class, 'placeOrder'])->name('customers.orders.place');
     Route::post('customers/{customer}/addresses', [\App\Http\Controllers\Web\CustomerAddressController::class, 'store'])->name('customers.addresses.store');
     Route::put('customers/{customer}/addresses/{address}', [\App\Http\Controllers\Web\CustomerAddressController::class, 'update'])->name('customers.addresses.update');
     Route::delete('customers/{customer}/addresses/{address}', [\App\Http\Controllers\Web\CustomerAddressController::class, 'destroy'])->name('customers.addresses.destroy');

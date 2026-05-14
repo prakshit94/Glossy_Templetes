@@ -80,6 +80,84 @@ class ProductController extends Controller
         return view('products.index', compact('products', 'stats', 'categoriesList', 'statusList'));
     }
 
+    public function searchApi(Request $request)
+    {
+        $query = Product::with(['category', 'brand', 'taxRate'])
+            ->withSum('stocks', 'quantity');
+
+        // Status filter — only active by default, unless explicitly asking for all
+        $statusFilter = $request->input('status', 'active');
+        if ($statusFilter !== 'all') {
+            $query->where('status', $statusFilter);
+        }
+
+        // Text search
+        if ($request->filled('q')) {
+            $s = $request->q;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%$s%")
+                  ->orWhere('sku', 'like', "%$s%")
+                  ->orWhere('barcode', 'like', "%$s%");
+            });
+        }
+
+        // Stock availability filter
+        $stockFilter = $request->input('stock', '');
+        if ($stockFilter === 'available') {
+            $query->where(function ($q) {
+                $q->whereHas('stocks', fn($s) => $s->where('quantity', '>', 0))
+                  ->orWhere('allow_overselling', true);
+            });
+        } elseif ($stockFilter === 'out_of_stock') {
+            $query->whereDoesntHave('stocks', fn($s) => $s->where('quantity', '>', 0))
+                  ->where('allow_overselling', false);
+        }
+
+        // Category filter
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
+
+        $perPage = min((int) $request->input('perPage', 15), 100);
+        $paginator = $query->latest()->paginate($perPage)->withQueryString();
+
+        $data = $paginator->through(function ($p) {
+            $stock = $p->stocks_sum_quantity ?? 0;
+            $available = $stock > 0 ? $stock : ($p->allow_overselling ? ($p->overselling_qty ?: 999) : 0);
+            return [
+                'id'              => $p->id,
+                'name'            => $p->name,
+                'sku'             => $p->sku,
+                'barcode'         => $p->barcode,
+                'selling_price'   => $p->selling_price,
+                'purchase_price'  => $p->purchase_price,
+                'mrp'             => $p->mrp,
+                'image_url'       => $p->image_path ? asset('storage/' . $p->image_path) : null,
+                'available_stock' => $available,
+                'stock_qty'       => $stock,
+                'allow_overselling' => (bool) $p->allow_overselling,
+                'status'          => $p->status,
+                'category'        => $p->category?->name,
+                'category_id'     => $p->category_id,
+                'brand'           => $p->brand?->name,
+                'tax_rate'        => $p->taxRate?->rate,
+                'tax_label'       => $p->taxRate?->name,
+                'min_stock_level' => $p->min_stock_level ?? 0,
+                'weight'          => $p->weight,
+            ];
+        });
+
+        return response()->json([
+            'data'         => $data->items(),
+            'current_page' => $paginator->currentPage(),
+            'last_page'    => $paginator->lastPage(),
+            'per_page'     => $paginator->perPage(),
+            'total'        => $paginator->total(),
+            'from'         => $paginator->firstItem(),
+            'to'           => $paginator->lastItem(),
+        ]);
+    }
+
     public function create()
     {
         $categories = Category::whereNull('parent_id')->with('children')->get();

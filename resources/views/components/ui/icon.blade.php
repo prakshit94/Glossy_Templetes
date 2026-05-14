@@ -1,5 +1,5 @@
 @props([
-    'name',
+    'name' => 'alert-triangle',
     'size' => '5',
     'className' => '',
 ])

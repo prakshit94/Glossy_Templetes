@@ -47,7 +47,7 @@ class OrderController extends Controller
         return view('orders.create', compact('warehouses', 'parties', 'products'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, \App\Services\OrderService $orderService)
     {
         $items = collect($request->input('items', []))
             ->filter(function ($item) {
@@ -77,31 +77,13 @@ class OrderController extends Controller
             return back()->withInput()->with('error', 'Purchase orders require a supplier party.');
         }
 
-        DB::transaction(function() use ($request) {
-            $order = Order::create([
-                'order_no' => 'ORD-' . strtoupper(uniqid()),
-                'type' => $request->type,
-                'party_id' => $request->party_id,
-                'warehouse_id' => $request->warehouse_id,
-                'order_date' => $request->order_date,
-                'status' => 'pending',
-            ]);
-
-            $total = 0;
-            foreach ($request->items as $item) {
-                $lineTotal = $item['quantity'] * $item['unit_price'];
-                $total += $lineTotal;
-
-                $order->items()->create([
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'total_amount' => $lineTotal,
-                ]);
-            }
-            
-            $order->update(['total_amount' => $total, 'net_amount' => $total]);
-        });
+        $order = $orderService->createOrder([
+            'type' => $request->type,
+            'party_id' => $request->party_id,
+            'warehouse_id' => $request->warehouse_id,
+            'order_date' => $request->order_date,
+            'items' => $request->items,
+        ]);
 
         return redirect()->route('orders.index')->with('success', 'Order created successfully.');
     }
@@ -138,5 +120,11 @@ class OrderController extends Controller
         }
 
         return back()->with('success', 'Order shipped and inventory updated.');
+    }
+
+    public function receipt(string $id, \App\Services\OrderService $orderService)
+    {
+        $order = $orderService->getOrderForReceipt((int)$id);
+        return view('orders.receipt', compact('order'));
     }
 }
