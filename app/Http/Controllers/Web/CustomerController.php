@@ -98,7 +98,8 @@ class CustomerController extends Controller
     {
         $customer->load('addresses.village');
         $categories = \App\Models\Category::whereNull('parent_id')->get();
-        return view('customers.show', compact('customer', 'categories'));
+        $warehouses = \App\Models\Warehouse::where('status', 'active')->get();
+        return view('customers.show', compact('customer', 'categories', 'warehouses'));
     }
 
     // ─── Edit ─────────────────────────────────────────────────────────────────
@@ -230,22 +231,25 @@ class CustomerController extends Controller
 
     // ─── Place Order ─────────────────────────────────────────────────────────
     
-    public function placeOrder(Request $request, Customer $customer, \App\Services\OrderService $orderService)
+    public function placeOrder(Request $request, Customer $customer, OrderService $orderService)
     {
         $data = $request->validate([
-            'cart'                  => 'required|json',
-            'order_discount_amount' => 'required|numeric',
-            'coupon_discount'       => 'required|numeric',
-            'tax_amount'            => 'required|numeric',
-            'subtotal'              => 'required|numeric',
-            'grand_total'           => 'required|numeric',
-            'coupon_code'           => 'nullable|string',
+            'cart'                   => 'required|string',
+            'order_discount_amount'  => 'nullable|numeric',
+            'coupon_code'            => 'nullable|string',
+            'coupon_discount'        => 'nullable|numeric',
+            'tax_amount'             => 'required|numeric',
+            'subtotal'               => 'required|numeric',
+            'grand_total'            => 'required|numeric',
+            'warehouse_id'           => 'required|exists:warehouses,id',
+            'address_id'             => 'required|exists:party_addresses,id',
+            'billing_address_id'     => 'nullable|exists:party_addresses,id',
         ]);
 
         try {
             $order = $orderService->placeCustomerOrder($customer, $data);
-            return redirect()->route('customers.show', $customer)
-                ->with('success', 'Order #' . $order->order_no . ' placed successfully.');
+            return redirect()->route('orders.show', $order)
+                ->with('success', 'Order placed successfully!');
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to place order: ' . $e->getMessage());
         }

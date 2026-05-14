@@ -19,16 +19,20 @@ class OrderService
             $orderNo = 'ORD-' . strtoupper(Str::random(8));
             
             $order = Order::create([
-                'order_no'        => $orderNo,
-                'type'            => $data['type'],
-                'party_id'        => $data['party_id'],
-                'warehouse_id'    => $data['warehouse_id'] ?? 1,
-                'order_date'      => $data['order_date'] ?? now(),
-                'total_amount'    => $data['total_amount'] ?? 0,
-                'tax_amount'      => $data['tax_amount'] ?? 0,
-                'discount_amount' => $data['discount_amount'] ?? 0,
-                'net_amount'      => $data['net_amount'] ?? 0,
-                'status'          => 'pending',
+                'order_no'            => $orderNo,
+                'type'                => $data['type'],
+                'party_id'            => $data['party_id'],
+                'warehouse_id'        => $data['warehouse_id'] ?? 1,
+                'shipping_address_id' => $data['shipping_address_id'] ?? null,
+                'billing_address_id'  => $data['billing_address_id'] ?? null,
+                'shipping_address'    => $data['shipping_address'] ?? null,
+                'billing_address'     => $data['billing_address'] ?? null,
+                'order_date'          => $data['order_date'] ?? now(),
+                'total_amount'        => $data['total_amount'] ?? 0,
+                'tax_amount'          => $data['tax_amount'] ?? 0,
+                'discount_amount'     => $data['discount_amount'] ?? 0,
+                'net_amount'          => $data['net_amount'] ?? 0,
+                'status'              => 'pending',
             ]);
 
             foreach ($data['items'] as $item) {
@@ -76,15 +80,44 @@ class OrderService
             ];
         }
 
+        // Capture full address text
+        $shippingAddr = \App\Models\PartyAddress::find($data['address_id']);
+        $billingAddr  = \App\Models\PartyAddress::find($data['billing_address_id'] ?? $data['address_id']);
+
         return $this->createOrder([
-            'type'            => 'sale',
-            'party_id'        => $customer->id,
-            'total_amount'    => $data['subtotal'],
-            'tax_amount'      => $data['tax_amount'],
-            'discount_amount' => (float)$data['order_discount_amount'] + (float)$data['coupon_discount'],
-            'net_amount'      => $data['grand_total'],
-            'items'           => $items,
+            'type'                => 'sale',
+            'party_id'            => $customer->id,
+            'warehouse_id'        => $data['warehouse_id'] ?? null,
+            'shipping_address_id' => $data['address_id'] ?? null,
+            'billing_address_id'  => $data['billing_address_id'] ?? null,
+            'shipping_address'    => $this->formatAddress($shippingAddr),
+            'billing_address'     => $this->formatAddress($billingAddr),
+            'total_amount'        => $data['subtotal'],
+            'tax_amount'          => $data['tax_amount'],
+            'discount_amount'     => (float)$data['order_discount_amount'] + (float)$data['coupon_discount'],
+            'net_amount'          => $data['grand_total'],
+            'items'               => $items,
         ]);
+    }
+
+    /**
+     * Format Address Model to string
+     */
+    protected function formatAddress($address)
+    {
+        if (!$address) return null;
+        
+        $parts = [
+            $address->label,
+            $address->address_line_1,
+            $address->address_line_2,
+            $address->village?->village_name,
+            $address->village?->district_name,
+            $address->village?->state_name,
+            $address->village?->pincode
+        ];
+
+        return implode(", ", array_filter($parts));
     }
 
     /**
