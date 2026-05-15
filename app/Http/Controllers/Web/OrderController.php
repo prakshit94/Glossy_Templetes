@@ -40,16 +40,23 @@ class OrderController extends Controller
             $statuses = array_filter(array_map('trim', explode(',', $request->status)));
             $query->whereIn('status', $statuses);
         }
-        
-        if ($request->filled('type')) {
-            $types = array_filter(array_map('trim', explode(',', $request->type)));
-            $query->whereIn('type', $types);
-        }
-        
-        if ($request->filled('party')) {
-            $parties = array_filter(array_map('trim', explode(',', $request->party)));
-            $query->whereHas('party', function($q) use ($parties) {
-                $q->whereIn('name', $parties);
+
+        /*
+        |--------------------------------------------------------------------------
+        | GEOGRAPHIC FILTERS
+        |--------------------------------------------------------------------------
+        */
+        if ($request->filled('state') || $request->filled('district') || $request->filled('taluka')) {
+            $query->whereHas('shippingAddress.village', function($q) use ($request) {
+                if ($request->filled('state')) {
+                    $q->whereIn('state_name', array_map('trim', explode(',', $request->state)));
+                }
+                if ($request->filled('district')) {
+                    $q->whereIn('district_name', array_map('trim', explode(',', $request->district)));
+                }
+                if ($request->filled('taluka')) {
+                    $q->whereIn('taluka_name', array_map('trim', explode(',', $request->taluka)));
+                }
             });
         }
 
@@ -69,19 +76,32 @@ class OrderController extends Controller
         $orders = $query->latest()->paginate($perPage)->withQueryString();
 
         // Get Dynamic Lists for Filters
-        $statusesList = Order::distinct()->pluck('status')->filter()->sort()->values();
-        $typesList = Order::distinct()->pluck('type')->filter()->sort()->values();
+        // Get Lists for Filters (Cached for performance)
+        $statusesList = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'];
         
-        $partiesList = Party::whereHas('orders', function($q) use ($request) {
-            if ($request->filled('status')) {
-                $q->whereIn('status', array_map('trim', explode(',', $request->status)));
-            }
-        })->distinct()->pluck('name')->filter()->sort()->values();
+        $statesList = \Illuminate\Support\Facades\Cache::remember('geo_states', 3600, function() {
+            return \App\Models\Village::distinct()->pluck('state_name')->filter()->sort()->values();
+        });
+        
+        $districtsList = \Illuminate\Support\Facades\Cache::remember('geo_districts_' . $request->state, 3600, function() use ($request) {
+            return \App\Models\Village::when($request->filled('state'), function($q) use ($request) {
+                $states = array_map('trim', explode(',', $request->state));
+                $q->whereIn('state_name', $states);
+            })->distinct()->pluck('district_name')->filter()->sort()->values();
+        });
+
+        $talukasList = \Illuminate\Support\Facades\Cache::remember('geo_talukas_' . $request->district, 3600, function() use ($request) {
+            return \App\Models\Village::when($request->filled('district'), function($q) use ($request) {
+                $districts = array_map('trim', explode(',', $request->district));
+                $q->whereIn('district_name', $districts);
+            })->distinct()->pluck('taluka_name')->filter()->sort()->values();
+        });
 
         if ($request->ajax()) {
             return response()->json([
                 'table' => view('orders.partials.table', compact('orders'))->render(),
-                'parties' => $partiesList,
+                'districts' => $districtsList,
+                'talukas' => $talukasList,
                 'stats' => $stats
             ]);
         }
@@ -90,8 +110,9 @@ class OrderController extends Controller
             'orders', 
             'stats', 
             'statusesList', 
-            'typesList', 
-            'partiesList'
+            'statesList',
+            'districtsList',
+            'talukasList'
         ));
     }
 
@@ -165,7 +186,7 @@ class OrderController extends Controller
 
     public function show(string $id)
     {
-        $order = Order::with(['party', 'warehouse', 'items.product'])->findOrFail($id);
+        $order = Order::with(['party', 'warehouse', 'items.product', 'creator', 'updater', 'shippingAddress.village', 'billingAddress.village'])->findOrFail($id);
         return view('orders.show', compact('order'));
     }
 
@@ -202,4 +223,26 @@ class OrderController extends Controller
         $order = $orderService->getOrderForReceipt((int)$id);
         return view('orders.receipt', compact('order'));
     }
+
+    public function bulkStatus(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|json',
+            'status' => 'required|string|in:pending,confirmed,processing,shipped,delivered,cancelled,returned'
+        ]);
+
+        $ids = json_decode($request->ids);
+        if (!is_array($ids) || empty($ids)) {
+            return back()->with('error', 'No orders selected.');
+        }
+
+        Order::whereIn('id', $ids)->update([
+            'status' => $request->status,
+            'updated_by' => auth()->id(),
+            'updated_at' => now()
+        ]);
+
+        return back()->with('success', count($ids) . ' orders updated to ' . $request->status . '.');
+    }
 }
+
