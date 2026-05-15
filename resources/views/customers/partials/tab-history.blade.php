@@ -1,5 +1,9 @@
 {{-- ══ TAB: Order History ══ --}}
 <div x-show="activeTab === 'history'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak>
+    @php $customer->orders?->loadMissing(['items.product', 'creator', 'updater']); @endphp
+    <script>
+        window.customerOrders_{{ $customer->id }} = @json($customer->orders);
+    </script>
     <div x-data="{ expandedOrder: null }" class="space-y-6">
         @if(isset($customer->orders) && $customer->orders->count())
             @foreach($customer->orders as $order)
@@ -26,9 +30,19 @@
                                         {{ str_replace('_', ' ', $order->status) }}
                                     </span>
                                 </div>
-                                <p class="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                                <div class="text-xs text-muted-foreground font-medium flex items-center gap-2 mt-1">
                                     <x-ui.icon name="calendar" size="3" /> Placed on {{ $order->created_at->format('M d, Y h:i A') }}
-                                </p>
+                                    @if($order->creator)
+                                        <span class="size-1 rounded-full bg-border"></span>
+                                        <x-ui.icon name="user" size="3" /> By {{ $order->creator->name }}
+                                    @endif
+                                    @if($order->updater && $order->updated_by !== $order->created_by)
+                                        <span class="size-1 rounded-full bg-border"></span>
+                                        <span class="text-amber-600 flex items-center gap-1">
+                                            <x-ui.icon name="edit-3" size="3" /> Updated by {{ $order->updater->name }}
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
 
@@ -49,6 +63,9 @@
                             
                             {{-- Actions Bar --}}
                             <div class="flex flex-wrap gap-3">
+                                <button type="button" @click="$dispatch('edit-order', {{ $order->id }})" class="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 text-xs font-bold shadow-sm hover:bg-amber-500 hover:text-white hover:-translate-y-0.5 transition-all">
+                                    <x-ui.icon name="edit-3" size="3.5" class="mr-2" /> Edit Order
+                                </button>
                                 <a href="{{ route('orders.receipt', $order->id) }}" class="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-card border border-border text-xs font-bold text-foreground shadow-sm hover:bg-muted hover:-translate-y-0.5 transition-all">
                                     <x-ui.icon name="file-text" size="3.5" class="mr-2" /> View Receipt
                                 </a>

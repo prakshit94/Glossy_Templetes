@@ -1,5 +1,7 @@
 { 
     activeTab: @if(session('active_tab')) '{{ session('active_tab') }}' @else localStorage.getItem('customer_active_tab_{{ $customer->id }}') || 'overview' @endif,
+    editingOrderId: null,
+    editingOrderDetails: null,
     editingAddress: null,
     deletingAddress: null,
     villageSearch: '',
@@ -23,7 +25,69 @@
     selectedShippingAddressId: '{{ $customer->addresses->where('is_default', true)->first()?->id ?? $customer->addresses->first()?->id ?? '' }}',
     sameAsBilling: localStorage.getItem('customer_same_as_billing_{{ $customer->id }}') === 'false' ? false : true,
     
+    editOrder(order) {
+        this.editingOrderId = order.id;
+        this.editingOrderDetails = order;
+        
+        this.cart = (order.items || []).map(item => {
+            return {
+                id: item.product_id,
+                name: item.product?.name || 'Unknown Product',
+                sku: item.product?.sku || '',
+                price: parseFloat(item.unit_price) || 0,
+                image_url: item.product?.image_url || '',
+                quantity: parseInt(item.quantity) || 1,
+                available: 999, 
+                discountType: 'amount',
+                discountValue: parseFloat(item.discount_amount) || 0
+            };
+        });
+        
+        if (order.billing_address_id) this.selectedBillingAddressId = order.billing_address_id;
+        if (order.shipping_address_id) {
+            this.selectedShippingAddressId = order.shipping_address_id;
+            this.sameAsBilling = (order.billing_address_id == order.shipping_address_id);
+        } else {
+            this.sameAsBilling = true;
+        }
+        
+        if (order.warehouse_id) this.selectedWarehouseId = order.warehouse_id;
+        
+        this.activeTab = 'order';
+        this.notify('info', 'Order loaded for editing. You can now modify the cart.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    
+    cancelEditOrder() {
+        this.editingOrderId = null;
+        this.editingOrderDetails = null;
+        this.cart = [];
+        this.activeTab = 'history';
+        this.notify('info', 'Edit mode cancelled.');
+    },
+
     init() {
+        @if(request()->has('edit_order'))
+            // Auto-load order editing from external routes (like Global Orders page)
+            setTimeout(() => {
+                const autoEditId = {{ request()->query('edit_order') }};
+                const orders = window['customerOrders_{{ $customer->id }}'] || [];
+                const orderToEdit = orders.find(o => o.id === autoEditId);
+                if (orderToEdit) {
+                    this.editOrder(orderToEdit);
+                } else {
+                    this.notify('error', 'Order not found or access denied.');
+                }
+            }, 300); // Wait for the DOM and window.customerOrders script to fully load
+        @endif
+
+        window.addEventListener('edit-order', (e) => {
+            const orderId = e.detail;
+            const orders = window['customerOrders_{{ $customer->id }}'] || [];
+            const order = orders.find(o => o.id === orderId);
+            if (order) this.editOrder(order);
+        });
+
         // Watch for billing address changes to sync shipping if 'sameAsBilling' is active
         this.$watch('selectedBillingAddressId', (val) => {
             if (this.sameAsBilling) this.selectedShippingAddressId = val;
@@ -35,11 +99,18 @@
             if (val) this.selectedShippingAddressId = this.selectedBillingAddressId;
         });
 
-        // Clear cart ONLY if an order was successfully placed
-        @if(session('success') && str_contains(session('success'), 'Order'))
+        // Clear cart ONLY if an order was successfully placed or updated
+        @if(session('success') && (str_contains(session('success'), 'Order') || str_contains(session('success'), 'order')))
             localStorage.removeItem('customer_cart_{{ $customer->id }}');
             localStorage.removeItem('customer_active_tab_{{ $customer->id }}');
             localStorage.removeItem('customer_same_as_billing_{{ $customer->id }}');
+            this.editingOrderId = null;
+            this.editingOrderDetails = null;
+            this.cart = [];
+            // Force a slight delay to ensure watchers don't override this with stale data
+            setTimeout(() => {
+                localStorage.removeItem('customer_cart_{{ $customer->id }}');
+            }, 100);
         @endif
 
         // Load cart from localStorage

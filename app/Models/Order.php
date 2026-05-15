@@ -12,7 +12,8 @@ class Order extends Model
     protected $fillable = [
         'order_no', 'type', 'party_id', 'order_date', 'total_amount', 
         'tax_amount', 'discount_amount', 'net_amount', 'status', 'warehouse_id',
-        'shipping_address_id', 'billing_address_id', 'billing_address', 'shipping_address'
+        'shipping_address_id', 'billing_address_id', 'billing_address', 'shipping_address',
+        'created_by', 'updated_by'
     ];
 
     protected $casts = [
@@ -42,5 +43,15 @@ class Order extends Model
     public function billingAddress()
     {
         return $this->belongsTo(PartyAddress::class, 'billing_address_id');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }

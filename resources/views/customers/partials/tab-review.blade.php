@@ -14,6 +14,22 @@
             </button>
             <div class="hidden sm:block text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Final Validation Phase</div>
         </div>
+        <template x-if="editingOrderId">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                        <x-ui.icon name="edit-3" size="5" class="text-amber-600" />
+                    </div>
+                    <div>
+                        <h4 class="font-black text-sm tracking-tight">Edit Mode Active</h4>
+                        <p class="text-xs font-medium opacity-80">You are updating an existing order. Your changes will overwrite the current record.</p>
+                    </div>
+                </div>
+                <button type="button" @click="cancelEditOrder" class="whitespace-nowrap h-9 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-widest shadow-md transition-all">
+                    Cancel Edit
+                </button>
+            </div>
+        </template>
 
         {{-- ── Main Review Area ── --}}
         <div class="space-y-8">
@@ -314,6 +330,7 @@
                                 {{-- ── Confirm Button Moved Here ── --}}
                                 <form action="{{ route('customers.orders.place', $customer) }}" method="POST" class="w-full">
                                     @csrf
+                                    <input type="hidden" name="order_id" :value="editingOrderId" :disabled="!editingOrderId">
                                     <input type="hidden" name="cart" :value="JSON.stringify(cart)">
                                     <input type="hidden" name="order_discount_amount" :value="orderDiscountAmount">
                                     <input type="hidden" name="coupon_code" :value="couponApplied ? couponCode : ''">
@@ -326,8 +343,11 @@
                                     <input type="hidden" name="address_id" :value="selectedShippingAddressId">
                                     
                                     <button type="submit" 
-                                        class="w-full h-14 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all flex items-center justify-center gap-3">
-                                        Confirm & Place Order <x-ui.icon name="zap" size="5" />
+                                        class="w-full h-14 rounded-2xl text-primary-foreground text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3"
+                                        :class="editingOrderId ? 'bg-amber-500 shadow-xl shadow-amber-500/20 hover:shadow-amber-500/40 hover:-translate-y-1' : 'bg-primary shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1'">
+                                        <span x-show="!editingOrderId">Confirm & Place Order</span>
+                                        <span x-show="editingOrderId">Update Existing Order</span>
+                                        <x-ui.icon name="zap" size="5" />
                                     </button>
                                 </form>
                             </div>

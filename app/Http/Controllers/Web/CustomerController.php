@@ -235,6 +235,7 @@ class CustomerController extends Controller
     public function placeOrder(Request $request, Customer $customer, OrderService $orderService)
     {
         $data = $request->validate([
+            'order_id'               => 'nullable|exists:orders,id',
             'cart'                   => 'required|string',
             'order_discount_amount'  => 'nullable|numeric',
             'coupon_code'            => 'nullable|string',
@@ -248,12 +249,20 @@ class CustomerController extends Controller
         ]);
 
         try {
-            $order = $orderService->placeCustomerOrder($customer, $data);
+            if (!empty($data['order_id'])) {
+                $order = Order::findOrFail($data['order_id']);
+                $orderService->updateCustomerOrder($order, $data);
+                $msg = 'Order updated successfully!';
+            } else {
+                $orderService->placeCustomerOrder($customer, $data);
+                $msg = 'Order placed successfully!';
+            }
+            
             return redirect()->route('customers.show', $customer)
-                ->with('success', 'Order placed successfully!')
+                ->with('success', $msg)
                 ->with('active_tab', 'history');
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to place order: ' . $e->getMessage());
+            return back()->with('error', 'Failed to process order: ' . $e->getMessage());
         }
     }
 }

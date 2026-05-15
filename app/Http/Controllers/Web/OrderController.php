@@ -97,9 +97,14 @@ class OrderController extends Controller
 
     public function edit(Order $order)
     {
-        // Currently, you might want to edit the order details, items, etc.
-        // We will just redirect to show for now, or you can build an edit view later.
-        // For the sake of this task, we will load edit view if it exists, or just redirect to show.
+        // Seamlessly route customer orders to the premium Customer Profile cart interface
+        if ($order->type === 'sale' && $order->party && $order->party->type === 'customer') {
+            return redirect()->route('customers.show', [
+                'customer' => $order->party_id, 
+                'edit_order' => $order->id
+            ]);
+        }
+
         if (view()->exists('orders.edit')) {
             $warehouses = Warehouse::where('status', 'active')->get();
             $parties = Party::where('status', 'active')->get();

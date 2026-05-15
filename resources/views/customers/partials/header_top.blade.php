@@ -47,6 +47,32 @@
             </div>
 
             <div class="flex items-center gap-3">
+                {{-- Editing Order Info Widget --}}
+                <template x-if="editingOrderDetails">
+                    <div class="hidden lg:flex flex-col items-end mr-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 text-amber-700 shadow-sm backdrop-blur-md transition-all duration-500 animate-in fade-in slide-in-from-right-4">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="size-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
+                            <h4 class="text-[10px] font-black uppercase tracking-widest text-amber-600">Editing <span x-text="editingOrderDetails.order_no"></span></h4>
+                        </div>
+                        <div class="flex items-center gap-4 text-[9px] font-medium opacity-90 mt-0.5">
+                            <div class="flex items-center gap-1.5" title="Placed At">
+                                <x-ui.icon name="calendar" size="3" class="opacity-70" /> 
+                                <span x-text="new Date(editingOrderDetails.created_at).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute:'2-digit' })"></span>
+                            </div>
+                            <template x-if="editingOrderDetails.creator">
+                                <div class="flex items-center gap-1.5" title="Placed By">
+                                    <x-ui.icon name="user" size="3" class="opacity-70" /> <span x-text="editingOrderDetails.creator.name"></span>
+                                </div>
+                            </template>
+                            <template x-if="editingOrderDetails.updater && editingOrderDetails.updated_by !== editingOrderDetails.created_by">
+                                <div class="flex items-center gap-1.5 text-amber-800 font-bold" title="Last Updated By">
+                                    <x-ui.icon name="edit-3" size="3" class="opacity-70" /> <span x-text="editingOrderDetails.updater.name"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
                 <button type="button" @click.prevent="isCartOpen = true" style="z-index: 50;" class="group relative flex items-center justify-center h-9 px-4 rounded-xl bg-card border border-border/80 text-[10px] font-black uppercase tracking-widest text-foreground shadow-sm hover:shadow-md hover:border-border transition-all duration-300 hover:-translate-y-0.5">
                     <x-ui.icon name="shopping-cart" size="3.5" class="mr-2 opacity-70 group-hover:opacity-100 transition-opacity" /> Cart
                     <span x-show="cart && cart.length > 0" class="absolute -top-2 -right-2 flex size-5 items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-lg" x-text="cart ? cart.length : 0" x-cloak></span>
