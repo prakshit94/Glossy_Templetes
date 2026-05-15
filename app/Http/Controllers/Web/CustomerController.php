@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -248,8 +249,9 @@ class CustomerController extends Controller
 
         try {
             $order = $orderService->placeCustomerOrder($customer, $data);
-            return redirect()->route('orders.show', $order)
-                ->with('success', 'Order placed successfully!');
+            return redirect()->route('customers.show', $customer)
+                ->with('success', 'Order placed successfully!')
+                ->with('active_tab', 'history');
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to place order: ' . $e->getMessage());
         }

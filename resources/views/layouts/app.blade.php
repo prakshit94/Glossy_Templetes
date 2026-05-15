@@ -111,27 +111,29 @@
     </div>
 
     <!-- Mobile Sidebar -->
-    <div x-show="mobileMenuOpen" 
-         x-cloak
-         x-transition:enter="transition ease-out duration-500"
-         x-transition:enter-start="-translate-x-full"
-         x-transition:enter-end="translate-x-0"
-         x-transition:leave="transition ease-in duration-300"
-         x-transition:leave-start="translate-x-0"
-         x-transition:leave-end="-translate-x-full"
-         class="fixed inset-y-0 left-0 z-[101] w-[280px] bg-background border-r border-border shadow-2xl md:hidden overflow-hidden flex flex-col">
-        
-        <div class="h-20 flex items-center justify-between px-6 border-b border-border/50">
-            <span class="font-heading font-black text-xl tracking-tight text-primary">{{ config('app.name') }}</span>
-            <button @click="mobileMenuOpen = false" class="p-2 rounded-xl bg-secondary/50 text-muted-foreground">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
-        </div>
+    @if(!$hideSidebar)
+        <div x-show="mobileMenuOpen" 
+             x-cloak
+             x-transition:enter="transition ease-out duration-500"
+             x-transition:enter-start="-translate-x-full"
+             x-transition:enter-end="translate-x-0"
+             x-transition:leave="transition ease-in duration-300"
+             x-transition:leave-start="translate-x-0"
+             x-transition:leave-end="-translate-x-full"
+             class="fixed inset-y-0 left-0 z-[101] w-[280px] bg-background border-r border-border shadow-2xl md:hidden overflow-hidden flex flex-col">
+            
+            <div class="h-20 flex items-center justify-between px-6 border-b border-border/50">
+                <span class="font-heading font-black text-xl tracking-tight text-primary">{{ config('app.name') }}</span>
+                <button @click="mobileMenuOpen = false" class="p-2 rounded-xl bg-secondary/50 text-muted-foreground">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
 
-        <div class="flex-1 overflow-y-auto p-4">
-             <x-layout.app-sidebar :is-mobile="true" />
+            <div class="flex-1 overflow-y-auto p-4">
+                 <x-layout.app-sidebar :is-mobile="true" />
+            </div>
         </div>
-    </div>
+    @endif
 
     <x-ui.toaster />
 

@@ -16,24 +16,24 @@
             </button>
         </div>
 
-        <form :action="editingAddress ? `/customers/{{ $customer->id }}/addresses/${editingAddress.id}` : `/customers/{{ $customer->id }}/addresses`" method="POST" class="space-y-5">
+        <form :action="(editingAddress && editingAddress.id) ? `/customers/{{ $customer->id }}/addresses/${editingAddress.id}` : `/customers/{{ $customer->id }}/addresses`" method="POST" class="space-y-5">
             @csrf
-            <template x-if="editingAddress">
+            <template x-if="editingAddress && editingAddress.id">
                 @method('PUT')
             </template>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div class="space-y-2">
                     <label for="label" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Address Label</label>
-                    <input type="text" name="label" id="label" :value="editingAddress ? editingAddress.label : ''" placeholder="e.g. Home, Office" required 
+                    <input type="text" name="label" id="label" x-model="editingAddress.label" placeholder="e.g. Home, Office" required 
                         class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
                 </div>
 
                 <div class="space-y-2">
                     <label for="status" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Status</label>
-                    <select name="status" id="status" class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all">
-                        <option value="active" :selected="editingAddress && editingAddress.status == 'active'">Active</option>
-                        <option value="inactive" :selected="editingAddress && editingAddress.status == 'inactive'">Inactive</option>
+                    <select name="status" id="status" x-model="editingAddress.status" class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
                     </select>
                 </div>
             </div>
@@ -54,36 +54,36 @@
                         <div @click="selectVillage(village)" class="p-3 border-b border-border/40 hover:bg-primary/5 cursor-pointer transition-colors last:border-0 group">
                             <p class="text-sm font-bold text-foreground group-hover:text-primary transition-colors" x-text="village.name"></p>
                             <p class="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
-                                <span x-text="village.taluka"></span>, <span x-text="village.district"></span> - <span x-text="village.pincode"></span>
+                                <span x-text="village.post_office"></span>, <span x-text="village.taluka"></span>, <span x-text="village.district"></span> - <span x-text="village.pincode"></span>
                             </p>
                         </div>
                     </template>
                 </div>
             </div>
             
-            <input type="hidden" name="village_id" id="village_id" :value="editingAddress ? editingAddress.village_id : ''">
+            <input type="hidden" name="village_id" id="village_id" x-model="editingAddress.village_id">
 
             <div class="space-y-2">
                 <label for="address_line_1" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Address Line 1</label>
-                <input type="text" name="address_line_1" id="address_line_1" :value="editingAddress ? editingAddress.address_line_1 : ''" required 
+                <input type="text" name="address_line_1" id="address_line_1" x-model="editingAddress.address_line_1" required 
                     class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
             </div>
 
             <div class="space-y-2">
                 <label for="address_line_2" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Address Line 2 (Optional)</label>
-                <input type="text" name="address_line_2" id="address_line_2" :value="editingAddress ? editingAddress.address_line_2 : ''" 
+                <input type="text" name="address_line_2" id="address_line_2" x-model="editingAddress.address_line_2" 
                     class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div class="space-y-2">
                     <label for="village_name" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Village</label>
-                    <input type="text" name="village_name" id="village_name" :value="editingAddress ? editingAddress.village_name : ''" 
+                    <input type="text" name="village_name" id="village_name" x-model="editingAddress.village_name" 
                         class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
                 </div>
                 <div class="space-y-2">
                     <label for="post_office" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Post Office</label>
-                    <input type="text" name="post_office" id="post_office" :value="editingAddress ? editingAddress.post_office : ''" 
+                    <input type="text" name="post_office" id="post_office" x-model="editingAddress.post_office" 
                         class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
                 </div>
             </div>
@@ -91,28 +91,28 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                 <div class="space-y-2">
                     <label for="taluka" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Taluka</label>
-                    <input type="text" name="taluka" id="taluka" :value="editingAddress ? editingAddress.taluka : ''" 
+                    <input type="text" name="taluka" id="taluka" x-model="editingAddress.taluka" 
                         class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
                 </div>
                 <div class="space-y-2">
                     <label for="city" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">District/City</label>
-                    <input type="text" name="city" id="city" :value="editingAddress ? editingAddress.city : ''" required 
+                    <input type="text" name="city" id="city" x-model="editingAddress.city" required 
                         class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
                 </div>
                 <div class="space-y-2">
                     <label for="state" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">State</label>
-                    <input type="text" name="state" id="state" :value="editingAddress ? editingAddress.state : ''" required 
+                    <input type="text" name="state" id="state" x-model="editingAddress.state" required 
                         class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
                 </div>
                 <div class="space-y-2">
                     <label for="pincode" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Pincode</label>
-                    <input type="text" name="pincode" id="pincode" :value="editingAddress ? editingAddress.pincode : ''" required 
+                    <input type="text" name="pincode" id="pincode" x-model="editingAddress.pincode" required 
                         class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
                 </div>
             </div>
 
             <div class="flex items-center gap-2 pt-2 ml-1">
-                <input type="checkbox" name="is_default" id="is_default" value="1" :checked="editingAddress && editingAddress.is_default"
+                <input type="checkbox" name="is_default" id="is_default" value="1" x-model="editingAddress.is_default"
                     class="rounded border-border text-primary focus:ring-primary/20">
                 <label for="is_default" class="text-xs font-medium text-foreground cursor-pointer">Set as default address</label>
             </div>
@@ -138,7 +138,7 @@
         <h3 class="text-lg font-black text-foreground mb-2">Delete Address?</h3>
         <p class="text-sm text-muted-foreground mb-6">Are you sure you want to delete <span class="font-bold text-foreground" x-text="deletingAddress?.label || 'this address'"></span>? This action cannot be undone.</p>
         
-        <form :action="deletingAddress ? `/customers/{{ $customer->id }}/addresses/${deletingAddress.id}` : '#'" method="POST">
+        <form :action="(deletingAddress && deletingAddress.id) ? `/customers/{{ $customer->id }}/addresses/${deletingAddress.id}` : '#'" method="POST">
             @csrf
             @method('DELETE')
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3">

@@ -32,15 +32,27 @@
                     <div class="mt-4 pt-4 border-t border-border/40 space-y-2">
                         <div class="flex justify-between">
                             <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Village</span>
-                            <span class="text-xs font-bold text-foreground">{{ $address->village?->name ?: '—' }}</span>
+                            <span class="text-xs font-bold text-foreground">{{ $address->village?->village_name ?? $address->village_name ?? '—' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Post Office</span>
+                            <span class="text-xs font-bold text-foreground">{{ $address->village?->post_so_name ?? $address->post_office ?? '—' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Taluka</span>
+                            <span class="text-xs font-bold text-foreground">{{ $address->village?->taluka_name ?? $address->taluka ?? '—' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">District</span>
-                            <span class="text-xs font-bold text-foreground">{{ $address->village?->district ?: '—' }}</span>
+                            <span class="text-xs font-bold text-foreground">{{ $address->village?->district_name ?? $address->city ?? '—' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">State</span>
+                            <span class="text-xs font-bold text-foreground">{{ $address->village?->state_name ?? $address->state ?? '—' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Pincode</span>
-                            <span class="text-xs font-bold font-mono text-foreground">{{ $address->village?->pincode ?: '—' }}</span>
+                            <span class="text-xs font-bold font-mono text-foreground">{{ $address->village?->pincode ?? $address->pincode ?? '—' }}</span>
                         </div>
                     </div>
 

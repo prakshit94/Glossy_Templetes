@@ -1,4 +1,4 @@
-<x-layouts.app pageTitle="Customer Profile: {{ $customer->name }}">
+<x-layouts.app pageTitle="Customer Profile: {{ $customer->name }}" :hideSidebar="true">
 
     @include('customers.partials.scripts')
 
@@ -22,11 +22,12 @@
                                     { id: 'addresses',icon: 'map-pin',      label: 'Addresses'      },
                                     { id: 'finance',  icon: 'hash',         label: 'Finance'        },
                                     { id: 'system',   icon: 'settings',     label: 'System'         },
-                                    { id: 'review',   icon: 'check-square', label: 'Order Review'   }
+                                    { id: 'review',   icon: 'check-square', label: 'Order Review'   },
+                                    { id: 'close',    icon: 'x-circle',     label: 'Tag & Close Profile' }
                                 ].filter(t => t.id !== 'review' || activeTab === 'review')" :key="tab.id">
                                     <button
                                         type="button"
-                                        @click="activeTab = tab.id"
+                                        @click="tab.id === 'close' ? window.location.href='{{ route('customers.index') }}' : activeTab = tab.id"
                                         :class="activeTab === tab.id
                                             ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30'
                                             : 'text-muted-foreground hover:bg-card hover:text-foreground'"

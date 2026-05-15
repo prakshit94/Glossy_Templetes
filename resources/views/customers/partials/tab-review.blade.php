@@ -1,258 +1,336 @@
 {{-- ══ TAB: Order Review ══ --}}
-<div x-show="activeTab === 'review'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak>
-    <div class="space-y-6">
-        {{-- Review Header --}}
-        <div class="bg-card/40 backdrop-blur-3xl border border-border/50 rounded-3xl p-8 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div class="flex items-center gap-5">
-                <div class="size-16 rounded-[2rem] bg-primary/10 text-primary flex items-center justify-center shadow-inner border border-primary/20">
-                    <x-ui.icon name="check-square" size="8" />
-                </div>
-                <div>
-                    <h2 class="text-2xl font-black text-foreground tracking-tight uppercase">Order Review</h2>
-                    <p class="text-[11px] text-muted-foreground font-black uppercase tracking-[0.2em]">Finalize details before placing order</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 w-full md:w-auto">
-                <button type="button" @click="activeTab = 'order'" class="flex-1 md:flex-none h-12 px-6 rounded-2xl border border-border bg-card text-xs font-black uppercase tracking-widest hover:bg-muted transition-all">
-                    Edit Items
-                </button>
-                <form action="{{ route('customers.orders.place', $customer) }}" method="POST" class="flex-1 md:flex-none">
-                    @csrf
-                    <input type="hidden" name="cart" :value="JSON.stringify(cart)">
-                    <input type="hidden" name="order_discount_amount" :value="orderDiscountAmount">
-                    <input type="hidden" name="coupon_code" :value="couponApplied ? couponCode : ''">
-                    <input type="hidden" name="coupon_discount" :value="couponDiscount">
-                    <input type="hidden" name="tax_amount" :value="taxAmount">
-                    <input type="hidden" name="subtotal" :value="subtotal">
-                    <input type="hidden" name="grand_total" :value="grandTotal">
-                    <input type="hidden" name="warehouse_id" :value="selectedWarehouseId">
-                    <input type="hidden" name="billing_address_id" :value="selectedBillingAddressId">
-                    <input type="hidden" name="address_id" :value="selectedShippingAddressId">
-                    
-                    <button type="submit" class="w-full h-12 px-8 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
-                        <x-ui.icon name="zap" size="4" />
-                        Place Final Order
-                    </button>
-                </form>
-            </div>
+<div x-show="activeTab === 'review'" 
+     x-transition:enter="transition ease-out duration-500" 
+     x-transition:enter-start="opacity-0 translate-y-4" 
+     x-transition:enter-end="opacity-100 translate-y-0" 
+     x-cloak>
+    
+    <div class="space-y-8 max-w-5xl mx-auto">
+        {{-- ── Action Bar ── --}}
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-card/40 backdrop-blur-xl p-4 rounded-2xl border border-border/40">
+            <button type="button" @click="activeTab = 'order'" 
+                class="w-full sm:w-auto h-11 px-6 rounded-xl border border-border bg-background text-[10px] font-black uppercase tracking-widest hover:bg-muted transition-all flex items-center justify-center gap-2">
+                <x-ui.icon name="arrow-left" size="4" /> Back to Cart
+            </button>
+            <div class="hidden sm:block text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Final Validation Phase</div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {{-- Left Column: Details --}}
-            <div class="lg:col-span-2 space-y-6">
-                {{-- Logistics Details --}}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {{-- Warehouse Selection --}}
-                    <div class="p-8 rounded-[2rem] bg-card/60 backdrop-blur-xl border border-border/40 shadow-xl space-y-6">
-                        <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                            <x-ui.icon name="truck" size="3" /> Dispatch Logistics
-                        </h4>
-                        <div>
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-2">Dispatch Warehouse</label>
-                            <select x-model="selectedWarehouseId" class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all">
-                                @foreach($warehouses as $wh)
-                                    <option value="{{ $wh->id }}">{{ $wh->name }} - {{ $wh->location }}</option>
-                                @endforeach
-                            </select>
-                            <p class="text-[9px] text-muted-foreground mt-2 italic font-medium">Items will be dispatched from this location.</p>
-                        </div>
+        {{-- ── Main Review Area ── --}}
+        <div class="space-y-8">
+            
+            {{-- 1. Full Customer Profile --}}
+            <div class="p-8 rounded-[2rem] bg-card border border-border shadow-sm">
+                <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3 mb-8">
+                    <span class="size-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <x-ui.icon name="user" size="4" />
+                    </span>
+                    Customer Identification
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Full Name</p>
+                        <p class="text-sm font-black text-foreground">{{ $customer->name }}</p>
                     </div>
-
-                    {{-- Customer Quick Info --}}
-                    <div class="p-8 rounded-[2rem] bg-card/60 backdrop-blur-xl border border-border/40 shadow-xl space-y-6">
-                        <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                            <x-ui.icon name="user" size="3" /> Customer Profile
-                        </h4>
-                        <div class="space-y-4">
-                            <div>
-                                <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Full Name</p>
-                                <p class="text-sm font-bold text-foreground">{{ $customer->name }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Mobile</p>
-                                <p class="text-sm font-bold text-foreground">{{ $customer->phone ?? 'N/A' }}</p>
-                            </div>
-                        </div>
+                    <div>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Mobile</p>
+                        <p class="text-sm font-black text-foreground">{{ $customer->phone ?? 'N/A' }}</p>
                     </div>
-                </div>
-
-                {{-- Address Selection Card --}}
-                <div class="p-8 rounded-[2rem] bg-card/60 backdrop-blur-xl border border-border/40 shadow-xl space-y-6">
-                    <div class="flex items-center justify-between">
-                        <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                            <x-ui.icon name="map-pin" size="3" /> Address Selection
-                        </h4>
-                        <button type="button" @click.prevent="openAddModal" class="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1">
-                            <x-ui.icon name="plus" size="3" /> Add New Address
-                        </button>
+                    <div>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Alt Mobile</p>
+                        <p class="text-sm font-black text-foreground">{{ $customer->alternatemobile ?? '—' }}</p>
                     </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {{-- Billing Address --}}
-                        <div>
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-2">Billing Address</label>
-                            <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                @foreach($customer->addresses as $addr)
-                                    <label class="relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted/10"
-                                        :class="selectedBillingAddressId == {{ $addr->id }} ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' : 'border-border/50 bg-background/50 hover:border-border'">
-                                        <input type="radio" x-model="selectedBillingAddressId" value="{{ $addr->id }}" class="sr-only">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <span class="text-[10px] font-black uppercase tracking-widest" :class="selectedBillingAddressId == {{ $addr->id }} ? 'text-primary' : 'text-muted-foreground'">{{ $addr->label }}</span>
-                                            <template x-if="selectedBillingAddressId == {{ $addr->id }}">
-                                                <x-ui.icon name="check-circle" size="3.5" class="text-primary" />
-                                            </template>
-                                        </div>
-                                        <p class="text-xs font-bold text-foreground leading-tight">{{ $addr->address_line_1 }}</p>
-                                        <p class="text-[10px] text-muted-foreground mt-1">{{ $addr->village?->name }}, {{ $addr->village?->district }}</p>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        {{-- Shipping Address --}}
-                        <div>
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-2">Shipping Address</label>
-                            <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                @foreach($customer->addresses as $addr)
-                                    <label class="relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted/10"
-                                        :class="selectedShippingAddressId == {{ $addr->id }} ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' : 'border-border/50 bg-background/50 hover:border-border'">
-                                        <input type="radio" x-model="selectedShippingAddressId" value="{{ $addr->id }}" class="sr-only">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <span class="text-[10px] font-black uppercase tracking-widest" :class="selectedShippingAddressId == {{ $addr->id }} ? 'text-primary' : 'text-muted-foreground'">{{ $addr->label }}</span>
-                                            <template x-if="selectedShippingAddressId == {{ $addr->id }}">
-                                                <x-ui.icon name="check-circle" size="3.5" class="text-primary" />
-                                            </template>
-                                        </div>
-                                        <p class="text-xs font-bold text-foreground leading-tight">{{ $addr->address_line_1 }}</p>
-                                        <p class="text-[10px] text-muted-foreground mt-1">{{ $addr->village?->name }}, {{ $addr->village?->district }}</p>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Product Table Card --}}
-                <div class="bg-card/60 backdrop-blur-xl border border-border/40 rounded-[2rem] shadow-xl overflow-hidden">
-                    <div class="px-8 py-6 border-b border-border/40 flex items-center justify-between">
-                        <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                            <x-ui.icon name="package" size="3" /> Order Items
-                        </h4>
-                        <span class="px-3 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest" x-text="cart.length + ' Items Selected'"></span>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-muted/30 text-[10px] uppercase font-black tracking-widest text-muted-foreground">
-                                <tr>
-                                    <th class="px-8 py-4">Product</th>
-                                    <th class="px-4 py-4 text-center">Qty</th>
-                                    <th class="px-4 py-4 text-right">Unit Price</th>
-                                    <th class="px-4 py-4 text-right">Discount</th>
-                                    <th class="px-8 py-4 text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border/30">
-                                <template x-for="item in cart" :key="item.id">
-                                    <tr class="hover:bg-muted/20 transition-colors">
-                                        <td class="px-8 py-4">
-                                            <p class="text-sm font-black text-foreground" x-text="item.name"></p>
-                                            <p class="text-[10px] text-muted-foreground font-mono mt-0.5" x-text="item.sku"></p>
-                                        </td>
-                                        <td class="px-4 py-4 text-center">
-                                            <span class="text-xs font-black text-foreground px-2 py-1 rounded-lg bg-muted" x-text="item.quantity"></span>
-                                        </td>
-                                        <td class="px-4 py-4 text-right">
-                                            <span class="text-xs font-bold text-muted-foreground" x-text="'₹' + Number(item.price).toFixed(2)"></span>
-                                        </td>
-                                        <td class="px-4 py-4 text-right">
-                                            <span class="text-xs font-black text-emerald-600" x-text="item.discountValue > 0 ? (item.discountType === 'percent' ? item.discountValue + '%' : '₹' + Number(item.discountValue).toFixed(2)) : '-'"></span>
-                                        </td>
-                                        <td class="px-8 py-4 text-right">
-                                            <span class="text-sm font-black text-foreground" x-text="'₹' + Number(itemLineTotal(item)).toFixed(2)"></span>
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
+                    <div>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Relative Mobile</p>
+                        <p class="text-sm font-black text-foreground">{{ $customer->relative_mobile ?? '—' }}</p>
                     </div>
                 </div>
             </div>
 
-            {{-- Right Column: Summary --}}
-            <div class="space-y-6">
-                {{-- Address Display Card --}}
-                <div class="p-8 rounded-[2rem] bg-gradient-to-br from-primary/5 to-transparent border border-primary/10 shadow-xl space-y-6">
-                    <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                        <x-ui.icon name="map-pin" size="3" /> Selected Summary
+            {{-- 2. Billing Address --}}
+            <div class="p-8 rounded-[2rem] bg-card border border-border shadow-sm space-y-6">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3">
+                        <span class="size-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <x-ui.icon name="file-text" size="4" />
+                        </span>
+                        Billing Address
                     </h4>
-                    <div class="space-y-6 divide-y divide-border/40">
-                        {{-- Billing --}}
-                        <div class="pt-4 first:pt-0">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Billing To</p>
-                            <template x-for="addr in {{ json_encode($customer->addresses->map(function($a){ return ['id'=>$a->id, 'label'=>$a->label, 'line'=>$a->address_line_1, 'village'=>$a->village?->name, 'dist'=>$a->village?->district, 'pin'=>$a->village?->pincode]; })) }}" :key="'bill-'+addr.id">
-                                <div x-show="selectedBillingAddressId == addr.id" class="space-y-1">
-                                    <p class="text-sm font-black text-foreground" x-text="addr.label"></p>
-                                    <p class="text-[11px] text-muted-foreground leading-tight" x-text="addr.line"></p>
-                                    <p class="text-[11px] text-muted-foreground font-bold" x-text="addr.village + ', ' + addr.dist"></p>
+                    <button type="button" @click.prevent="openAddModal" class="text-[9px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1">
+                        <x-ui.icon name="plus" size="3" /> New Address
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-4">
+                    @foreach($customer->addresses as $addr)
+                        <label class="relative flex flex-col p-6 rounded-3xl border-2 cursor-pointer transition-all duration-300 group/addr"
+                            :class="selectedBillingAddressId == {{ $addr->id }} ? 'border-primary bg-primary/[0.02]' : 'border-border/40 bg-muted/5 hover:border-border'">
+                            <input type="radio" x-model="selectedBillingAddressId" value="{{ $addr->id }}" class="sr-only">
+                            
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-border bg-background"
+                                        :class="selectedBillingAddressId == {{ $addr->id }} ? 'border-primary text-primary' : ''">
+                                        {{ $addr->label ?: 'Address' }}
+                                    </span>
+                                    @if($addr->is_default)
+                                        <span class="text-[8px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Default</span>
+                                    @endif
                                 </div>
-                            </template>
-                        </div>
-                        {{-- Shipping --}}
-                        <div class="pt-4">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Shipping To</p>
-                            <template x-for="addr in {{ json_encode($customer->addresses->map(function($a){ return ['id'=>$a->id, 'label'=>$a->label, 'line'=>$a->address_line_1, 'village'=>$a->village?->name, 'dist'=>$a->village?->district, 'pin'=>$a->village?->pincode]; })) }}" :key="'ship-'+addr.id">
-                                <div x-show="selectedShippingAddressId == addr.id" class="space-y-1">
-                                    <p class="text-sm font-black text-foreground" x-text="addr.label"></p>
-                                    <p class="text-[11px] text-muted-foreground leading-tight" x-text="addr.line"></p>
-                                    <p class="text-[11px] text-muted-foreground font-bold" x-text="addr.village + ', ' + addr.dist"></p>
+                                <template x-if="selectedBillingAddressId == {{ $addr->id }}">
+                                    <x-ui.icon name="check-circle" size="5" class="text-primary" />
+                                </template>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                                <div>
+                                    <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Street / Landmark</p>
+                                    <p class="text-sm font-black text-foreground">{{ $addr->address_line_1 }}</p>
+                                    @if($addr->address_line_2)
+                                        <p class="text-xs text-muted-foreground font-medium mt-1">{{ $addr->address_line_2 }}</p>
+                                    @endif
                                 </div>
-                            </template>
-                        </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Village</p>
+                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->village_name ?? $addr->village_name ?? '—' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Post Office</p>
+                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->post_so_name ?? $addr->post_office ?? '—' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Taluka</p>
+                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->taluka_name ?? $addr->taluka ?? '—' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">District / Pincode</p>
+                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->district_name ?? $addr->city ?? '—' }} - {{ $addr->village?->pincode ?? $addr->pincode }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {{-- Edit Action --}}
+                            <button type="button" @click.stop.prevent="openEditModal({{ $addr->toJson() }})" 
+                                class="absolute top-6 right-6 size-8 rounded-xl bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary opacity-0 group-hover/addr:opacity-100 transition-all">
+                                <x-ui.icon name="edit-3" size="3.5" />
+                            </button>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- 3. Shipping Address --}}
+            <div class="p-8 rounded-[2rem] bg-card border border-border shadow-sm space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3">
+                        <span class="size-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <x-ui.icon name="truck" size="4" />
+                        </span>
+                        Shipping Address
+                    </h4>
+                    <div class="flex items-center gap-6">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" x-model="sameAsBilling" class="rounded border-border text-primary focus:ring-primary/20">
+                            <span class="text-[10px] font-black uppercase tracking-widest text-foreground group-hover:text-primary transition-colors">Same as Billing</span>
+                        </label>
+                        <button type="button" @click.prevent="openAddModal" class="text-[9px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1">
+                            <x-ui.icon name="plus" size="3" /> New Address
+                        </button>
                     </div>
                 </div>
 
-                {{-- Summary Card --}}
-                <div class="p-8 rounded-[2rem] bg-card border border-border shadow-2xl space-y-8 relative overflow-hidden">
-                    <div class="absolute -right-20 -top-20 size-64 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
-                    
-                    <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-foreground flex items-center gap-2 border-b border-border pb-4">
-                        Order Summary
-                    </h4>
+                <div x-show="!sameAsBilling" x-transition class="grid grid-cols-1 gap-4">
+                    @foreach($customer->addresses as $addr)
+                        <label class="relative flex flex-col p-6 rounded-3xl border-2 cursor-pointer transition-all duration-300 group/addr"
+                            :class="selectedShippingAddressId == {{ $addr->id }} ? 'border-primary bg-primary/[0.02]' : 'border-border/40 bg-muted/5 hover:border-border'">
+                            <input type="radio" x-model="selectedShippingAddressId" value="{{ $addr->id }}" class="sr-only">
+                            
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-border bg-background"
+                                        :class="selectedShippingAddressId == {{ $addr->id }} ? 'border-primary text-primary' : ''">
+                                        {{ $addr->label ?: 'Address' }}
+                                    </span>
+                                </div>
+                                <template x-if="selectedShippingAddressId == {{ $addr->id }}">
+                                    <x-ui.icon name="check-circle" size="5" class="text-primary" />
+                                </template>
+                            </div>
 
-                    <div class="space-y-4">
-                        <div class="flex justify-between text-xs font-bold text-muted-foreground">
-                            <span>Items Subtotal</span>
-                            <span class="text-foreground" x-text="'₹' + Number(subtotal).toFixed(2)"></span>
-                        </div>
-                        <div class="flex justify-between text-xs font-black text-emerald-600" x-show="orderDiscountAmount > 0">
-                            <span>Order Discount</span>
-                            <span x-text="'- ₹' + Number(orderDiscountAmount).toFixed(2)"></span>
-                        </div>
-                        <div class="flex justify-between text-xs font-black text-emerald-600" x-show="couponDiscount > 0">
-                            <span>Coupon Savings</span>
-                            <span x-text="'- ₹' + Number(couponDiscount).toFixed(2)"></span>
-                        </div>
-                        <div class="flex justify-between text-xs font-bold text-muted-foreground">
-                            <span>GST (<span x-text="taxRate"></span>%)</span>
-                            <span class="text-foreground" x-text="'₹' + Number(taxAmount).toFixed(2)"></span>
-                        </div>
-                        
-                        <div class="h-px bg-border/60 my-6"></div>
-                        
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">Payable Total</p>
-                                <p class="text-3xl font-black text-primary" x-text="'₹' + Number(grandTotal).toFixed(2)"></p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                                <div>
+                                    <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Street / Landmark</p>
+                                    <p class="text-sm font-black text-foreground">{{ $addr->address_line_1 }}</p>
+                                    @if($addr->address_line_2)
+                                        <p class="text-xs text-muted-foreground font-medium mt-1">{{ $addr->address_line_2 }}</p>
+                                    @endif
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Village</p>
+                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->village_name ?? $addr->village_name ?? '—' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Post Office</p>
+                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->post_so_name ?? $addr->post_office ?? '—' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Taluka</p>
+                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->taluka_name ?? $addr->taluka ?? '—' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">District / Pincode</p>
+                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->district_name ?? $addr->city ?? '—' }} - {{ $addr->village?->pincode ?? $addr->pincode }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {{-- Edit Action --}}
+                            <button type="button" @click.stop.prevent="openEditModal({{ $addr->toJson() }})" 
+                                class="absolute top-6 right-6 size-8 rounded-xl bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary opacity-0 group-hover/addr:opacity-100 transition-all">
+                                <x-ui.icon name="edit-3" size="3.5" />
+                            </button>
+                        </label>
+                    @endforeach
+                </div>
+
+                <div x-show="sameAsBilling" class="p-8 rounded-[1.5rem] border border-dashed border-border/60 bg-muted/5 flex flex-col items-center justify-center text-center">
+                    <div class="size-10 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-3">
+                        <x-ui.icon name="check" size="5" />
+                    </div>
+                    <p class="text-xs font-bold text-muted-foreground">Synchronized with Billing Address</p>
+                </div>
+            </div>
+
+            {{-- 4. Dispatch Information (Warehouse) --}}
+            <div class="p-8 rounded-[2rem] bg-card border border-border shadow-sm">
+                <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3 mb-8">
+                    <span class="size-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <x-ui.icon name="warehouse" size="4" />
+                    </span>
+                    Dispatch Information
+                </h4>
+                <div class="max-w-md">
+                    <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-3 block ml-1">Select Dispatch Hub</label>
+                    <select x-model="selectedWarehouseId" class="w-full h-12 px-5 rounded-2xl border border-border bg-background/50 text-sm font-black focus:ring-4 focus:ring-primary/10 outline-none transition-all">
+                        @foreach($warehouses as $wh)
+                            <option value="{{ $wh->id }}">{{ $wh->name }} — {{ $wh->location }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            {{-- 5. Order Items Matrix --}}
+            <div class="bg-card border border-border rounded-[2rem] shadow-sm overflow-hidden">
+                <div class="px-8 py-6 border-b border-border/40 flex items-center justify-between bg-muted/5">
+                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-foreground flex items-center gap-3">
+                        <x-ui.icon name="shopping-bag" size="4" /> Order Items
+                    </h4>
+                    <span class="text-[10px] font-black text-muted-foreground uppercase tracking-widest" x-text="cart.length + ' Product Units'"></span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-muted/10">
+                                <th class="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Product Specification</th>
+                                <th class="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-muted-foreground text-center">Qty</th>
+                                <th class="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-muted-foreground text-right">Unit Price</th>
+                                <th class="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-muted-foreground text-right">Net Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border/20">
+                            <template x-for="item in cart" :key="item.id">
+                                <tr class="hover:bg-primary/[0.01] transition-colors">
+                                    <td class="px-8 py-6">
+                                        <div class="flex items-center gap-5">
+                                            <div class="size-12 rounded-xl bg-muted/40 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
+                                                <template x-if="item.image_url">
+                                                    <img :src="item.image_url" class="size-full object-cover">
+                                                </template>
+                                                <template x-if="!item.image_url">
+                                                    <x-ui.icon name="package" size="5" class="text-muted-foreground/30" />
+                                                </template>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-black text-foreground" x-text="item.name"></p>
+                                                <div class="flex items-center gap-3 mt-1">
+                                                    <span class="text-[10px] font-mono font-black text-primary/70 uppercase tracking-tighter" x-text="item.sku"></span>
+                                                    <div class="size-1 bg-border rounded-full"></div>
+                                                    <span class="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Brand Ref: {{ $customer->brand ?? 'N/A' }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-6 text-center">
+                                        <span class="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-muted/60 text-xs font-black text-foreground border border-border/40" x-text="item.quantity"></span>
+                                    </td>
+                                    <td class="px-6 py-6 text-right">
+                                        <span class="text-xs font-bold text-muted-foreground" x-text="'₹' + Number(item.price).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                                    </td>
+                                    <td class="px-8 py-6 text-right">
+                                        <span class="text-sm font-black text-foreground" x-text="'₹' + Number(itemLineTotal(item)).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Order Summary Block (Below Items) --}}
+                <div class="p-10 bg-muted/5 border-t border-border/40">
+                    <div class="flex flex-col lg:flex-row justify-between gap-12">
+                        <div class="lg:w-1/2 space-y-4">
+                            <div class="p-6 rounded-3xl bg-background border border-border/60 flex gap-4 items-start">
+                                <div class="size-10 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center text-primary shrink-0">
+                                    <x-ui.icon name="shield-check" size="5" />
+                                </div>
+                                <p class="text-[10px] text-muted-foreground leading-relaxed font-semibold">
+                                    By confirming, you authorize inventory allocation and logistics protocol initiation for the specified destinations.
+                                </p>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="p-4 rounded-2xl bg-muted/30 border border-border/50">
-                        <div class="flex gap-3">
-                            <x-ui.icon name="alert-circle" size="4" class="text-primary mt-0.5 shrink-0" />
-                            <p class="text-[10px] text-muted-foreground leading-relaxed">
-                                By clicking "Place Final Order", you confirm that the inventory levels and dispatch logistics are verified.
-                            </p>
+                        <div class="lg:w-1/3 space-y-6">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-black text-muted-foreground/60 uppercase tracking-widest">Gross Subtotal</span>
+                                <span class="font-black text-foreground" x-text="'₹' + Number(subtotal).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                            </div>
+                            <template x-if="orderDiscountAmount > 0">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-black text-emerald-600 uppercase tracking-widest">Order Adjustment</span>
+                                    <span class="font-black text-emerald-600" x-text="'- ₹' + Number(orderDiscountAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                                </div>
+                            </template>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-black text-muted-foreground/60 uppercase tracking-widest">Statutory Tax (<span x-text="taxRate"></span>%)</span>
+                                <span class="font-black text-foreground" x-text="'₹' + Number(taxAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                            </div>
+                            
+                            <div class="pt-6 border-t border-border space-y-8">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Final Payable</span>
+                                    <span class="text-4xl font-black text-primary tracking-tighter" x-text="'₹' + Number(grandTotal).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                                </div>
+                                
+                                {{-- ── Confirm Button Moved Here ── --}}
+                                <form action="{{ route('customers.orders.place', $customer) }}" method="POST" class="w-full">
+                                    @csrf
+                                    <input type="hidden" name="cart" :value="JSON.stringify(cart)">
+                                    <input type="hidden" name="order_discount_amount" :value="orderDiscountAmount">
+                                    <input type="hidden" name="coupon_code" :value="couponApplied ? couponCode : ''">
+                                    <input type="hidden" name="coupon_discount" :value="couponDiscount">
+                                    <input type="hidden" name="tax_amount" :value="taxAmount">
+                                    <input type="hidden" name="subtotal" :value="subtotal">
+                                    <input type="hidden" name="grand_total" :value="grandTotal">
+                                    <input type="hidden" name="warehouse_id" :value="selectedWarehouseId">
+                                    <input type="hidden" name="billing_address_id" :value="selectedBillingAddressId">
+                                    <input type="hidden" name="address_id" :value="selectedShippingAddressId">
+                                    
+                                    <button type="submit" 
+                                        class="w-full h-14 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all flex items-center justify-center gap-3">
+                                        Confirm & Place Order <x-ui.icon name="zap" size="5" />
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>

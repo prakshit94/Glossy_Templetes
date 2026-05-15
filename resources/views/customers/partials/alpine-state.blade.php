@@ -1,5 +1,5 @@
 { 
-    activeTab: 'order',
+    activeTab: @if(session('active_tab')) '{{ session('active_tab') }}' @else localStorage.getItem('customer_active_tab_{{ $customer->id }}') || 'overview' @endif,
     editingAddress: null,
     deletingAddress: null,
     villageSearch: '',
@@ -21,11 +21,25 @@
     selectedWarehouseId: '{{ $warehouses->first()?->id ?? '' }}',
     selectedBillingAddressId: '{{ $customer->addresses->where('is_default', true)->first()?->id ?? $customer->addresses->first()?->id ?? '' }}',
     selectedShippingAddressId: '{{ $customer->addresses->where('is_default', true)->first()?->id ?? $customer->addresses->first()?->id ?? '' }}',
+    sameAsBilling: localStorage.getItem('customer_same_as_billing_{{ $customer->id }}') === 'false' ? false : true,
     
     init() {
-        // Clear cart if success message is present
-        @if(session('success'))
+        // Watch for billing address changes to sync shipping if 'sameAsBilling' is active
+        this.$watch('selectedBillingAddressId', (val) => {
+            if (this.sameAsBilling) this.selectedShippingAddressId = val;
+        });
+        
+        // Watch for sameAsBilling toggle
+        this.$watch('sameAsBilling', (val) => {
+            localStorage.setItem('customer_same_as_billing_{{ $customer->id }}', val);
+            if (val) this.selectedShippingAddressId = this.selectedBillingAddressId;
+        });
+
+        // Clear cart ONLY if an order was successfully placed
+        @if(session('success') && str_contains(session('success'), 'Order'))
             localStorage.removeItem('customer_cart_{{ $customer->id }}');
+            localStorage.removeItem('customer_active_tab_{{ $customer->id }}');
+            localStorage.removeItem('customer_same_as_billing_{{ $customer->id }}');
         @endif
 
         // Load cart from localStorage
@@ -43,6 +57,14 @@
             localStorage.setItem('customer_cart_{{ $customer->id }}', JSON.stringify(value));
         });
         
+        
+        // Watch activeTab and save to localStorage
+        this.$watch('activeTab', (val) => {
+            if (val !== 'close') {
+                localStorage.setItem('customer_active_tab_{{ $customer->id }}', val);
+            }
+        });
+
         this.searchProducts();
     },
     async searchProducts(resetPage = false) {
@@ -217,13 +239,17 @@
         this.editingAddress = { ...address };
         this.resetVillageSearch();
         if (address && address.village) {
-            this.editingAddress.village_name = address.village.village_name;
-            this.editingAddress.post_office = address.village.post_so_name;
-            this.editingAddress.taluka = address.village.taluka_name;
-            this.editingAddress.district = address.village.district_name;
-            this.editingAddress.state = address.village.state_name;
+            this.editingAddress.village_name = address.village.village_name || address.village.name;
+            this.editingAddress.post_office = address.village.post_so_name || address.village.post_office;
+            this.editingAddress.taluka = address.village.taluka_name || address.village.taluka;
+            this.editingAddress.district = address.village.district_name || address.village.district;
+            this.editingAddress.city = address.village.district_name || address.village.district || address.village.city;
+            this.editingAddress.state = address.village.state_name || address.village.state;
             this.editingAddress.pincode = address.village.pincode;
-            this.villageSearch = address.village.village_name;
+            this.villageSearch = this.editingAddress.village_name;
+        } else if (address) {
+            // Fallback for direct address fields if village object is missing
+            this.editingAddress.city = address.city || address.district;
         }
         $dispatch('open-modal', { name: 'address-modal' });
     },
@@ -273,13 +299,13 @@
             };
         } else {
             this.editingAddress.village_id = v.id;
-            this.editingAddress.village_name = v.name;
-            this.editingAddress.post_office = v.post_office || '';
-            this.editingAddress.taluka = v.taluka || '';
-            this.editingAddress.district = v.district || '';
-            this.editingAddress.state = v.state || '';
+            this.editingAddress.village_name = v.name || v.village_name;
+            this.editingAddress.post_office = v.post_office || v.post_so_name || '';
+            this.editingAddress.taluka = v.taluka || v.taluka_name || '';
+            this.editingAddress.district = v.district || v.district_name || '';
+            this.editingAddress.state = v.state || v.state_name || '';
             this.editingAddress.pincode = v.pincode || '';
-            this.editingAddress.city = v.district || '';
+            this.editingAddress.city = v.district || v.district_name || '';
         }
         this.villages = [];
         this.villageSearch = v.name;
