@@ -18,6 +18,19 @@ return new class extends Migration {
             $table->decimal('net_amount', 15, 2)->default(0);
             $table->enum('status', ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'])->default('pending')->index();
             $table->foreignId('warehouse_id')->nullable()->constrained()->nullOnDelete();
+
+            // Address FK references (merged from add_shipping_address_id & add_billing_address_id)
+            $table->foreignId('shipping_address_id')->nullable()->constrained('party_addresses')->nullOnDelete();
+            $table->foreignId('billing_address_id')->nullable()->constrained('party_addresses')->nullOnDelete();
+
+            // Denormalised address text for receipts (merged from add_full_address_fields)
+            $table->text('shipping_address')->nullable();
+            $table->text('billing_address')->nullable();
+
+            // User tracking (merged from add_user_tracking_to_orders)
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+
             $table->timestamps();
             $table->softDeletes()->index();
 

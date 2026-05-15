@@ -83,7 +83,9 @@ class ProductController extends Controller
     public function searchApi(Request $request)
     {
         $query = Product::with(['category', 'brand', 'taxRate'])
-            ->withSum('stocks', 'quantity');
+            ->withSum('stocks', 'quantity')
+            ->withSum('stocks', 'reserved_qty')
+            ->withSum('stocks', 'dispatched_qty');
 
         // Status filter — only active by default, unless explicitly asking for all
         $statusFilter = $request->input('status', 'active');
@@ -101,16 +103,18 @@ class ProductController extends Controller
             });
         }
 
-        // Stock availability filter
+        // Stock availability filter (uses true available = qty - reserved)
         $stockFilter = $request->input('stock', '');
         if ($stockFilter === 'available') {
             $query->where(function ($q) {
-                $q->whereHas('stocks', fn($s) => $s->where('quantity', '>', 0))
+                $q->whereHas('stocks', fn($s) => $s->whereRaw('quantity - reserved_qty > 0'))
                   ->orWhere('allow_overselling', true);
             });
         } elseif ($stockFilter === 'out_of_stock') {
-            $query->whereDoesntHave('stocks', fn($s) => $s->where('quantity', '>', 0))
+            $query->where(function ($q) {
+                $q->whereDoesntHave('stocks', fn($s) => $s->whereRaw('quantity - reserved_qty > 0'))
                   ->where('allow_overselling', false);
+            });
         }
 
         // Category filter
@@ -118,32 +122,44 @@ class ProductController extends Controller
             $query->where('category_id', $request->category);
         }
 
-        $perPage = min((int) $request->input('perPage', 15), 100);
-        $paginator = $query->latest()->paginate($perPage)->withQueryString();
+        $perPage    = min((int) $request->input('perPage', 15), 100);
+        $paginator  = $query->latest()->paginate($perPage)->withQueryString();
 
         $data = $paginator->through(function ($p) {
-            $stock = $p->stocks_sum_quantity ?? 0;
-            $available = $stock > 0 ? $stock : ($p->allow_overselling ? ($p->overselling_qty ?: 999) : 0);
+            $totalQty    = (float) ($p->stocks_sum_quantity    ?? 0);
+            $reservedQty = (float) ($p->stocks_sum_reserved_qty ?? 0);
+            $dispatchedQty = (float) ($p->stocks_sum_dispatched_qty ?? 0);
+
+            // TRUE available = on-hand minus what is already reserved for confirmed orders
+            $netAvailable = max(0.0, $totalQty - $reservedQty);
+
+            // Overselling override: if stock is zero but overselling is allowed
+            if ($netAvailable <= 0 && $p->allow_overselling) {
+                $netAvailable = $p->overselling_qty ?: 999;
+            }
+
             return [
-                'id'              => $p->id,
-                'name'            => $p->name,
-                'sku'             => $p->sku,
-                'barcode'         => $p->barcode,
-                'selling_price'   => $p->selling_price,
-                'purchase_price'  => $p->purchase_price,
-                'mrp'             => $p->mrp,
-                'image_url'       => $p->image_path ? asset('storage/' . $p->image_path) : null,
-                'available_stock' => $available,
-                'stock_qty'       => $stock,
-                'allow_overselling' => (bool) $p->allow_overselling,
-                'status'          => $p->status,
-                'category'        => $p->category?->name,
-                'category_id'     => $p->category_id,
-                'brand'           => $p->brand?->name,
-                'tax_rate'        => $p->taxRate?->rate,
-                'tax_label'       => $p->taxRate?->name,
-                'min_stock_level' => $p->min_stock_level ?? 0,
-                'weight'          => $p->weight,
+                'id'               => $p->id,
+                'name'             => $p->name,
+                'sku'              => $p->sku,
+                'barcode'          => $p->barcode,
+                'selling_price'    => $p->selling_price,
+                'purchase_price'   => $p->purchase_price,
+                'mrp'              => $p->mrp,
+                'image_url'        => $p->image_path ? asset('storage/' . $p->image_path) : null,
+                'stock_qty'        => $totalQty,        // total physical on-hand
+                'reserved_qty'     => $reservedQty,     // held for confirmed orders
+                'dispatched_qty'   => $dispatchedQty,   // already shipped (running total)
+                'available_stock'  => $netAvailable,    // what can be sold NOW
+                'allow_overselling'  => (bool) $p->allow_overselling,
+                'status'           => $p->status,
+                'category'         => $p->category?->name,
+                'category_id'      => $p->category_id,
+                'brand'            => $p->brand?->name,
+                'tax_rate'         => $p->taxRate?->rate,
+                'tax_label'        => $p->taxRate?->name,
+                'min_stock_level'  => $p->min_stock_level ?? 0,
+                'weight'           => $p->weight,
             ];
         });
 

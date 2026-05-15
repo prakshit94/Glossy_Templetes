@@ -14,6 +14,16 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Contracts\UserRepositoryInterface::class, \App\Repositories\UserRepository::class);
         $this->app->bind(\App\Contracts\AuthServiceInterface::class, \App\Services\AuthService::class);
         $this->app->bind(\App\Contracts\MfaServiceInterface::class, \App\Services\MfaService::class);
+
+        // Inventory & Order services are singletons — one instance per request.
+        // This prevents duplicate DB connections and is safe because both services
+        // are stateless (all state lives in the database, not in memory).
+        $this->app->singleton(\App\Services\InventoryService::class);
+        $this->app->singleton(\App\Services\OrderService::class, function ($app) {
+            return new \App\Services\OrderService(
+                $app->make(\App\Services\InventoryService::class)
+            );
+        });
     }
 
     /**

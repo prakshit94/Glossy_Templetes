@@ -173,14 +173,20 @@ class StockTransferController extends Controller
         return back()->with('success', 'Transfer received and stock updated.');
     }
 
-    public function cancel(string $id)
+    public function cancel(string $id, InventoryService $inventoryService)
     {
         $transfer = StockTransfer::findOrFail($id);
-        if (!in_array($transfer->status, ['draft', 'sent'])) return back()->with('error', 'Cannot cancel.');
 
-        // If it was already sent, logic would be more complex to return stock.
-        // For now, only allow cancel before received.
-        $transfer->update(['status' => 'cancelled']);
+        if (!in_array($transfer->status, ['draft', 'sent'])) {
+            return back()->with('error', 'Only draft or sent transfers can be cancelled.');
+        }
+
+        try {
+            $inventoryService->cancelSentTransfer($transfer);
+        } catch (ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to cancel transfer.');
+        }
+
         return back()->with('success', 'Transfer cancelled.');
     }
 

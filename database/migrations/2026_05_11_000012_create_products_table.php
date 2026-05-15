@@ -17,6 +17,8 @@ return new class extends Migration {
             $table->foreignId('hsn_code_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('uom_id')->nullable()->constrained('units_of_measure')->nullOnDelete();
             $table->string('barcode')->nullable()->index();
+            $table->string('image_path')->nullable();
+            $table->string('weight')->nullable();
             $table->decimal('purchase_price', 15, 2)->default(0);
             $table->decimal('mrp', 15, 2)->default(0);
             $table->decimal('selling_price', 15, 2)->default(0);
@@ -24,6 +26,7 @@ return new class extends Migration {
             $table->boolean('batch_tracking')->default(false);
             $table->boolean('expiry_tracking')->default(false);
             $table->boolean('allow_overselling')->default(false);
+            $table->integer('overselling_qty')->default(0);
             $table->boolean('manage_stock')->default(true);
             $table->text('application_instructions')->nullable();
             $table->string('status')->default('active')->index();

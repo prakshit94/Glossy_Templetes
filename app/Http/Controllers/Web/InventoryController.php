@@ -39,22 +39,24 @@ class InventoryController extends Controller
         }
         $query = $this->filteredStocksQuery($request);
 
-        $stocks = $query->paginate($perPage)->withQueryString();
+        $stocks     = $query->paginate($perPage)->withQueryString();
         $warehouses = Warehouse::all();
-        
+
         $statsBaseQuery = Stock::whereHas('product');
 
         $stats = [
-            'total' => (clone $statsBaseQuery)->count(),
-            'low_stock' => (clone $statsBaseQuery)->where('quantity', '<=', 10)->count(),
-            'out_of_stock' => (clone $statsBaseQuery)->where('quantity', '<=', 0)->count(),
+            'total'            => (clone $statsBaseQuery)->count(),
+            'low_stock'        => (clone $statsBaseQuery)->whereRaw('quantity - reserved_qty <= 10')->where('quantity', '>', 0)->count(),
+            'out_of_stock'     => (clone $statsBaseQuery)->whereRaw('quantity - reserved_qty <= 0')->count(),
             'warehouses_count' => Warehouse::count(),
+            'total_reserved'   => (float) (clone $statsBaseQuery)->sum('reserved_qty'),
+            'total_dispatched' => (float) (clone $statsBaseQuery)->sum('dispatched_qty'),
         ];
 
         if ($request->ajax()) {
             return response()->json([
                 'table' => view('inventory.partials.table', compact('stocks'))->render(),
-                'stats' => $stats
+                'stats' => $stats,
             ]);
         }
 
@@ -79,11 +81,16 @@ class InventoryController extends Controller
                 'warehouse_name',
                 'quantity',
                 'reserved_qty',
+                'available_qty',
+                'dispatched_qty',
+                'committed_qty',
+                'in_transit_qty',
                 'status',
                 'min_stock_level',
             ]);
 
             foreach ($stocks as $stock) {
+                $available = max(0, (float) $stock->quantity - (float) $stock->reserved_qty);
                 fputcsv($out, [
                     $stock->product?->sku,
                     $stock->product?->name,
@@ -91,6 +98,10 @@ class InventoryController extends Controller
                     $stock->warehouse?->name,
                     $stock->quantity,
                     $stock->reserved_qty,
+                    $available,
+                    $stock->dispatched_qty,
+                    $stock->committed_qty,
+                    $stock->in_transit_qty,
                     $stock->status,
                     $stock->product?->min_stock_level,
                 ]);

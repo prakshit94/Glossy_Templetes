@@ -10,8 +10,19 @@ return new class extends Migration {
             $table->id();
             $table->string('name')->index();
             $table->string('type')->index(); // customer, supplier, vendor, etc.
+
+            // Name breakdown (merged from add_extra_mobile_fields_to_parties)
+            $table->string('firstname')->nullable();
+            $table->string('middlename')->nullable();
+            $table->string('lastname')->nullable();
+
             $table->string('email')->nullable()->index();
             $table->string('phone')->nullable()->index();
+
+            // Extra contact fields (merged from add_extra_mobile_fields_to_parties)
+            $table->string('alternatemobile')->nullable();
+            $table->string('relative_mobile')->nullable();
+
             $table->string('gst_no')->nullable()->index();
             $table->string('pan_no')->nullable()->index();
             $table->string('tax_no')->nullable();

@@ -12,13 +12,16 @@ return new class extends Migration {
             $table->foreignId('warehouse_id')->constrained()->cascadeOnDelete();
             $table->decimal('quantity', 15, 4)->default(0);
             $table->decimal('reserved_qty', 15, 4)->default(0);
+            $table->decimal('dispatched_qty', 15, 4)->default(0);  // merged from add_dispatched_qty migration
             $table->decimal('committed_qty', 15, 4)->default(0);
             $table->decimal('in_transit_qty', 15, 4)->default(0);
             $table->string('status')->default('active')->index();
             $table->timestamps();
             $table->softDeletes()->index();
 
-            $table->index(['product_id', 'warehouse_id']);
+            // One row per product per warehouse (merged from add_unique_stock_per_product_warehouse)
+            $table->unique(['product_id', 'warehouse_id'], 'stocks_product_warehouse_unique');
+
             // Optimization for high data load
             $table->index('created_at');
             $table->index(['status', 'created_at']);

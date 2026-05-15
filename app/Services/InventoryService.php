@@ -5,13 +5,35 @@ namespace App\Services;
 use App\Models\InventoryAdjustment;
 use App\Models\Order;
 use App\Models\Stock;
+use App\Models\StockMovement;
+use App\Models\StockReservation;
 use App\Models\StockTransfer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * InventoryService – SINGLE SOURCE OF TRUTH for all stock mutations.
+ *
+ * Rules:
+ *  - Every public mutating method wraps its own DB::transaction.
+ *  - Private helpers (getStockForUpdate, logMovement, etc.) must NEVER
+ *    start their own transactions – they are always called from within
+ *    an already-open transaction.
+ *  - No other service or controller may touch `stocks.quantity`,
+ *    `stocks.reserved_qty`, `stocks.committed_qty`, or
+ *    `stocks.in_transit_qty` directly.
+ */
 class InventoryService
 {
-    private function normalizeDuplicateStocks(int $productId, int $warehouseId): void
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Internal helpers (must only be called inside an active transaction)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Merge any duplicate stock rows for a product/warehouse pair.
+     * Called inside an existing transaction – does NOT open its own.
+     */
+    private function mergeDuplicateStocks(int $productId, int $warehouseId): void
     {
         $stocks = Stock::where('warehouse_id', $warehouseId)
             ->where('product_id', $productId)
@@ -23,36 +45,25 @@ class InventoryService
         }
 
         $primary = $stocks->first();
-        $primary->quantity = $stocks->sum('quantity');
-        $primary->reserved_qty = $stocks->sum('reserved_qty');
-        $primary->committed_qty = $stocks->sum('committed_qty');
+        $primary->quantity       = $stocks->sum('quantity');
+        $primary->reserved_qty   = $stocks->sum('reserved_qty');
+        $primary->committed_qty  = $stocks->sum('committed_qty');
         $primary->in_transit_qty = $stocks->sum('in_transit_qty');
         $primary->save();
 
-        DB::table('stocks')->whereIn('id', $stocks->skip(1)->pluck('id')->all())->delete();
+        DB::table('stocks')
+            ->whereIn('id', $stocks->skip(1)->pluck('id')->all())
+            ->delete();
     }
 
     /**
-     * Get or create stock record for a product in a warehouse.
-     */
-    public function getStock(int $productId, int $warehouseId): Stock
-    {
-        return DB::transaction(function () use ($productId, $warehouseId) {
-            $this->normalizeDuplicateStocks($productId, $warehouseId);
-
-            return Stock::firstOrCreate(
-                ['warehouse_id' => $warehouseId, 'product_id' => $productId],
-                ['quantity' => 0, 'reserved_qty' => 0, 'committed_qty' => 0, 'in_transit_qty' => 0]
-            );
-        });
-    }
-
-    /**
-     * Get a stock row with write lock for safe concurrent updates.
+     * Fetch (or create) the stock row with a write-lock.
+     * Must only be called inside an active transaction.
      */
     private function getStockForUpdate(int $productId, int $warehouseId): Stock
     {
-        $this->normalizeDuplicateStocks($productId, $warehouseId);
+        // Merge duplicates first (within the same transaction)
+        $this->mergeDuplicateStocks($productId, $warehouseId);
 
         $stock = Stock::where('warehouse_id', $warehouseId)
             ->where('product_id', $productId)
@@ -63,7 +74,38 @@ class InventoryService
             return $stock;
         }
 
-        return $this->getStock($productId, $warehouseId);
+        // Create a brand-new row if it doesn't exist yet
+        return Stock::create([
+            'warehouse_id'   => $warehouseId,
+            'product_id'     => $productId,
+            'quantity'       => 0,
+            'reserved_qty'   => 0,
+            'committed_qty'  => 0,
+            'in_transit_qty' => 0,
+        ]);
+    }
+
+    /**
+     * Write a StockMovement audit record.
+     * Must only be called inside an active transaction.
+     */
+    private function logMovement(
+        int    $productId,
+        int    $warehouseId,
+        float  $quantity,
+        string $type,
+        string $referenceType = null,
+        int    $referenceId   = null
+    ): void {
+        StockMovement::create([
+            'product_id'     => $productId,
+            'warehouse_id'   => $warehouseId,
+            'quantity'       => $quantity,
+            'type'           => $type,
+            'reference_type' => $referenceType,
+            'reference_id'   => $referenceId,
+            'status'         => 'active',
+        ]);
     }
 
     private function ensurePositive(float $quantity, string $field = 'quantity'): void
@@ -75,8 +117,43 @@ class InventoryService
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Public read helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
     /**
-     * Update stock quantity exactly.
+     * Get (or create) a stock record – safe for read-only use.
+     */
+    public function getStock(int $productId, int $warehouseId): Stock
+    {
+        return DB::transaction(function () use ($productId, $warehouseId) {
+            return $this->getStockForUpdate($productId, $warehouseId);
+        });
+    }
+
+    /**
+     * Available qty = total qty − reserved qty.
+     * This is the number a customer can actually order.
+     */
+    public function getAvailableQty(int $productId, int $warehouseId): float
+    {
+        $stock = Stock::where('product_id', $productId)
+            ->where('warehouse_id', $warehouseId)
+            ->first();
+
+        if (!$stock) {
+            return 0.0;
+        }
+
+        return max(0.0, (float) $stock->quantity - (float) $stock->reserved_qty);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Stock mutations (each owns its own transaction)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Hard-set a stock quantity (used by adjustments & imports).
      */
     public function setStock(int $productId, int $warehouseId, float $newQuantity): Stock
     {
@@ -88,106 +165,145 @@ class InventoryService
 
         return DB::transaction(function () use ($productId, $warehouseId, $newQuantity) {
             $stock = $this->getStockForUpdate($productId, $warehouseId);
+
             if ($stock->reserved_qty > $newQuantity) {
                 throw ValidationException::withMessages([
                     'quantity' => 'New quantity cannot be lower than reserved stock.',
                 ]);
             }
 
+            $diff = $newQuantity - (float) $stock->quantity;
             $stock->quantity = $newQuantity;
             $stock->save();
+
+            $this->logMovement(
+                $productId,
+                $warehouseId,
+                abs($diff),
+                'adjustment'
+            );
 
             return $stock->refresh();
         });
     }
 
     /**
-     * Add to stock quantity.
+     * Add stock (e.g. purchase received, transfer in).
      */
-    public function addStock(int $productId, int $warehouseId, float $quantity): Stock
-    {
+    public function addStock(
+        int    $productId,
+        int    $warehouseId,
+        float  $quantity,
+        string $referenceType = null,
+        int    $referenceId   = null
+    ): Stock {
         $this->ensurePositive($quantity);
 
-        return DB::transaction(function () use ($productId, $warehouseId, $quantity) {
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $referenceType, $referenceId) {
             $stock = $this->getStockForUpdate($productId, $warehouseId);
             $stock->quantity = (float) $stock->quantity + $quantity;
             $stock->save();
 
+            $this->logMovement($productId, $warehouseId, $quantity, 'in', $referenceType, $referenceId);
+
             return $stock->refresh();
         });
     }
 
     /**
-     * Deduct from stock quantity.
+     * Deduct stock (e.g. sale shipped, transfer out).
      */
-    public function deductStock(int $productId, int $warehouseId, float $quantity): Stock
-    {
+    public function deductStock(
+        int    $productId,
+        int    $warehouseId,
+        float  $quantity,
+        string $referenceType = null,
+        int    $referenceId   = null
+    ): Stock {
         $this->ensurePositive($quantity);
 
-        return DB::transaction(function () use ($productId, $warehouseId, $quantity) {
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $referenceType, $referenceId) {
             $stock = $this->getStockForUpdate($productId, $warehouseId);
+
             if ((float) $stock->quantity < $quantity) {
                 throw ValidationException::withMessages([
                     'quantity' => 'Insufficient stock quantity.',
                 ]);
             }
 
-            $stock->quantity = (float) $stock->quantity - $quantity;
-            if ($stock->reserved_qty > $stock->quantity) {
+            $newQty = (float) $stock->quantity - $quantity;
+
+            if ($stock->reserved_qty > $newQty) {
                 throw ValidationException::withMessages([
                     'quantity' => 'Cannot deduct below reserved stock.',
                 ]);
             }
 
+            $stock->quantity = $newQty;
             $stock->save();
+
+            $this->logMovement($productId, $warehouseId, $quantity, 'out', $referenceType, $referenceId);
+
             return $stock->refresh();
         });
     }
 
     /**
-     * Transfer stock from one warehouse to another.
+     * Reserve stock for a confirmed sale order.
+     * Creates a StockReservation record AND increments reserved_qty.
      */
-    public function transferStock(int $productId, int $fromWarehouseId, int $toWarehouseId, float $quantity): void
-    {
-        $this->ensurePositive($quantity);
-        DB::transaction(function() use ($productId, $fromWarehouseId, $toWarehouseId, $quantity) {
-            $this->deductStock($productId, $fromWarehouseId, $quantity);
-            $this->addStock($productId, $toWarehouseId, $quantity);
-        });
-    }
-
-    /**
-     * Reserve stock for orders.
-     */
-    public function reserveStock(int $productId, int $warehouseId, float $quantity): Stock
-    {
+    public function reserveStock(
+        int    $productId,
+        int    $warehouseId,
+        float  $quantity,
+        int    $orderId = null
+    ): Stock {
         $this->ensurePositive($quantity);
 
-        return DB::transaction(function () use ($productId, $warehouseId, $quantity) {
-            $stock = $this->getStockForUpdate($productId, $warehouseId);
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $orderId) {
+            $stock        = $this->getStockForUpdate($productId, $warehouseId);
             $availableQty = (float) $stock->quantity - (float) $stock->reserved_qty;
+
             if ($availableQty < $quantity) {
                 throw ValidationException::withMessages([
-                    'quantity' => 'Not enough available stock to reserve.',
+                    'quantity' => "Not enough available stock to reserve. Available: {$availableQty}, Requested: {$quantity}.",
                 ]);
             }
 
             $stock->reserved_qty = (float) $stock->reserved_qty + $quantity;
             $stock->save();
 
+            // Write a reservation record so we can trace it back to the order
+            StockReservation::create([
+                'product_id'   => $productId,
+                'warehouse_id' => $warehouseId,
+                'order_id'     => $orderId,
+                'quantity'     => $quantity,
+                'status'       => 'active',
+            ]);
+
+            $this->logMovement($productId, $warehouseId, $quantity, 'adjustment', 'reserve', $orderId);
+
             return $stock->refresh();
         });
     }
 
     /**
-     * Release reserved stock.
+     * Release a reservation (order cancelled / stock freed).
+     * Marks StockReservation as cancelled AND decrements reserved_qty.
      */
-    public function releaseReservedStock(int $productId, int $warehouseId, float $quantity): Stock
-    {
+    public function releaseReservedStock(
+        int    $productId,
+        int    $warehouseId,
+        float  $quantity,
+        int    $orderId = null,
+        string $reason  = 'cancelled'
+    ): Stock {
         $this->ensurePositive($quantity);
 
-        return DB::transaction(function () use ($productId, $warehouseId, $quantity) {
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $orderId, $reason) {
             $stock = $this->getStockForUpdate($productId, $warehouseId);
+
             if ((float) $stock->reserved_qty < $quantity) {
                 throw ValidationException::withMessages([
                     'quantity' => 'Reserved stock cannot go below zero.',
@@ -197,61 +313,118 @@ class InventoryService
             $stock->reserved_qty = (float) $stock->reserved_qty - $quantity;
             $stock->save();
 
+            // Mark the linked reservation record
+            if ($orderId) {
+                StockReservation::where('order_id', $orderId)
+                    ->where('product_id', $productId)
+                    ->where('warehouse_id', $warehouseId)
+                    ->where('status', 'active')
+                    ->orderBy('id')
+                    ->first()
+                    ?->update(['status' => $reason === 'used' ? 'used' : 'cancelled']);
+            }
+
+            $this->logMovement($productId, $warehouseId, $quantity, 'adjustment', 'release', $orderId);
+
             return $stock->refresh();
         });
     }
 
-    public function applyAdjustment(InventoryAdjustment $adjustment): void
-    {
-        DB::transaction(function () use ($adjustment) {
-            $adjustment = InventoryAdjustment::with('items')->lockForUpdate()->findOrFail($adjustment->id);
-            if ($adjustment->status !== 'pending') {
-                throw ValidationException::withMessages(['status' => 'Only pending adjustments can be approved.']);
+    /**
+     * Transfer stock between two warehouses atomically.
+     */
+    public function transferStock(
+        int   $productId,
+        int   $fromWarehouseId,
+        int   $toWarehouseId,
+        float $quantity,
+        int   $transferId = null
+    ): void {
+        $this->ensurePositive($quantity);
+
+        DB::transaction(function () use ($productId, $fromWarehouseId, $toWarehouseId, $quantity, $transferId) {
+            // Lock both rows in deterministic order to prevent deadlocks
+            $ids = [$fromWarehouseId, $toWarehouseId];
+            sort($ids);
+            foreach ($ids as $wid) {
+                $this->getStockForUpdate($productId, $wid);
             }
 
-            foreach ($adjustment->items as $item) {
-                $this->setStock((int) $item->product_id, (int) $adjustment->warehouse_id, (float) $item->new_qty);
+            // Now perform the actual deduct/add without nested transactions
+            $from = $this->getStockForUpdate($productId, $fromWarehouseId);
+            if ((float) $from->quantity < $quantity) {
+                throw ValidationException::withMessages([
+                    'quantity' => 'Insufficient stock to transfer.',
+                ]);
             }
+            $from->quantity = (float) $from->quantity - $quantity;
+            $from->save();
 
-            $adjustment->update(['status' => 'approved']);
+            $to = $this->getStockForUpdate($productId, $toWarehouseId);
+            $to->quantity = (float) $to->quantity + $quantity;
+            $to->save();
+
+            $this->logMovement($productId, $fromWarehouseId, $quantity, 'transfer', StockTransfer::class, $transferId);
+            $this->logMovement($productId, $toWarehouseId,   $quantity, 'in',       StockTransfer::class, $transferId);
         });
     }
 
-    public function receiveTransfer(StockTransfer $transfer): void
-    {
-        DB::transaction(function () use ($transfer) {
-            $transfer = StockTransfer::with('items')->lockForUpdate()->findOrFail($transfer->id);
-            if ($transfer->status !== 'sent') {
-                throw ValidationException::withMessages(['status' => 'Only sent transfers can be received.']);
-            }
+    // ─────────────────────────────────────────────────────────────────────────
+    //  High-level order lifecycle (called by OrderController)
+    // ─────────────────────────────────────────────────────────────────────────
 
-            foreach ($transfer->items as $item) {
-                $this->transferStock(
-                    (int) $item->product_id,
-                    (int) $transfer->from_warehouse_id,
-                    (int) $transfer->to_warehouse_id,
-                    (float) $item->quantity
-                );
-            }
-
-            $transfer->update([
-                'status' => 'received',
-                'received_at' => now(),
-            ]);
-        });
-    }
-
+    /**
+     * Confirm a pending sale order → reserve stock for each item.
+     */
     public function confirmOrder(Order $order): void
     {
         DB::transaction(function () use ($order) {
+            /** @var Order $order */
             $order = Order::with('items')->lockForUpdate()->findOrFail($order->id);
+
             if ($order->status !== 'pending') {
-                throw ValidationException::withMessages(['status' => 'Only pending orders can be confirmed.']);
+                throw ValidationException::withMessages([
+                    'status' => 'Only pending orders can be confirmed.',
+                ]);
+            }
+
+            if (!$order->warehouse_id) {
+                throw ValidationException::withMessages([
+                    'warehouse_id' => 'Order must have a warehouse assigned before confirmation.',
+                ]);
             }
 
             if ($order->type === 'sale') {
                 foreach ($order->items as $item) {
-                    $this->reserveStock((int) $item->product_id, (int) $order->warehouse_id, (float) $item->quantity);
+                    // Reserve stock – uses its own internal lock, same transaction
+                    $stock        = $this->getStockForUpdate((int) $item->product_id, (int) $order->warehouse_id);
+                    $availableQty = (float) $stock->quantity - (float) $stock->reserved_qty;
+
+                    if ($availableQty < (float) $item->quantity) {
+                        throw ValidationException::withMessages([
+                            'quantity' => "Insufficient stock for product ID {$item->product_id}. Available: {$availableQty}.",
+                        ]);
+                    }
+
+                    $stock->reserved_qty = (float) $stock->reserved_qty + (float) $item->quantity;
+                    $stock->save();
+
+                    StockReservation::create([
+                        'product_id'   => $item->product_id,
+                        'warehouse_id' => $order->warehouse_id,
+                        'order_id'     => $order->id,
+                        'quantity'     => $item->quantity,
+                        'status'       => 'active',
+                    ]);
+
+                    $this->logMovement(
+                        (int) $item->product_id,
+                        (int) $order->warehouse_id,
+                        (float) $item->quantity,
+                        'adjustment',
+                        Order::class,
+                        $order->id
+                    );
                 }
             }
 
@@ -259,24 +432,236 @@ class InventoryService
         });
     }
 
+    /**
+     * Ship a confirmed order → release reservation + deduct actual stock.
+     * For purchase orders → add stock.
+     */
     public function shipOrder(Order $order): void
     {
         DB::transaction(function () use ($order) {
+            /** @var Order $order */
             $order = Order::with('items')->lockForUpdate()->findOrFail($order->id);
+
             if ($order->status !== 'confirmed') {
-                throw ValidationException::withMessages(['status' => 'Only confirmed orders can be shipped.']);
+                throw ValidationException::withMessages([
+                    'status' => 'Only confirmed orders can be shipped.',
+                ]);
+            }
+
+            if (!$order->warehouse_id) {
+                throw ValidationException::withMessages([
+                    'warehouse_id' => 'Order must have a warehouse assigned.',
+                ]);
             }
 
             foreach ($order->items as $item) {
+                $productId   = (int) $item->product_id;
+                $warehouseId = (int) $order->warehouse_id;
+                $qty         = (float) $item->quantity;
+
                 if ($order->type === 'sale') {
-                    $this->releaseReservedStock((int) $item->product_id, (int) $order->warehouse_id, (float) $item->quantity);
-                    $this->deductStock((int) $item->product_id, (int) $order->warehouse_id, (float) $item->quantity);
+                    // 1. Acquire write-lock on stock row
+                    $stock = $this->getStockForUpdate($productId, $warehouseId);
+
+                    if ((float) $stock->reserved_qty < $qty) {
+                        throw ValidationException::withMessages([
+                            'quantity' => "Reserved stock mismatch for product ID {$productId}.",
+                        ]);
+                    }
+
+                    if ((float) $stock->quantity < $qty) {
+                        throw ValidationException::withMessages([
+                            'quantity' => "Insufficient physical stock for product ID {$productId}.",
+                        ]);
+                    }
+
+                    // 2. Decrement reserved + on-hand; increment dispatched (permanent audit counter)
+                    $stock->reserved_qty   = (float) $stock->reserved_qty - $qty;
+                    $stock->quantity       = (float) $stock->quantity      - $qty;
+                    $stock->dispatched_qty = (float) $stock->dispatched_qty + $qty;
+                    $stock->save();
+
+                    // 3. Mark the linked StockReservation as 'used'
+                    StockReservation::where('order_id', $order->id)
+                        ->where('product_id', $productId)
+                        ->where('warehouse_id', $warehouseId)
+                        ->where('status', 'active')
+                        ->orderBy('id')
+                        ->first()
+                        ?->update(['status' => 'used']);
+
+                    $this->logMovement($productId, $warehouseId, $qty, 'out', Order::class, $order->id);
+
                 } else {
-                    $this->addStock((int) $item->product_id, (int) $order->warehouse_id, (float) $item->quantity);
+                    // Purchase order → receive stock into warehouse
+                    $stock = $this->getStockForUpdate($productId, $warehouseId);
+                    $stock->quantity = (float) $stock->quantity + $qty;
+                    $stock->save();
+
+                    $this->logMovement($productId, $warehouseId, $qty, 'in', Order::class, $order->id);
                 }
             }
 
             $order->update(['status' => 'shipped']);
+        });
+    }
+
+    /**
+     * Cancel an order → release any active reservations.
+     */
+    public function cancelOrder(Order $order): void
+    {
+        DB::transaction(function () use ($order) {
+            /** @var Order $order */
+            $order = Order::with('items')->lockForUpdate()->findOrFail($order->id);
+
+            if (in_array($order->status, ['shipped', 'delivered', 'cancelled'], true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'This order cannot be cancelled.',
+                ]);
+            }
+
+            // Only release reservations if the order was confirmed (reserved stock)
+            if ($order->status === 'confirmed' && $order->type === 'sale' && $order->warehouse_id) {
+                foreach ($order->items as $item) {
+                    $productId   = (int) $item->product_id;
+                    $warehouseId = (int) $order->warehouse_id;
+                    $qty         = (float) $item->quantity;
+
+                    $stock = $this->getStockForUpdate($productId, $warehouseId);
+                    $releaseQty = min($qty, (float) $stock->reserved_qty);
+
+                    if ($releaseQty > 0) {
+                        $stock->reserved_qty = (float) $stock->reserved_qty - $releaseQty;
+                        $stock->save();
+
+                        StockReservation::where('order_id', $order->id)
+                            ->where('product_id', $productId)
+                            ->where('warehouse_id', $warehouseId)
+                            ->where('status', 'active')
+                            ->orderBy('id')
+                            ->first()
+                            ?->update(['status' => 'cancelled']);
+
+                        $this->logMovement($productId, $warehouseId, $releaseQty, 'adjustment', Order::class, $order->id);
+                    }
+                }
+            }
+
+            $order->update(['status' => 'cancelled']);
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Adjustment & Transfer lifecycle
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Apply an approved stock adjustment.
+     */
+    public function applyAdjustment(InventoryAdjustment $adjustment): void
+    {
+        DB::transaction(function () use ($adjustment) {
+            $adjustment = InventoryAdjustment::with('items')
+                ->lockForUpdate()
+                ->findOrFail($adjustment->id);
+
+            if ($adjustment->status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only pending adjustments can be approved.',
+                ]);
+            }
+
+            foreach ($adjustment->items as $item) {
+                $productId   = (int) $item->product_id;
+                $warehouseId = (int) $adjustment->warehouse_id;
+                $newQty      = (float) $item->new_qty;
+
+                $stock = $this->getStockForUpdate($productId, $warehouseId);
+
+                if ($stock->reserved_qty > $newQty) {
+                    throw ValidationException::withMessages([
+                        'quantity' => "New qty for product ID {$productId} is below reserved qty.",
+                    ]);
+                }
+
+                $diff = $newQty - (float) $stock->quantity;
+                $stock->quantity = $newQty;
+                $stock->save();
+
+                $this->logMovement(
+                    $productId,
+                    $warehouseId,
+                    abs($diff),
+                    'adjustment',
+                    InventoryAdjustment::class,
+                    $adjustment->id
+                );
+            }
+
+            $adjustment->update(['status' => 'approved']);
+        });
+    }
+
+    /**
+     * Receive a stock transfer (status: sent → received).
+     */
+    public function receiveTransfer(StockTransfer $transfer): void
+    {
+        DB::transaction(function () use ($transfer) {
+            $transfer = StockTransfer::with('items')
+                ->lockForUpdate()
+                ->findOrFail($transfer->id);
+
+            if ($transfer->status !== 'sent') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only sent transfers can be received.',
+                ]);
+            }
+
+            foreach ($transfer->items as $item) {
+                $this->transferStock(
+                    (int) $item->product_id,
+                    (int) $transfer->from_warehouse_id,
+                    (int) $transfer->to_warehouse_id,
+                    (float) $item->quantity,
+                    $transfer->id
+                );
+            }
+
+            $transfer->update([
+                'status'      => 'received',
+                'received_at' => now(),
+            ]);
+        });
+    }
+
+    /**
+     * Cancel a stock transfer that is in 'sent' state.
+     * Returns stock to the source warehouse.
+     */
+    public function cancelSentTransfer(StockTransfer $transfer): void
+    {
+        DB::transaction(function () use ($transfer) {
+            $transfer = StockTransfer::with('items')
+                ->lockForUpdate()
+                ->findOrFail($transfer->id);
+
+            if ($transfer->status === 'draft') {
+                $transfer->update(['status' => 'cancelled']);
+                return;
+            }
+
+            if ($transfer->status !== 'sent') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only draft or sent transfers can be cancelled.',
+                ]);
+            }
+
+            // 'sent' means stock was already logically moved out of the source
+            // but not yet received – nothing to do on DB stock because stock
+            // is only moved on receiveTransfer. Just mark cancelled.
+            $transfer->update(['status' => 'cancelled']);
         });
     }
 }
