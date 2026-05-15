@@ -18,25 +18,95 @@ class OrderController extends Controller
     {
         $query = Order::with(['party', 'warehouse'])->withCount('items');
 
+        /*
+        |--------------------------------------------------------------------------
+        | SEARCH
+        |--------------------------------------------------------------------------
+        */
         if ($request->filled('search')) {
-            $s = $request->search;
-            $query->where('order_no', 'like', "%$s%");
+            $s = trim($request->search);
+            $query->where('order_no', 'like', "%$s%")
+                  ->orWhereHas('party', function($q) use ($s) {
+                      $q->where('name', 'like', "%$s%");
+                  });
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | FILTERS
+        |--------------------------------------------------------------------------
+        */
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $statuses = array_filter(array_map('trim', explode(',', $request->status)));
+            $query->whereIn('status', $statuses);
+        }
+        
+        if ($request->filled('type')) {
+            $types = array_filter(array_map('trim', explode(',', $request->type)));
+            $query->whereIn('type', $types);
+        }
+        
+        if ($request->filled('party')) {
+            $parties = array_filter(array_map('trim', explode(',', $request->party)));
+            $query->whereHas('party', function($q) use ($parties) {
+                $q->whereIn('name', $parties);
+            });
         }
 
-        $orders = $query->latest()->paginate(15)->withQueryString();
-        
+        /*
+        |--------------------------------------------------------------------------
+        | STATS & DATA
+        |--------------------------------------------------------------------------
+        */
         $stats = [
-            'total' => Order::count(),
-            'pending' => Order::where('status', 'pending')->count(),
-            'processing' => Order::where('status', 'processing')->count(),
-            'shipped' => Order::where('status', 'shipped')->count(),
+            'total' => (clone $query)->count(),
+            'pending' => (clone $query)->where('status', 'pending')->count(),
+            'processing' => (clone $query)->where('status', 'processing')->count(),
+            'shipped' => (clone $query)->where('status', 'shipped')->count(),
         ];
 
-        return view('orders.index', compact('orders', 'stats'));
+        $perPage = (int) $request->get('perPage', 10);
+        $orders = $query->latest()->paginate($perPage)->withQueryString();
+
+        // Get Dynamic Lists for Filters
+        $statusesList = Order::distinct()->pluck('status')->filter()->sort()->values();
+        $typesList = Order::distinct()->pluck('type')->filter()->sort()->values();
+        
+        $partiesList = Party::whereHas('orders', function($q) use ($request) {
+            if ($request->filled('status')) {
+                $q->whereIn('status', array_map('trim', explode(',', $request->status)));
+            }
+        })->distinct()->pluck('name')->filter()->sort()->values();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'table' => view('orders.partials.table', compact('orders'))->render(),
+                'parties' => $partiesList,
+                'stats' => $stats
+            ]);
+        }
+
+        return view('orders.index', compact(
+            'orders', 
+            'stats', 
+            'statusesList', 
+            'typesList', 
+            'partiesList'
+        ));
+    }
+
+    public function edit(Order $order)
+    {
+        // Currently, you might want to edit the order details, items, etc.
+        // We will just redirect to show for now, or you can build an edit view later.
+        // For the sake of this task, we will load edit view if it exists, or just redirect to show.
+        if (view()->exists('orders.edit')) {
+            $warehouses = Warehouse::where('status', 'active')->get();
+            $parties = Party::where('status', 'active')->get();
+            $products = Product::where('status', 'active')->get();
+            return view('orders.edit', compact('order', 'warehouses', 'parties', 'products'));
+        }
+        return redirect()->route('orders.show', $order)->with('info', 'Edit functionality is integrated into the detail view or coming soon.');
     }
 
     public function create()

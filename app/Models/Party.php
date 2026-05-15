@@ -25,4 +25,8 @@ class Party extends Model
         'is_active',
         'account_type_id',
     ];
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }
