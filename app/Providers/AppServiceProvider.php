@@ -42,5 +42,23 @@ class AppServiceProvider extends ServiceProvider
             [\Illuminate\Auth\Events\Login::class, \Illuminate\Auth\Events\Logout::class, \Illuminate\Auth\Events\Failed::class],
             \App\Listeners\LogAuthenticationActivity::class
         );
+
+        // Share customer-form data globally so the Add Customer modal in the
+        // app layout has the data it needs on every authenticated page.
+        \Illuminate\Support\Facades\View::composer('components.layout.header', function ($view) {
+            if (\Illuminate\Support\Facades\Auth::check()) {
+                $view->with([
+                    'globalCrops'           => \App\Models\Crop::where('status', 'active')->orderBy('name')->get(),
+                    'globalIrrigationTypes' => \App\Models\IrrigationType::where('status', 'active')->orderBy('name')->get(),
+                    'globalLandUnits'       => \App\Models\LandUnit::where('status', 'active')->orderBy('name')->get(),
+                ]);
+            } else {
+                $view->with([
+                    'globalCrops'           => collect(),
+                    'globalIrrigationTypes' => collect(),
+                    'globalLandUnits'       => collect(),
+                ]);
+            }
+        });
     }
 }

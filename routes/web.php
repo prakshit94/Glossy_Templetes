@@ -142,6 +142,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     }
 
     // Customer Management
+    Route::get('/customers/search-by-phone', [\App\Http\Controllers\Web\CustomerController::class, 'searchByPhone'])->name('customers.search-by-phone');
     Route::post('/customers/bulk-delete', [\App\Http\Controllers\Web\CustomerController::class, 'bulkDelete'])->name('customers.bulk-delete');
     Route::post('/customers/bulk-restore', [\App\Http\Controllers\Web\CustomerController::class, 'bulkRestore'])->name('customers.bulk-restore');
     Route::post('/customers/bulk-force-delete', [\App\Http\Controllers\Web\CustomerController::class, 'bulkForceDelete'])->name('customers.bulk-force-delete');

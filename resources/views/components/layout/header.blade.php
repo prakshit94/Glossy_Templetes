@@ -102,36 +102,90 @@
     </div>
 
     <!-- Right Side: Actions & User -->
-    <div class="flex items-center gap-3 md:gap-6">
+    <div class="flex items-center gap-3 md:gap-6" x-data="{ globalSearchPhone: '' }">
         
         <!-- Search -->
-        <div x-data="{ searchOpen: false }">
-            <button @click="searchOpen = true"
+        <div x-data="{ 
+            searchOpen: false, 
+            searchPhone: '',
+            isLoading: false,
+            errorMsg: '',
+            searchCustomer() {
+                // Remove non-digits
+                this.searchPhone = this.searchPhone.replace(/\D/g, '');
+                
+                if (this.searchPhone.length !== 10) {
+                    this.errorMsg = 'Please enter exactly 10 digits';
+                    return;
+                }
+                
+                this.errorMsg = '';
+                this.isLoading = true;
+                
+                fetch(`/customers/search-by-phone?phone=${this.searchPhone}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        this.isLoading = false;
+                        if (data.found && data.redirect) {
+                            window.location.href = data.redirect;
+                        } else {
+                            this.searchOpen = false;
+                            globalSearchPhone = this.searchPhone; // Set parent x-data variable
+                            $dispatch('open-modal', { name: 'global-add-customer-modal' });
+                        }
+                    })
+                    .catch(err => {
+                        this.isLoading = false;
+                        this.errorMsg = 'Error searching customer. Please try again.';
+                    });
+            }
+        }">
+            <button @click="searchOpen = true; setTimeout(() => $refs.searchInput.focus(), 100)"
                 class="group flex items-center justify-center rounded-2xl p-2.5 text-muted-foreground hover:bg-secondary/40 hover:text-foreground transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             </button>
 
-            <!-- Generic Search Modal -->
+            <!-- Customer Search Modal -->
             <template x-teleport="body">
                 <div x-show="searchOpen" x-cloak x-transition.opacity
                     class="fixed inset-0 z-[9999] flex items-start justify-center pt-20 bg-background/80 backdrop-blur-sm p-4"
                     @keydown.escape.window="searchOpen = false">
-                    <div class="bg-card w-full max-w-2xl rounded-[32px] shadow-2xl border border-border/60 overflow-hidden flex flex-col animate-in slide-in-from-top-4 duration-300"
+                    <div class="bg-card w-full max-w-xl rounded-[32px] shadow-2xl border border-border/60 overflow-hidden flex flex-col animate-in slide-in-from-top-4 duration-300"
                         @click.away="searchOpen = false">
-                        <div class="p-4 border-b border-border/50">
+                        <div class="p-6 border-b border-border/50 bg-secondary/10">
+                            <h3 class="text-lg font-black tracking-tight mb-4">Customer Search</h3>
                             <div class="relative flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-4 size-5 text-muted-foreground"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                                <input type="text" placeholder="Search anything (Cmd+K)..." 
-                                    class="w-full pl-12 pr-4 py-3 bg-secondary/30 rounded-2xl border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all">
+                                <input type="text" x-ref="searchInput" x-model="searchPhone" @keydown.enter="searchCustomer" placeholder="Enter 10-digit phone number..." maxlength="10"
+                                    class="w-full pl-12 pr-24 py-4 bg-background rounded-2xl border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-lg font-medium tracking-widest">
+                                
+                                <button @click="searchCustomer" :disabled="isLoading" 
+                                    class="absolute right-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-50">
+                                    <span x-show="!isLoading">Search</span>
+                                    <span x-show="isLoading" class="flex items-center gap-2">
+                                        <svg class="animate-spin size-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        ...
+                                    </span>
+                                </button>
                             </div>
+                            <p x-show="errorMsg" x-text="errorMsg" class="text-xs font-bold text-destructive uppercase tracking-widest mt-3 ml-2"></p>
                         </div>
-                        <div class="p-8 text-center text-muted-foreground">
-                            <p class="text-sm">No recent searches found.</p>
+                        <div class="p-6 text-center text-muted-foreground bg-muted/5">
+                            <div class="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            </div>
+                            <p class="text-sm font-medium">Search for an existing customer by their 10-digit mobile number.</p>
+                            <p class="text-xs opacity-70 mt-1">If the customer is not found, you will be prompted to create a new profile.</p>
                         </div>
                     </div>
                 </div>
             </template>
         </div>
+
+        <!-- Add Customer Modal Component -->
+        @if(isset($globalCrops))
+            <x-layout.add-customer-modal :globalCrops="$globalCrops" :globalIrrigationTypes="$globalIrrigationTypes" :globalLandUnits="$globalLandUnits" />
+        @endif
 
         <!-- Premium Action Group -->
         <div

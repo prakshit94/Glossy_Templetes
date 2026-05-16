@@ -130,6 +130,15 @@ class CustomerController extends Controller
         ]);
 
         $data['type'] = 'customer';
+        
+        // Handle non-nullable DB columns when empty
+        $data['land_unit'] = $data['land_unit'] ?? 'acre';
+        $data['credit_limit'] = $data['credit_limit'] ?? 0.00;
+        $data['credit_days'] = $data['credit_days'] ?? 0;
+        $data['outstanding_balance'] = $data['outstanding_balance'] ?? 0.00;
+        $data['kyc_completed'] = $data['kyc_completed'] ?? 0;
+        $data['is_blacklisted'] = $data['is_blacklisted'] ?? 0;
+
         $customer = Customer::create($data);
 
         activity('customers')
@@ -227,6 +236,14 @@ class CustomerController extends Controller
             // Accounting
             'account_type_id'  => 'nullable|integer|exists:account_types,id',
         ]);
+
+        // Handle non-nullable DB columns when empty
+        $data['land_unit'] = $data['land_unit'] ?? 'acre';
+        $data['credit_limit'] = $data['credit_limit'] ?? 0.00;
+        $data['credit_days'] = $data['credit_days'] ?? 0;
+        $data['outstanding_balance'] = $data['outstanding_balance'] ?? 0.00;
+        $data['kyc_completed'] = $data['kyc_completed'] ?? 0;
+        $data['is_blacklisted'] = $data['is_blacklisted'] ?? 0;
 
         $customer->update($data);
 
@@ -332,7 +349,29 @@ class CustomerController extends Controller
         return back()->with('success', 'Selected customers status updated.');
     }
 
-    // ─── Place Order ─────────────────────────────────────────────────────────
+    // ─── Search By Phone ─────────────────────────────────────────────────────
+
+    public function searchByPhone(Request $request)
+    {
+        $phone = $request->input('phone', '');
+
+        if (strlen($phone) !== 10 || !ctype_digit($phone)) {
+            return response()->json(['found' => false, 'message' => 'Invalid phone number.'], 422);
+        }
+
+        $customer = Customer::where('phone', $phone)->first();
+
+        if ($customer) {
+            return response()->json([
+                'found'    => true,
+                'redirect' => route('customers.show', $customer),
+            ]);
+        }
+
+        return response()->json(['found' => false]);
+    }
+
+    // ─── Place Order ─────────────────────────────────────────────────────────────────────
     
     public function placeOrder(Request $request, Customer $customer, OrderService $orderService)
     {
