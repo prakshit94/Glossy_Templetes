@@ -2,6 +2,10 @@
     <table class="w-full text-left border-collapse">
         <thead>
             <tr class="bg-muted/5 border-b border-border/40">
+                <th class="p-5 w-10">
+                    <input type="checkbox" x-model="allSelected" @change="toggleAll" 
+                        class="rounded border-border bg-background text-primary focus:ring-primary/20">
+                </th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Brand</th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Slug</th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Status</th>
@@ -10,7 +14,11 @@
         </thead>
         <tbody>
             @forelse($brands as $brand)
-                <tr class="border-b border-border/40 hover:bg-primary/[0.02] transition-colors group">
+                <tr x-bind:class="selectedBrands.includes({{ $brand->id }}) ? 'bg-primary/5' : 'hover:bg-primary/[0.02] transition-colors'" class="border-b border-border/40 group">
+                    <td class="p-5">
+                        <input type="checkbox" name="brand_ids[]" value="{{ $brand->id }}" :checked="selectedBrands.includes({{ $brand->id }})" @change="toggleBrand({{ $brand->id }})"
+                            class="rounded border-border bg-background text-primary focus:ring-primary/20">
+                    </td>
                     <td class="p-5">
                         <div class="flex items-center gap-4">
                             @if($brand->image)
@@ -59,7 +67,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="4" class="p-20 text-center">
+                    <td colspan="5" class="p-20 text-center">
                         <div class="flex flex-col items-center gap-3">
                             <div class="size-16 rounded-3xl bg-muted/10 flex items-center justify-center text-muted-foreground/20">
                                 <x-ui.icon name="award" size="8" />

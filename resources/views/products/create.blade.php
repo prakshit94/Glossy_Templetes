@@ -1,7 +1,20 @@
 <x-layouts.app pageTitle="Create Product">
 
-    <div class="p-6 lg:p-10">
-        <div class="max-w-5xl mx-auto">
+    <div class="p-6 lg:p-10" x-data="{ 
+        allowOverselling: false,
+        skuEnabled: true,
+        sku: '{{ old('sku') }}',
+        generateSKU() {
+            if (!this.skuEnabled) return;
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = 'PRD-';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            this.sku = result;
+        }
+    }">
+        <div class="max-w-6xl mx-auto">
             <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
                 <x-ui.card-header class="border-b border-border/40 bg-muted/10 p-6">
                     <div class="flex items-center justify-between">
@@ -23,7 +36,7 @@
                     </div>
                 </x-ui.card-header>
 
-                <x-ui.card-content class="p-8" x-data="{ allowOverselling: false }">
+                <x-ui.card-content class="p-8">
                     <form action="{{ route('products.store') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
                         @csrf
 
@@ -38,10 +51,27 @@
                                         @error('name') <p class="text-[10px] text-destructive font-bold mt-1 ml-1">{{ $message }}</p> @enderror
                                     </div>
 
-                                    <div class="space-y-2">
-                                        <label for="sku" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">SKU / Item Code</label>
-                                        <input type="text" name="sku" id="sku" value="{{ old('sku') }}" required 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium placeholder:text-muted-foreground/40" placeholder="e.g. PRD-001">
+                                    <div class="space-y-2 relative group">
+                                        <div class="flex items-center justify-between ml-1">
+                                            <label for="sku" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">SKU / Item Code</label>
+                                            <label class="relative inline-flex items-center cursor-pointer group">
+                                                <input type="checkbox" name="is_sku_enabled" value="1" x-model="skuEnabled" class="sr-only peer">
+                                                <div class="w-8 h-4 bg-slate-200 dark:bg-muted/40 rounded-full peer peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
+                                                <span class="ml-2 text-[8px] font-black uppercase tracking-widest" :class="skuEnabled ? 'text-emerald-500' : 'text-destructive'" x-text="skuEnabled ? 'Enabled' : 'Disabled'"></span>
+                                            </label>
+                                        </div>
+                                        <div class="relative">
+                                            <input type="text" name="sku" id="sku" x-model="sku" required 
+                                                :readonly="!skuEnabled"
+                                                :class="!skuEnabled ? 'bg-muted/40 cursor-not-allowed opacity-60' : 'bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary'"
+                                                class="w-full h-12 pl-4 pr-24 rounded-2xl border border-border transition-all text-sm font-black outline-none placeholder:text-muted-foreground/40 placeholder:font-medium" placeholder="e.g. PRD-001">
+                                            
+                                            <button type="button" @click="generateSKU" :disabled="!skuEnabled"
+                                                :class="!skuEnabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10 text-primary'"
+                                                class="absolute right-1 top-1 bottom-1 px-3 bg-primary/5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center">
+                                                <x-ui.icon name="refresh-cw" size="3" class="mr-1" /> Auto
+                                            </button>
+                                        </div>
                                         @error('sku') <p class="text-[10px] text-destructive font-bold mt-1 ml-1">{{ $message }}</p> @enderror
                                     </div>
                                 </div>
@@ -191,11 +221,11 @@
                                     <div class="flex items-center justify-between border-t border-border/20 pt-4">
                                         <div>
                                             <p class="text-sm font-bold text-foreground">Manage Stock</p>
-                                            <p class="text-[10px] text-muted-foreground">Track inventory levels for this product</p>
+                                            <p class="text-[10px] text-muted-foreground uppercase tracking-widest font-bold opacity-60">Track inventory levels for this product</p>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" name="manage_stock" value="1" checked class="sr-only peer">
-                                            <div class="w-11 h-6 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            <div class="w-11 h-6 bg-slate-200 dark:bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
                                         </label>
                                     </div>
 
@@ -203,19 +233,19 @@
                                         <div class="flex items-center justify-between">
                                             <div>
                                                 <p class="text-sm font-bold text-foreground">Allow Overselling</p>
-                                                <p class="text-[10px] text-muted-foreground">Allow customers to buy even if out of stock</p>
+                                                <p class="text-[10px] text-muted-foreground uppercase tracking-widest font-bold opacity-60">Sell beyond zero stock</p>
                                             </div>
                                             <label class="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" name="allow_overselling" value="1" x-model="allowOverselling" class="sr-only peer">
-                                                <div class="w-11 h-6 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                                <div class="w-11 h-6 bg-slate-200 dark:bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
                                             </label>
                                         </div>
 
-                                        <div x-show="allowOverselling" x-transition class="space-y-2 pl-4 border-l-2 border-primary/20">
+                                        <div x-show="allowOverselling" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-2 pl-4 border-l-2 border-primary/20">
                                             <label for="overselling_qty" class="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Overselling Limit (Qty)</label>
                                             <input type="number" name="overselling_qty" id="overselling_qty" value="{{ old('overselling_qty', 0) }}" 
-                                                class="w-full h-10 px-4 rounded-xl border border-primary/20 bg-primary/5 focus:bg-primary/10 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-black text-primary placeholder:text-primary/20" placeholder="Max units to oversell">
-                                            <p class="text-[8px] text-muted-foreground mt-1 ml-1 font-bold italic">How many extra units can be sold beyond zero stock?</p>
+                                                class="w-full h-10 px-4 rounded-xl border border-primary/20 bg-primary/5 focus:bg-primary/10 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-black text-primary placeholder:text-primary/20 outline-none" placeholder="Max units to oversell">
+                                            <p class="text-[8px] text-muted-foreground mt-1 ml-1 font-bold italic">Available units beyond zero stock</p>
                                         </div>
                                     </div>
                                 </div>
@@ -248,28 +278,37 @@
                                         </div>
                                     </div>
 
-                                    <div class="grid grid-cols-1 gap-4">
+                                    <div class="grid grid-cols-1 gap-4 pt-2">
                                         <div class="space-y-2">
-                                            <label for="purchase_price" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Purchase Price</label>
-                                            <input type="number" step="0.01" name="purchase_price" id="purchase_price" value="{{ old('purchase_price') }}" required 
-                                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black">
+                                            <label for="purchase_price" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Purchase Cost</label>
+                                            <div class="relative">
+                                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">₹</span>
+                                                <input type="number" step="0.01" name="purchase_price" id="purchase_price" value="{{ old('purchase_price') }}" required 
+                                                    class="w-full h-11 pl-8 pr-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black outline-none">
+                                            </div>
                                         </div>
                                         <div class="space-y-2">
-                                            <label for="mrp" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">MRP (Max Retail Price)</label>
-                                            <input type="number" step="0.01" name="mrp" id="mrp" value="{{ old('mrp') }}" 
-                                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black text-orange-500">
+                                            <label for="mrp" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Maximum Retail Price (MRP)</label>
+                                            <div class="relative">
+                                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">₹</span>
+                                                <input type="number" step="0.01" name="mrp" id="mrp" value="{{ old('mrp') }}" 
+                                                    class="w-full h-11 pl-8 pr-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black text-orange-500 outline-none">
+                                            </div>
                                         </div>
                                         <div class="space-y-2">
-                                            <label for="selling_price" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Selling Price</label>
-                                            <input type="number" step="0.01" name="selling_price" id="selling_price" value="{{ old('selling_price') }}" required 
-                                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black text-primary">
+                                            <label for="selling_price" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Direct Selling Price</label>
+                                            <div class="relative">
+                                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">₹</span>
+                                                <input type="number" step="0.01" name="selling_price" id="selling_price" value="{{ old('selling_price') }}" required 
+                                                    class="w-full h-11 pl-8 pr-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black text-primary outline-none">
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div class="space-y-2">
-                                        <label for="status" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Initial Status</label>
+                                        <label for="status" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Product Status</label>
                                         <select name="status" id="status" 
-                                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-[10px] font-black uppercase tracking-widest text-foreground">
+                                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-[10px] font-black uppercase tracking-widest text-foreground outline-none">
                                             <option value="active" class="bg-card">Active</option>
                                             <option value="draft" class="bg-card">Draft</option>
                                             <option value="out_of_stock" class="bg-card">Out of Stock</option>

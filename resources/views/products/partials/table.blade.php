@@ -13,7 +13,7 @@
             </x-ui.table-head>
             <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest py-5">Product Identity</x-ui.table-head>
             <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest">Market Value</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-center">Inventory Metrics</x-ui.table-head>
+            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-center min-w-[220px]">Inventory Metrics</x-ui.table-head>
             <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest">Operational Status</x-ui.table-head>
             <x-ui.table-head class="text-right text-[10px] font-black uppercase tracking-widest">Management</x-ui.table-head>
         </x-ui.table-row>
@@ -101,38 +101,39 @@
                 </x-ui.table-cell>
 
                 <x-ui.table-cell>
-                    <div class="flex flex-col items-center gap-3">
-                        <div class="grid grid-cols-3 gap-4 w-full max-w-[200px]">
-                            <div class="flex flex-col items-center text-center">
-                                <span class="text-[10px] font-black text-foreground">{{ number_format($onHand) }}</span>
+                    <div class="flex flex-col items-center gap-2 py-1 min-w-[210px]">
+                        {{-- Numbers row --}}
+                        <div class="flex items-stretch divide-x divide-border/40 w-full rounded-xl border border-border/40 bg-muted/5 overflow-hidden">
+                            <div class="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 px-1">
+                                <span class="text-sm font-black text-foreground leading-none">{{ number_format($onHand) }}</span>
                                 <span class="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">On Hand</span>
                             </div>
-                            <div class="flex flex-col items-center text-center border-x border-border/40">
-                                <span class="text-[10px] font-black text-orange-500">{{ number_format($reserved) }}</span>
+                            <div class="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 px-1 bg-orange-500/5">
+                                <span class="text-sm font-black text-orange-500 leading-none">{{ number_format($reserved) }}</span>
                                 <span class="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Reserved</span>
                             </div>
-                            <div class="flex flex-col items-center text-center">
-                                <span class="text-[10px] font-black text-emerald-500">{{ number_format($available) }}</span>
+                            <div class="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 px-1 bg-emerald-500/5">
+                                <span class="text-sm font-black text-emerald-500 leading-none">{{ number_format($available) }}</span>
                                 <span class="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Available</span>
                             </div>
                         </div>
-                        
-                        <div class="w-full max-w-[160px] space-y-1.5">
-                            <div class="h-1.5 bg-muted/30 rounded-full overflow-hidden flex shadow-inner">
-                                @php
-                                    $reservedPercent = $onHand > 0 ? ($reserved / $onHand) * 100 : 0;
-                                    $availablePercent = $onHand > 0 ? ($available / $onHand) * 100 : 0;
-                                @endphp
-                                <div class="h-full bg-orange-500 transition-all duration-1000" style="width: {{ $reservedPercent }}%"></div>
-                                <div class="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.3)]" style="width: {{ $availablePercent }}%"></div>
-                            </div>
-                            @if($product->allow_overselling)
-                                <div class="flex items-center justify-center gap-1.5 bg-purple-500/5 border border-purple-500/20 py-0.5 px-2 rounded-lg">
-                                    <x-ui.icon name="zap" size="2" class="text-purple-500 animate-pulse" />
-                                    <span class="text-[8px] font-black text-purple-600 uppercase tracking-widest">Overselling Enabled ({{ $product->overselling_qty ?: '∞' }})</span>
-                                </div>
-                            @endif
+
+                        {{-- Progress bar --}}
+                        @php
+                            $reservedPercent = $onHand > 0 ? min(100, ($reserved / $onHand) * 100) : 0;
+                            $availablePercent = $onHand > 0 ? min(100, ($available / $onHand) * 100) : 0;
+                        @endphp
+                        <div class="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden flex shadow-inner">
+                            <div class="h-full bg-orange-500 transition-all duration-1000 rounded-l-full" style="width: {{ $reservedPercent }}%"></div>
+                            <div class="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_6px_rgba(16,185,129,0.4)]" style="width: {{ $availablePercent }}%"></div>
                         </div>
+
+                        @if($product->allow_overselling)
+                            <div class="flex items-center justify-center gap-1 bg-purple-500/5 border border-purple-500/20 py-0.5 px-2 rounded-lg w-full">
+                                <x-ui.icon name="zap" size="2" class="text-purple-500 animate-pulse" />
+                                <span class="text-[8px] font-black text-purple-600 uppercase tracking-widest">Oversell ({{ $product->overselling_qty ?: '∞' }})</span>
+                            </div>
+                        @endif
                     </div>
                 </x-ui.table-cell>
 

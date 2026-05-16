@@ -40,7 +40,8 @@ class OrderTrackingController extends Controller
             'failed'     => (clone $query)->where('status', 'failed')->count(),
         ];
 
-        $shipments = $query->paginate(15)->withQueryString();
+        $perPage = (int) $request->get('perPage', 15);
+        $shipments = $query->paginate($perPage)->withQueryString();
 
         if ($request->ajax()) {
             return response()->json([

@@ -2,27 +2,63 @@
 
     <div class="p-6 lg:p-10" x-data="{ 
         search: '{{ request('search', '') }}',
+        perPage: '{{ request('perPage', 12) }}',
         stats: @js($stats),
         isLoading: false,
         editingBrand: null,
+        selectedBrands: [],
+        allSelected: false,
 
-        async performSearch() {
+        toggleAll() {
+            const checkboxes = document.querySelectorAll('input[name=\'brand_ids[]\']');
+            if (this.allSelected) {
+                this.selectedBrands = Array.from(checkboxes).map(el => parseInt(el.value));
+            } else {
+                this.selectedBrands = [];
+            }
+        },
+
+        toggleBrand(id) {
+            id = parseInt(id);
+            if (this.selectedBrands.includes(id)) {
+                this.selectedBrands = this.selectedBrands.filter(bId => bId !== id);
+            } else {
+                this.selectedBrands.push(id);
+            }
+        },
+
+        async fetchTable(url) {
+            if (this.isLoading) return;
             this.isLoading = true;
-            let params = new URLSearchParams({ search: this.search });
-            window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
-
             try {
-                const res = await fetch(`{{ route('brands.index') }}?${params.toString()}`, {
+                const res = await fetch(url, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 });
                 const data = await res.json();
                 document.getElementById('table-container').innerHTML = data.table;
                 this.stats = data.stats;
+                this.selectedBrands = [];
+                this.allSelected = false;
             } catch (error) {
-                console.error('Search failed:', error);
+                console.error('Fetch failed:', error);
             } finally {
                 this.isLoading = false;
             }
+        },
+
+        async performSearch() {
+            const params = new URLSearchParams({ search: this.search, perPage: this.perPage });
+            const url = `{{ route('brands.index') }}?${params.toString()}`;
+            window.history.replaceState({}, '', url);
+            await this.fetchTable(url);
+        },
+
+        async handlePagination(event) {
+            const link = event.target.closest('a');
+            if (!link || !link.href || !link.href.includes('page=')) return;
+            event.preventDefault();
+            window.history.replaceState({}, '', link.href);
+            await this.fetchTable(link.href);
         },
 
         openAddModal() {
@@ -81,14 +117,53 @@
         <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
             <x-ui.card-header class="border-b border-border/40 bg-muted/10 p-8">
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div class="relative group w-full lg:max-w-md">
-                        <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                        <input type="text" x-model="search" @input.debounce.500ms="performSearch" placeholder="Search brands..." 
-                            class="pl-9 pr-4 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex bg-muted/50 px-4 py-1.5 rounded-xl border border-border/50 shadow-inner">
+                            <span class="text-xs font-bold text-primary tracking-widest uppercase">Brands List</span>
+                        </div>
+                        
+                        <!-- Bulk Actions -->
+                        <div x-show="selectedBrands.length > 0" x-cloak x-transition class="flex items-center gap-2">
+                            <x-ui.dropdown>
+                                <x-slot name="trigger">
+                                    <x-ui.button variant="outline" size="sm" class="rounded-xl border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap">
+                                        <span x-text="selectedBrands.length"></span> Selected
+                                        <x-ui.icon name="chevron-down" size="3" class="ml-2" />
+                                    </x-ui.button>
+                                </x-slot>
+                                <x-slot name="content">
+                                    <x-ui.dropdown-label>Bulk Actions</x-ui.dropdown-label>
+                                    <form action="{{ route('brands.bulk-delete') }}" method="POST" onsubmit="return confirm('Delete selected brands?')">
+                                        @csrf
+                                        <input type="hidden" name="ids" :value="JSON.stringify(selectedBrands)">
+                                        <button type="submit" class="w-full text-left px-2 py-1.5 text-xs hover:bg-muted rounded-md flex items-center text-destructive">
+                                            <x-ui.icon name="trash" size="3" class="mr-2" /> Delete Selected
+                                        </button>
+                                    </form>
+                                </x-slot>
+                            </x-ui.dropdown>
+                        </div>
                     </div>
-                    <x-ui.button @click.stop="openAddModal" class="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-primary/20">
-                        <x-ui.icon name="plus" size="3" class="mr-2" /> Add Brand
-                    </x-ui.button>
+
+                    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:inline-block">Show</span>
+                            <select x-model="perPage" @change="performSearch()" class="h-11 px-3 py-1.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs font-medium shadow-sm">
+                                <option value="5">5</option>
+                                <option value="12">12</option>
+                                <option value="24">24</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                        <div class="relative group w-full lg:w-64 shrink-0">
+                            <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <input type="text" x-model="search" @input.debounce.500ms="performSearch" placeholder="Search brands..." 
+                                class="pl-9 pr-4 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
+                        </div>
+                        <x-ui.button @click.stop="openAddModal" class="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-primary/20 w-full lg:w-auto">
+                            <x-ui.icon name="plus" size="3" class="mr-2" /> Add Brand
+                        </x-ui.button>
+                    </div>
                 </div>
             </x-ui.card-header>
 
@@ -96,7 +171,7 @@
                 <div x-show="isLoading" x-cloak class="absolute inset-0 z-50 bg-background/50 backdrop-blur-[2px] flex items-center justify-center">
                     <x-ui.icon name="refresh-cw" class="animate-spin text-primary" size="6" />
                 </div>
-                <div id="table-container">
+                <div id="table-container" @click="handlePagination($event)">
                     @include('brands.partials.table')
                 </div>
             </x-ui.card-content>

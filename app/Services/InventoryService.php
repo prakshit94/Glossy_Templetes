@@ -490,9 +490,9 @@ class InventoryService
             /** @var Order $order */
             $order = Order::with('items')->lockForUpdate()->findOrFail($order->id);
 
-            if ($order->status !== 'confirmed') {
+            if (!in_array($order->status, ['confirmed', 'processing'])) {
                 throw ValidationException::withMessages([
-                    'status' => 'Only confirmed orders can be shipped.',
+                    'status' => 'Only confirmed or processing orders can be shipped.',
                 ]);
             }
 
@@ -591,8 +591,8 @@ class InventoryService
                 ]);
             }
 
-            // Only release reservations if the order was confirmed (reserved stock)
-            if ($order->status === 'confirmed' && $order->type === 'sale' && $order->warehouse_id) {
+            // Only release reservations if the order was confirmed or processing (reserved stock)
+            if (in_array($order->status, ['confirmed', 'processing']) && $order->type === 'sale' && $order->warehouse_id) {
                 foreach ($order->items as $item) {
                     $productId   = (int) $item->product_id;
                     $warehouseId = (int) $order->warehouse_id;

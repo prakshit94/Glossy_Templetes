@@ -209,6 +209,28 @@ class OrderService
         });
     }
 
+    public function updateStatus(Order $order, string $status): Order
+    {
+        $allowedStatuses = ['processing', 'delivered'];
+        
+        if (!in_array($status, $allowedStatuses)) {
+            throw ValidationException::withMessages([
+                'status' => "Status '{$status}' cannot be updated via this method.",
+            ]);
+        }
+
+        $order->update([
+            'status'     => $status,
+            'updated_by' => auth()->id(),
+        ]);
+
+        activity('orders')
+            ->performedOn($order)
+            ->log("Order #{$order->order_no} status updated to {$status}");
+
+        return $order->refresh();
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     //  Helpers
     // ─────────────────────────────────────────────────────────────────────────

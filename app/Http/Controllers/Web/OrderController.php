@@ -226,8 +226,8 @@ class OrderController extends Controller
     {
         $order = Order::findOrFail($id);
 
-        if ($order->status !== 'confirmed') {
-            return back()->with('error', 'Only confirmed orders can be shipped.');
+        if (!in_array($order->status, ['confirmed', 'processing'])) {
+            return back()->with('error', 'Only confirmed or processing orders can be shipped.');
         }
 
         try {
@@ -237,6 +237,32 @@ class OrderController extends Controller
         }
 
         return back()->with('success', 'Order shipped and inventory updated.');
+    }
+
+    public function markProcessing(string $id, OrderService $orderService)
+    {
+        $order = Order::findOrFail($id);
+
+        if ($order->status !== 'confirmed') {
+            return back()->with('error', 'Only confirmed orders can be moved to processing.');
+        }
+
+        $orderService->updateStatus($order, 'processing');
+
+        return back()->with('success', 'Order moved to processing.');
+    }
+
+    public function markDelivered(string $id, OrderService $orderService)
+    {
+        $order = Order::findOrFail($id);
+
+        if (!in_array($order->status, ['shipped', 'processing'])) {
+            return back()->with('error', 'Only shipped or processing orders can be marked as delivered.');
+        }
+
+        $orderService->updateStatus($order, 'delivered');
+
+        return back()->with('success', 'Order marked as delivered.');
     }
 
     public function cancel(string $id, InventoryService $inventoryService)

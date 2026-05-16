@@ -53,8 +53,8 @@ class ProductController extends Controller
         $stats = [
             'total' => Product::count(),
             'active' => Product::where('status', 'active')->count(),
-            'out_of_stock' => Product::where('status', 'out_of_stock')->count(),
-            'low_stock' => Product::whereRaw('min_stock_level > (select sum(quantity) from stocks where product_id = products.id)')->count(),
+            'out_of_stock' => Product::whereRaw('IFNULL((select sum(quantity - reserved_qty) from stocks where product_id = products.id), 0) <= 0')->count(),
+            'low_stock' => Product::whereRaw('IFNULL((select sum(quantity - reserved_qty) from stocks where product_id = products.id), 0) <= min_stock_level')->whereRaw('IFNULL((select sum(quantity - reserved_qty) from stocks where product_id = products.id), 0) > 0')->count(),
         ];
 
         // dynamic lists

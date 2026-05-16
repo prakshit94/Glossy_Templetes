@@ -18,7 +18,8 @@ class BrandController extends Controller
             $query->where('name', 'like', "%$s%");
         }
 
-        $brands = $query->latest()->paginate(12)->withQueryString();
+        $perPage = $request->input('perPage', 12);
+        $brands = $query->latest()->paginate($perPage)->withQueryString();
 
         $stats = [
             'total' => Brand::count(),
@@ -78,5 +79,15 @@ class BrandController extends Controller
     {
         $brand->delete();
         return back()->with('success', 'Brand deleted successfully.');
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = json_decode($request->ids, true);
+        if (empty($ids)) return back()->with('error', 'No brands selected.');
+
+        Brand::whereIn('id', $ids)->delete();
+
+        return back()->with('success', count($ids) . ' brands deleted successfully.');
     }
 }

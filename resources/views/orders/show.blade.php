@@ -51,19 +51,58 @@
                         </a>
                     @endif
 
+                    {{-- Confirm (pending → confirmed) --}}
                     @if($order->status === 'pending')
                         <form action="{{ route('orders.confirm', $order) }}" method="POST">
                             @csrf
-                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-primary shadow-lg shadow-primary/20">
-                                <x-ui.icon name="check-circle" size="3" class="mr-2" /> Confirm
+                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+                                <x-ui.icon name="check-circle" size="3" class="mr-2" /> Confirm Order
                             </x-ui.button>
                         </form>
                     @endif
+
+                    {{-- Mark Processing (confirmed → processing) --}}
                     @if($order->status === 'confirmed')
+                        <form action="{{ route('orders.processing', $order) }}" method="POST">
+                            @csrf
+                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20">
+                                <x-ui.icon name="loader" size="3" class="mr-2" /> Mark Processing
+                            </x-ui.button>
+                        </form>
                         <form action="{{ route('orders.ship', $order) }}" method="POST">
                             @csrf
+                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
+                                <x-ui.icon name="truck" size="3" class="mr-2" /> Ship Now
+                            </x-ui.button>
+                        </form>
+                    @endif
+
+                    {{-- Ship (processing → shipped) --}}
+                    @if($order->status === 'processing')
+                        <form action="{{ route('orders.ship', $order) }}" method="POST">
+                            @csrf
+                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
+                                <x-ui.icon name="truck" size="3" class="mr-2" /> Ship Order
+                            </x-ui.button>
+                        </form>
+                    @endif
+
+                    {{-- Deliver (shipped → delivered) --}}
+                    @if($order->status === 'shipped')
+                        <form action="{{ route('orders.deliver', $order) }}" method="POST">
+                            @csrf
                             <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
-                                <x-ui.icon name="truck" size="3" class="mr-2" /> Ship
+                                <x-ui.icon name="check-circle" size="3" class="mr-2" /> Mark Delivered
+                            </x-ui.button>
+                        </form>
+                    @endif
+
+                    {{-- Cancel (any active status) --}}
+                    @if(!in_array($order->status, ['delivered', 'cancelled', 'returned']))
+                        <form action="{{ route('orders.cancel', $order) }}" method="POST" onsubmit="return confirm('Cancel this order?')">
+                            @csrf
+                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-destructive border-destructive/30 hover:bg-destructive/10">
+                                <x-ui.icon name="x-circle" size="3" class="mr-2" /> Cancel
                             </x-ui.button>
                         </form>
                     @endif
@@ -73,31 +112,79 @@
 
         <!-- Lifecycle Steps -->
         @php
-            $steps = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
-            $currentIndex = array_search($order->status, $steps);
+            $steps = [
+                ['key' => 'pending',    'label' => 'Pending',    'icon' => 'clock'],
+                ['key' => 'confirmed',  'label' => 'Confirmed',  'icon' => 'check-circle'],
+                ['key' => 'processing', 'label' => 'Processing', 'icon' => 'loader'],
+                ['key' => 'shipped',    'label' => 'Shipped',    'icon' => 'truck'],
+                ['key' => 'delivered',  'label' => 'Delivered',  'icon' => 'package-check'],
+            ];
+            $stepKeys = array_column($steps, 'key');
+            $currentIndex = array_search($order->status, $stepKeys);
             $isCancelled = in_array($order->status, ['cancelled', 'returned']);
         @endphp
-        @if(!$isCancelled && $currentIndex !== false)
+        @if(!$isCancelled)
         <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-3xl p-8">
-            <div class="relative flex items-center justify-between w-full max-w-4xl mx-auto">
-                <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-muted rounded-full overflow-hidden">
-                    <div class="h-full bg-{{ $statusColor }}-500 transition-all duration-1000" style="width: {{ ($currentIndex / (count($steps) - 1)) * 100 }}%"></div>
+            <div class="relative flex items-start justify-between w-full max-w-4xl mx-auto">
+                {{-- Progress connector line --}}
+                <div class="absolute left-0 right-0 top-5 -translate-y-1/2 h-1 bg-muted/60 rounded-full overflow-hidden" style="margin: 0 2.5rem">
+                    @php
+                        $progress = $currentIndex !== false ? ($currentIndex / (count($steps) - 1)) * 100 : 0;
+                    @endphp
+                    <div class="h-full bg-{{ $statusColor }}-500 transition-all duration-1000 ease-out" style="width: {{ $progress }}%"></div>
                 </div>
                 
                 @foreach($steps as $index => $step)
                     @php
-                        $isCompleted = $index <= $currentIndex;
-                        $isCurrent = $index === $currentIndex;
+                        $isCompleted = $currentIndex !== false && $index < $currentIndex;
+                        $isCurrent  = $currentIndex !== false && $index === $currentIndex;
+                        $isPending  = $currentIndex === false || $index > $currentIndex;
                     @endphp
-                    <div class="relative flex flex-col items-center gap-3 z-10">
-                        <div class="size-10 rounded-full flex items-center justify-center font-bold text-sm border-4 {{ $isCompleted ? 'bg-'.$statusColor.'-500 border-'.$statusColor.'-200 text-white shadow-lg shadow-'.$statusColor.'-500/40' : 'bg-muted border-background text-muted-foreground' }} transition-colors duration-500">
-                            @if($isCompleted) <x-ui.icon name="check" size="4" /> @else {{ $index + 1 }} @endif
+                    <div class="relative flex flex-col items-center gap-2 z-10" style="flex: 1">
+                        {{-- Circle --}}
+                        <div class="
+                            size-10 rounded-full flex items-center justify-center border-4 transition-all duration-500 shadow-md
+                            {{ $isCurrent ? 'bg-'.$statusColor.'-500 border-'.$statusColor.'-200 text-white scale-110 shadow-'.$statusColor.'-500/40 ring-4 ring-'.$statusColor.'-500/20' : '' }}
+                            {{ $isCompleted ? 'bg-'.$statusColor.'-500 border-'.$statusColor.'-200 text-white shadow-'.$statusColor.'-500/30' : '' }}
+                            {{ $isPending ? 'bg-muted/30 border-background text-muted-foreground/40' : '' }}
+                        ">
+                            @if($isCompleted)
+                                <x-ui.icon name="check" size="4" />
+                            @else
+                                <x-ui.icon name="{{ $step['icon'] }}" size="4" />
+                            @endif
                         </div>
-                        <span class="absolute -bottom-6 text-[10px] font-black uppercase tracking-widest whitespace-nowrap {{ $isCurrent ? 'text-'.$statusColor.'-600' : ($isCompleted ? 'text-foreground' : 'text-muted-foreground') }}">
-                            {{ $step }}
-                        </span>
+
+                        {{-- Label --}}
+                        <div class="flex flex-col items-center gap-0.5">
+                            <span class="text-[10px] font-black uppercase tracking-widest whitespace-nowrap
+                                {{ $isCurrent ? 'text-'.$statusColor.'-600' : ($isCompleted ? 'text-foreground' : 'text-muted-foreground/40') }}
+                            ">
+                                {{ $step['label'] }}
+                            </span>
+                            @if($isCurrent)
+                                <span class="size-1.5 rounded-full bg-{{ $statusColor }}-500 animate-pulse"></span>
+                            @endif
+                        </div>
                     </div>
                 @endforeach
+            </div>
+
+            @if($isCancelled)
+                <div class="mt-6 flex items-center justify-center gap-2 text-destructive">
+                    <x-ui.icon name="x-circle" size="4" />
+                    <span class="text-xs font-black uppercase tracking-widest">Order {{ ucfirst($order->status) }}</span>
+                </div>
+            @endif
+        </x-ui.card>
+        @else
+        <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-3xl p-6">
+            <div class="flex items-center justify-center gap-3 text-destructive">
+                <x-ui.icon name="x-circle" size="6" />
+                <div>
+                    <p class="text-sm font-black uppercase tracking-widest">Order {{ ucfirst($order->status) }}</p>
+                    <p class="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">This order cannot be progressed further.</p>
+                </div>
             </div>
         </x-ui.card>
         @endif

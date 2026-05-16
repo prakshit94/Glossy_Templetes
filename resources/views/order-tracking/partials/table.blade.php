@@ -2,6 +2,10 @@
     <table class="w-full border-collapse">
         <thead>
             <tr class="bg-muted/5 border-b border-border/40 text-left">
+                <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 w-10">
+                    <input type="checkbox" x-model="allSelected" @change="selectedShipments = allSelected ? @js($shipments->pluck('id')->all()) : []"
+                        class="rounded border-border/60 bg-background/50 text-primary focus:ring-primary/20">
+                </th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Shipment Identity</th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Customer & Order</th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Current Status</th>
@@ -11,7 +15,11 @@
         </thead>
         <tbody class="divide-y divide-border/20">
             @forelse($shipments as $shipment)
-                <tr class="group hover:bg-muted/5 transition-all">
+                <tr class="group hover:bg-muted/5 transition-all" :class="selectedShipments.includes({{ $shipment->id }}) ? 'bg-primary/5' : ''">
+                    <td class="px-6 py-6">
+                        <input type="checkbox" value="{{ $shipment->id }}" x-model="selectedShipments"
+                            class="rounded border-border/60 bg-background/50 text-primary focus:ring-primary/20">
+                    </td>
                     <td class="px-6 py-6">
                         <div class="flex items-center gap-4">
                             <div class="size-11 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-center text-primary shadow-inner">
@@ -53,8 +61,8 @@
                             $color = $statusColors[$shipment->status] ?? 'bg-muted/10 text-muted-foreground border-border/40';
                         @endphp
                         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border {{ $color }} shadow-sm">
-                            <span class="size-1.5 rounded-full bg-current"></span>
-                            <span class="text-[10px] font-black uppercase tracking-widest">{{ $shipment->status }}</span>
+                            <span class="size-1.5 rounded-full bg-current {{ $shipment->status === 'in_transit' ? 'animate-pulse' : '' }}"></span>
+                            <span class="text-[10px] font-black uppercase tracking-widest">{{ str_replace('_', ' ', $shipment->status) }}</span>
                         </div>
                     </td>
                     <td class="px-6 py-6">
@@ -83,10 +91,15 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="px-6 py-20 text-center">
+                    <td colspan="6" class="px-6 py-24 text-center">
                         <div class="flex flex-col items-center gap-4 opacity-30">
-                            <x-ui.icon name="target" size="16" />
-                            <p class="text-lg font-black uppercase tracking-[0.2em]">No Shipments Detected</p>
+                            <div class="size-20 rounded-full bg-muted/20 flex items-center justify-center">
+                                <x-ui.icon name="target" size="10" />
+                            </div>
+                            <div>
+                                <p class="text-lg font-black uppercase tracking-[0.2em]">No Shipments Detected</p>
+                                <p class="text-xs font-bold uppercase tracking-widest text-muted-foreground mt-1">Try adjusting your filters or search query</p>
+                            </div>
                         </div>
                     </td>
                 </tr>
