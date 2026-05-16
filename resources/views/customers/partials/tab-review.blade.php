@@ -119,8 +119,8 @@
                                         <p class="text-xs font-black text-foreground">{{ $addr->village?->taluka_name ?? $addr->taluka ?? '—' }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">District / Pincode</p>
-                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->district_name ?? $addr->city ?? '—' }} - {{ $addr->village?->pincode ?? $addr->pincode }}</p>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">District / State / Pin</p>
+                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->district_name ?? $addr->city ?? '—' }}, {{ !empty($addr->village?->state_name) ? $addr->village->state_name : (!empty($addr->state) ? $addr->state : '—') }} - {{ $addr->village?->pincode ?? $addr->pincode }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -195,8 +195,8 @@
                                         <p class="text-xs font-black text-foreground">{{ $addr->village?->taluka_name ?? $addr->taluka ?? '—' }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">District / Pincode</p>
-                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->district_name ?? $addr->city ?? '—' }} - {{ $addr->village?->pincode ?? $addr->pincode }}</p>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">District / State / Pin</p>
+                                        <p class="text-xs font-black text-foreground">{{ $addr->village?->district_name ?? $addr->city ?? '—' }}, {{ !empty($addr->village?->state_name) ? $addr->village->state_name : (!empty($addr->state) ? $addr->state : '—') }} - {{ $addr->village?->pincode ?? $addr->pincode }}</p>
                                     </div>
                                 </div>
                             </div>

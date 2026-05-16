@@ -259,8 +259,8 @@
                                                         <span class="text-foreground font-medium">{{ $order->billingAddress->village?->taluka_name ?? $order->billingAddress->taluka ?? '—' }}</span>
                                                     </div>
                                                     <div>
-                                                        <span class="font-black uppercase tracking-widest text-muted-foreground/60 block mb-1 text-[9px]">District / Pin</span>
-                                                        <span class="text-foreground font-medium">{{ $order->billingAddress->village?->district_name ?? $order->billingAddress->city ?? '—' }} - {{ $order->billingAddress->village?->pincode ?? $order->billingAddress->pincode ?? '—' }}</span>
+                                                        <span class="font-black uppercase tracking-widest text-muted-foreground/60 block mb-1 text-[9px]">District / State / Pin</span>
+                                                        <span class="text-foreground font-medium">{{ $order->billingAddress->village?->district_name ?? $order->billingAddress->city ?? '—' }}, {{ !empty($order->billingAddress->village?->state_name) ? $order->billingAddress->village->state_name : (!empty($order->billingAddress->state) ? $order->billingAddress->state : '—') }} - {{ $order->billingAddress->village?->pincode ?? $order->billingAddress->pincode ?? '—' }}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -298,8 +298,8 @@
                                                             <span class="text-foreground font-medium">{{ $order->shippingAddress->village?->taluka_name ?? $order->shippingAddress->taluka ?? '—' }}</span>
                                                         </div>
                                                         <div>
-                                                            <span class="font-black uppercase tracking-widest text-muted-foreground/60 block mb-1 text-[9px]">District / Pin</span>
-                                                            <span class="text-foreground font-medium">{{ $order->shippingAddress->village?->district_name ?? $order->shippingAddress->city ?? '—' }} - {{ $order->shippingAddress->village?->pincode ?? $order->shippingAddress->pincode ?? '—' }}</span>
+                                                            <span class="font-black uppercase tracking-widest text-muted-foreground/60 block mb-1 text-[9px]">District / State / Pin</span>
+                                                            <span class="text-foreground font-medium">{{ $order->shippingAddress->village?->district_name ?? $order->shippingAddress->city ?? '—' }}, {{ !empty($order->shippingAddress->village?->state_name) ? $order->shippingAddress->village->state_name : (!empty($order->shippingAddress->state) ? $order->shippingAddress->state : '—') }} - {{ $order->shippingAddress->village?->pincode ?? $order->shippingAddress->pincode ?? '—' }}</span>
                                                         </div>
                                                     </div>
                                                 @else

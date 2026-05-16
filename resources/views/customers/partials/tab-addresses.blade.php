@@ -48,7 +48,7 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">State</span>
-                            <span class="text-xs font-bold text-foreground">{{ $address->village?->state_name ?? $address->state ?? '—' }}</span>
+                            <span class="text-xs font-bold text-foreground">{{ !empty($address->village?->state_name) ? $address->village->state_name : (!empty($address->state) ? $address->state : '—') }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Pincode</span>

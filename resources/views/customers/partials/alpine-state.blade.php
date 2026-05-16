@@ -315,7 +315,7 @@
             this.editingAddress.taluka = address.village.taluka_name || address.village.taluka;
             this.editingAddress.district = address.village.district_name || address.village.district;
             this.editingAddress.city = address.village.district_name || address.village.district || address.village.city;
-            this.editingAddress.state = address.village.state_name || address.village.state;
+            this.editingAddress.state = (address.village && address.village.state_name) ? address.village.state_name : (address.state || '');
             this.editingAddress.pincode = address.village.pincode;
             this.villageSearch = this.editingAddress.village_name;
         } else if (address) {
@@ -374,7 +374,7 @@
             this.editingAddress.post_office = v.post_office || v.post_so_name || '';
             this.editingAddress.taluka = v.taluka || v.taluka_name || '';
             this.editingAddress.district = v.district || v.district_name || '';
-            this.editingAddress.state = v.state || v.state_name || '';
+            this.editingAddress.state = v.state_name || v.state || '';
             this.editingAddress.pincode = v.pincode || '';
             this.editingAddress.city = v.district || v.district_name || '';
         }
