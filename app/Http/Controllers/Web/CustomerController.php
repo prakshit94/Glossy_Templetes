@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Crop;
+use App\Models\IrrigationType;
+use App\Models\LandUnit;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -63,7 +66,11 @@ class CustomerController extends Controller
 
     public function create()
     {
-        return view('customers.create');
+        $crops = Crop::where('status', 'active')->orderBy('name')->get();
+        $irrigationTypes = IrrigationType::where('status', 'active')->orderBy('name')->get();
+        $landUnits = LandUnit::where('status', 'active')->orderBy('name')->get();
+
+        return view('customers.create', compact('crops', 'irrigationTypes', 'landUnits'));
     }
 
     // ─── Store ────────────────────────────────────────────────────────────────
@@ -71,23 +78,63 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'         => 'required|string|max:255',
-            'email'        => 'nullable|email|max:255',
-            'phone'        => 'nullable|string|max:20',
-            'gst_no'       => 'nullable|string|max:20',
-            'pan_no'       => 'nullable|string|max:10',
-            'credit_limit' => 'nullable|numeric|min:0',
-            'credit_days'  => 'nullable|integer|min:0',
-            'status'       => 'required|in:active,inactive,suspended',
+            // Basic Identity
+            'party_code'       => 'nullable|string|max:50|unique:parties,party_code',
+            'firstname'        => 'required|string|max:100',
+            'middlename'       => 'nullable|string|max:100',
+            'lastname'         => 'required|string|max:100',
+
+            // Contact
+            'email'            => 'nullable|email|max:255',
+            'phone'            => 'nullable|string|max:20',
+            'alternatemobile'  => 'nullable|string|max:20',
+            'relative_mobile'  => 'nullable|string|max:20',
+            'phone_number_2'   => 'nullable|string|max:20',
+            'relative_phone'   => 'nullable|string|max:20',
+
+            // Classification
+            'source'           => 'nullable|array',
+            'category'         => 'nullable|string|max:50',
+
+            // Business
+            'company_name'     => 'nullable|string|max:255',
+            'gst_no'           => 'nullable|string|max:20',
+            'pan_no'           => 'nullable|string|max:10',
+            'tax_no'           => 'nullable|string|max:30',
+
+            // Agriculture
+            'land_area'        => 'nullable|numeric|min:0',
+            'land_unit'        => 'nullable|string|max:20',
+            'crops'            => 'nullable|array',
+            'irrigation_type'  => 'nullable|array',
+
+            // Financial
+            'credit_limit'         => 'nullable|numeric|min:0',
+            'credit_days'          => 'nullable|integer|min:0',
+            'outstanding_balance'  => 'nullable|numeric',
+            'credit_valid_till'    => 'nullable|date',
+
+            // KYC
+            'aadhaar_last4'    => 'nullable|digits:4',
+            'kyc_completed'    => 'nullable|boolean',
+
+            // Status & Control
+            'status'           => 'required|in:active,inactive,suspended',
+            'is_active'        => 'nullable|boolean',
+            'is_blacklisted'   => 'nullable|boolean',
+            'internal_notes'   => 'nullable|string',
+            'tags'             => 'nullable|array',
+
+            // Accounting
+            'account_type_id'  => 'nullable|integer|exists:account_types,id',
         ]);
 
         $data['type'] = 'customer';
-
         $customer = Customer::create($data);
 
         activity('customers')
             ->performedOn($customer)
-            ->log("Created customer: {$customer->name}");
+            ->log("Registered new customer: {$customer->name}");
 
         return redirect()->route('customers.index')
             ->with('success', 'Customer created successfully.');
@@ -97,9 +144,13 @@ class CustomerController extends Controller
 
     public function show(Customer $customer)
     {
-        $customer->load('addresses.village');
+        $customer->load(['addresses.village', 'orders' => function($q) {
+            $q->latest()->limit(5);
+        }]);
+
         $categories = \App\Models\Category::whereNull('parent_id')->get();
         $warehouses = \App\Models\Warehouse::where('status', 'active')->get();
+
         return view('customers.show', compact('customer', 'categories', 'warehouses'));
     }
 
@@ -108,7 +159,12 @@ class CustomerController extends Controller
     public function edit(Customer $customer)
     {
         $customer->load('addresses.village');
-        return view('customers.edit', compact('customer'));
+        
+        $crops = Crop::where('status', 'active')->orderBy('name')->get();
+        $irrigationTypes = IrrigationType::where('status', 'active')->orderBy('name')->get();
+        $landUnits = LandUnit::where('status', 'active')->orderBy('name')->get();
+
+        return view('customers.edit', compact('customer', 'crops', 'irrigationTypes', 'landUnits'));
     }
 
     // ─── Update ───────────────────────────────────────────────────────────────
@@ -116,14 +172,55 @@ class CustomerController extends Controller
     public function update(Request $request, Customer $customer)
     {
         $data = $request->validate([
-            'name'         => 'required|string|max:255',
-            'email'        => 'nullable|email|max:255',
-            'phone'        => 'nullable|string|max:20',
-            'gst_no'       => 'nullable|string|max:20',
-            'pan_no'       => 'nullable|string|max:10',
-            'credit_limit' => 'nullable|numeric|min:0',
-            'credit_days'  => 'nullable|integer|min:0',
-            'status'       => 'required|in:active,inactive,suspended',
+            // Basic Identity
+            'party_code'       => 'nullable|string|max:50|unique:parties,party_code,' . $customer->id,
+            'firstname'        => 'required|string|max:100',
+            'middlename'       => 'nullable|string|max:100',
+            'lastname'         => 'required|string|max:100',
+
+            // Contact
+            'email'            => 'nullable|email|max:255',
+            'phone'            => 'nullable|string|max:20',
+            'alternatemobile'  => 'nullable|string|max:20',
+            'relative_mobile'  => 'nullable|string|max:20',
+            'phone_number_2'   => 'nullable|string|max:20',
+            'relative_phone'   => 'nullable|string|max:20',
+
+            // Classification
+            'source'           => 'nullable|array',
+            'category'         => 'nullable|string|max:50',
+
+            // Business
+            'company_name'     => 'nullable|string|max:255',
+            'gst_no'           => 'nullable|string|max:20',
+            'pan_no'           => 'nullable|string|max:10',
+            'tax_no'           => 'nullable|string|max:30',
+
+            // Agriculture
+            'land_area'        => 'nullable|numeric|min:0',
+            'land_unit'        => 'nullable|string|max:20',
+            'crops'            => 'nullable|array',
+            'irrigation_type'  => 'nullable|array',
+
+            // Financial
+            'credit_limit'         => 'nullable|numeric|min:0',
+            'credit_days'          => 'nullable|integer|min:0',
+            'outstanding_balance'  => 'nullable|numeric',
+            'credit_valid_till'    => 'nullable|date',
+
+            // KYC
+            'aadhaar_last4'    => 'nullable|digits:4',
+            'kyc_completed'    => 'nullable|boolean',
+
+            // Status & Control
+            'status'           => 'required|in:active,inactive,suspended',
+            'is_active'        => 'nullable|boolean',
+            'is_blacklisted'   => 'nullable|boolean',
+            'internal_notes'   => 'nullable|string',
+            'tags'             => 'nullable|array',
+
+            // Accounting
+            'account_type_id'  => 'nullable|integer|exists:account_types,id',
         ]);
 
         $customer->update($data);

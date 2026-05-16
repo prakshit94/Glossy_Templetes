@@ -117,6 +117,38 @@ class InventoryService
         }
     }
 
+    /**
+     * Synchronize product status based on aggregate inventory levels.
+     * Called at the end of any stock mutation.
+     */
+    private function syncProductStatus(int $productId): void
+    {
+        $product = \App\Models\Product::find($productId);
+        if (!$product) return;
+
+        // Never auto-activate a draft product
+        if ($product->status === 'draft') return;
+
+        $totalAvailable = \App\Models\Stock::where('product_id', $productId)
+            ->get()
+            ->sum(fn($s) => (float) $s->quantity - (float) $s->reserved_qty);
+
+        $newStatus = $product->status;
+
+        if ($totalAvailable <= 0 && !$product->allow_overselling) {
+            $newStatus = 'out_of_stock';
+        } else {
+            // If it was out of stock but now has stock or overselling is enabled, activate it
+            if ($product->status === 'out_of_stock') {
+                $newStatus = 'active';
+            }
+        }
+
+        if ($newStatus !== $product->status) {
+            $product->update(['status' => $newStatus]);
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     //  Public read helpers
     // ─────────────────────────────────────────────────────────────────────────
@@ -183,6 +215,8 @@ class InventoryService
                 'adjustment'
             );
 
+            $this->syncProductStatus($productId);
+
             return $stock->refresh();
         });
     }
@@ -205,6 +239,8 @@ class InventoryService
             $stock->save();
 
             $this->logMovement($productId, $warehouseId, $quantity, 'in', $referenceType, $referenceId);
+
+            $this->syncProductStatus($productId);
 
             return $stock->refresh();
         });
@@ -243,6 +279,8 @@ class InventoryService
             $stock->save();
 
             $this->logMovement($productId, $warehouseId, $quantity, 'out', $referenceType, $referenceId);
+
+            $this->syncProductStatus($productId);
 
             return $stock->refresh();
         });
@@ -283,6 +321,8 @@ class InventoryService
             ]);
 
             $this->logMovement($productId, $warehouseId, $quantity, 'adjustment', 'reserve', $orderId);
+
+            $this->syncProductStatus($productId);
 
             return $stock->refresh();
         });
@@ -326,6 +366,8 @@ class InventoryService
 
             $this->logMovement($productId, $warehouseId, $quantity, 'adjustment', 'release', $orderId);
 
+            $this->syncProductStatus($productId);
+
             return $stock->refresh();
         });
     }
@@ -366,6 +408,7 @@ class InventoryService
 
             $this->logMovement($productId, $fromWarehouseId, $quantity, 'transfer', StockTransfer::class, $transferId);
             $this->logMovement($productId, $toWarehouseId,   $quantity, 'in',       StockTransfer::class, $transferId);
+            $this->syncProductStatus($productId);
         });
     }
 
@@ -429,6 +472,11 @@ class InventoryService
             }
 
             $order->update(['status' => 'confirmed']);
+
+            // Sync status for all items in the order
+            foreach ($order->items as $item) {
+                $this->syncProductStatus((int) $item->product_id);
+            }
         });
     }
 
@@ -502,7 +550,29 @@ class InventoryService
                 }
             }
 
+            // Create Shipment record automatically
+            $shipment = \App\Models\Shipment::create([
+                'shipment_no' => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                'order_id'    => $order->id,
+                'status'      => 'shipped',
+                'shipped_at'  => now(),
+            ]);
+
+            // Log initial tracking event
+            \App\Models\ShipmentTrackingEvent::create([
+                'shipment_id' => $shipment->id,
+                'event_name'  => 'Shipped',
+                'location'    => $order->warehouse?->name ?? 'Warehouse',
+                'description' => 'The order has been shipped from the warehouse.',
+                'occurred_at' => now(),
+            ]);
+
             $order->update(['status' => 'shipped']);
+
+            // Sync status for all items in the order
+            foreach ($order->items as $item) {
+                $this->syncProductStatus((int) $item->product_id);
+            }
         });
     }
 
@@ -549,6 +619,11 @@ class InventoryService
             }
 
             $order->update(['status' => 'cancelled']);
+
+            // Sync status for all items in the order
+            foreach ($order->items as $item) {
+                $this->syncProductStatus((int) $item->product_id);
+            }
         });
     }
 
@@ -600,6 +675,11 @@ class InventoryService
             }
 
             $adjustment->update(['status' => 'approved']);
+
+            // Sync status for all items in the adjustment
+            foreach ($adjustment->items as $item) {
+                $this->syncProductStatus((int) $item->product_id);
+            }
         });
     }
 

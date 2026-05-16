@@ -1,9 +1,4 @@
-<x-layouts.app>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-foreground leading-tight">
-            {{ __('New Stock Transfer') }}
-        </h2>
-    </x-slot>
+<x-layouts.app pageTitle="New Stock Transfer">
 
     <div class="p-6 lg:p-10" x-data="{
         items: [{ product_id: '', quantity: 1, available_qty: 0, open: false, search: '' }],

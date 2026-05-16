@@ -17,7 +17,8 @@
                         ['Email', $customer->email ?: '—', 'mail'],
                         ['Phone', $customer->phone ?: '—', 'phone'],
                         ['Alternate Mobile', $customer->alternatemobile ?? '—', 'phone-call'],
-                        ['Relative Mobile', $customer->relative_mobile ?? '—', 'users'],
+                        ['Relative Contact', ($customer->relative_mobile ?? '—') . ($customer->relative_phone ? " ({$customer->relative_phone})" : ''), 'users'],
+                        ['Secondary Phone', $customer->phone_number_2 ?? '—', 'phone-call'],
                         ['Customer ID', '#'.sprintf('%04d',$customer->id), 'hash'],
                         ['Status', ucfirst($customer->status), 'activity'],
                         ['Registered On', $customer->created_at->format('M d, Y'), 'calendar'],
@@ -43,10 +44,14 @@
                 </div>
                 <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
                     @foreach([
-                        ['GST Number', $customer->gst_no ?: '—', 'shield'],
-                        ['PAN Number', $customer->pan_no ?: '—', 'credit-card'],
-                        ['Aadhaar', $customer->aadhaar_no ?? '—', 'id-card'],
-                        ['Business Name', $customer->business_name ?? '—', 'briefcase'],
+                        ['GST Number',    $customer->gst_no       ?: '—', 'shield'],
+                        ['PAN Number',    $customer->pan_no       ?: '—', 'credit-card'],
+                        ['Aadhaar Last4', $customer->aadhaar_last4 ?? '—', 'lock'],
+                        ['Company Name',  $customer->company_name  ?? '—', 'briefcase'],
+                        ['Party Code',    $customer->party_code    ?? '—', 'hash'],
+                        ['Category',      ucfirst($customer->category ?? '—'), 'tag'],
+                        ['Source',        is_array($customer->source) ? implode(', ', $customer->source) : ($customer->source ?: '—'), 'compass'],
+                        ['KYC Status',    $customer->kyc_completed ? 'Verified ✓' : 'Pending', 'shield'],
                     ] as [$label, $val, $icon])
                     <div class="flex items-start gap-3">
                         <div class="size-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0 mt-0.5">
@@ -58,6 +63,55 @@
                         </div>
                     </div>
                     @endforeach
+                </div>
+            </div>
+
+            {{-- Agriculture Profile Section --}}
+            <div class="bg-card/60 backdrop-blur-xl border border-border/50 rounded-3xl shadow-xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-border/40 bg-muted/10 flex items-center gap-2">
+                    <x-ui.icon name="sun" size="4" class="text-amber-500" />
+                    <h3 class="text-xs font-black uppercase tracking-widest text-foreground">Agriculture Profile</h3>
+                </div>
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+                    <div class="flex items-start gap-3">
+                        <div class="size-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0 mt-0.5">
+                            <x-ui.icon name="maximize" size="3.5" />
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Land Area</p>
+                            <p class="text-sm font-bold text-foreground mt-0.5">{{ $customer->land_area ?? 0 }} {{ $customer->land_unit ?? 'Acre' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <div class="size-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0 mt-0.5">
+                            <x-ui.icon name="droplets" size="3.5" />
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Irrigation Type</p>
+                            <p class="text-sm font-bold text-foreground mt-0.5">
+                                {{ is_array($customer->irrigation_type) ? implode(', ', $customer->irrigation_type) : ($customer->irrigation_type ?: '—') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3 sm:col-span-2">
+                        <div class="size-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0 mt-0.5">
+                            <x-ui.icon name="leaf" size="3.5" />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Major Crops Cultivated</p>
+                            <div class="flex flex-wrap gap-2">
+                                @forelse($customer->crops ?? [] as $crop)
+                                    <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-[10px] font-black uppercase tracking-wider">
+                                        {{ $crop }}
+                                    </span>
+                                @empty
+                                    <span class="text-sm font-bold text-muted-foreground italic">No crops recorded</span>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,136 +1,140 @@
-<x-ui.table>
-    <x-ui.table-header class="bg-muted/30">
-        <x-ui.table-row class="border-b border-border/60">
-            <x-ui.table-head>Transfer No & Date</x-ui.table-head>
-            <x-ui.table-head>From Warehouse</x-ui.table-head>
-            <x-ui.table-head>To Warehouse</x-ui.table-head>
-            <x-ui.table-head class="text-center">Items</x-ui.table-head>
-            <x-ui.table-head class="text-center">Status</x-ui.table-head>
-            <x-ui.table-head class="text-right">Actions</x-ui.table-head>
-        </x-ui.table-row>
-    </x-ui.table-header>
-
-    <x-ui.table-body>
-        @forelse($transfers as $transfer)
-            <x-ui.table-row class="hover:bg-muted/20 transition-colors group">
-                <x-ui.table-cell>
-                    <div class="flex items-center gap-4">
-                        <div class="size-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
-                            <x-ui.icon name="repeat" size="5" class="text-primary/60" />
+<div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+        <thead>
+            <tr class="bg-muted/5 border-b border-border/40">
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Transfer No & Date</th>
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Movement Path</th>
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Items</th>
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Status</th>
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($transfers as $transfer)
+                <tr class="border-b border-border/30 hover:bg-muted/10 transition-colors group">
+                    <td class="p-4">
+                        <div class="flex items-center gap-4">
+                            <div class="size-11 rounded-2xl bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                <x-ui.icon name="repeat" size="5" class="text-primary/60" />
+                            </div>
+                            <div class="flex flex-col min-w-0">
+                                <span class="text-xs font-black text-foreground truncate uppercase tracking-tight">{{ $transfer->transfer_no }}</span>
+                                <span class="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.1em] mt-0.5">{{ $transfer->created_at->format('M d, Y • h:i A') }}</span>
+                            </div>
                         </div>
-                        <div class="flex flex-col min-w-0">
-                            <span class="text-sm font-bold text-foreground truncate">{{ $transfer->transfer_no }}</span>
-                            <span class="text-[9px] font-bold text-muted-foreground uppercase tracking-tight">{{ $transfer->created_at->format('M d, Y H:i') }}</span>
+                    </td>
+                    
+                    <td class="p-4 min-w-[320px]">
+                        <div class="flex items-center gap-3">
+                            <div class="flex flex-col items-end">
+                                <span class="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Source</span>
+                                <span class="text-[10px] font-black text-foreground uppercase tracking-tight">{{ $transfer->fromWarehouse->name }}</span>
+                            </div>
+                            <div class="flex items-center gap-1 opacity-40">
+                                <div class="size-1 bg-primary rounded-full animate-pulse"></div>
+                                <div class="w-8 h-[2px] bg-gradient-to-r from-primary to-transparent"></div>
+                                <x-ui.icon name="truck" size="4" class="text-primary group-hover:translate-x-2 transition-transform duration-700" />
+                                <div class="w-8 h-[2px] bg-gradient-to-l from-primary to-transparent"></div>
+                                <div class="size-1 bg-primary rounded-full animate-pulse"></div>
+                            </div>
+                            <div class="flex flex-col items-start">
+                                <span class="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Destination</span>
+                                <span class="text-[10px] font-black text-foreground uppercase tracking-tight">{{ $transfer->toWarehouse->name }}</span>
+                            </div>
                         </div>
-                    </div>
-                </x-ui.table-cell>
-                
-                <x-ui.table-cell>
-                    <div class="flex items-center gap-2">
-                        <div class="size-2 rounded-full bg-orange-500/40"></div>
-                        <span class="text-xs font-bold text-muted-foreground uppercase tracking-widest">{{ $transfer->fromWarehouse->name }}</span>
-                    </div>
-                </x-ui.table-cell>
+                    </td>
 
-                <x-ui.table-cell>
-                    <div class="flex items-center gap-2">
-                        <div class="size-2 rounded-full bg-blue-500/40"></div>
-                        <span class="text-xs font-bold text-muted-foreground uppercase tracking-widest">{{ $transfer->toWarehouse->name }}</span>
-                    </div>
-                </x-ui.table-cell>
+                    <td class="p-4 text-center">
+                        <div class="inline-flex items-center px-3 py-1 rounded-xl bg-muted/10 border border-border/40 text-[10px] font-black tracking-tight">
+                            {{ number_format($transfer->items_count) }}
+                        </div>
+                    </td>
 
-                <x-ui.table-cell class="text-center">
-                    <div class="inline-flex items-center px-3 py-1 rounded-xl bg-muted/10 border border-border/40 text-[10px] font-black tracking-tight">
-                        {{ number_format($transfer->items_count) }}
-                    </div>
-                </x-ui.table-cell>
+                    <td class="p-4 text-center">
+                        @php
+                            $statusMap = [
+                                'received' => ['variant' => 'success', 'icon' => 'check-circle'],
+                                'sent'     => ['variant' => 'warning', 'icon' => 'truck'],
+                                'cancelled' => ['variant' => 'destructive', 'icon' => 'x-circle'],
+                                'draft'     => ['variant' => 'outline', 'icon' => 'file-text'],
+                            ];
+                            $st = $statusMap[$transfer->status] ?? $statusMap['draft'];
+                        @endphp
+                        <x-ui.badge variant="{{ $st['variant'] }}" class="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest inline-flex items-center gap-1.5 shadow-sm">
+                            <x-ui.icon name="{{ $st['icon'] }}" size="3" />
+                            {{ $transfer->status }}
+                        </x-ui.badge>
+                    </td>
 
-                <x-ui.table-cell class="text-center">
-                    @php
-                        $variant = match($transfer->status) {
-                            'received' => 'default',
-                            'sent' => 'warning',
-                            'cancelled' => 'destructive',
-                            default => 'secondary'
-                        };
-                        $colorClass = match($transfer->status) {
-                            'received' => 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-                            'sent' => 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-                            'cancelled' => 'bg-red-500/10 text-red-500 border-red-500/20',
-                            default => 'bg-muted/10 text-muted-foreground/40 border-border/40'
-                        };
-                    @endphp
-                    <x-ui.badge variant="outline" className="text-[8px] px-2 py-0.5 rounded-lg font-black uppercase tracking-widest {{ $colorClass }}">
-                        {{ $transfer->status }}
-                    </x-ui.badge>
-                </x-ui.table-cell>
-
-                <x-ui.table-cell class="text-right">
-                    <div class="flex justify-end gap-1.5">
-                        <a href="{{ route('transfers.show', $transfer) }}">
-                            <x-ui.button variant="ghost" size="sm" class="h-8 w-8 p-0 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" title="View Details">
-                                <x-ui.icon name="eye" size="4" />
-                            </x-ui.button>
-                        </a>
-                        @if($transfer->status === 'draft')
-                            <form action="{{ route('transfers.send', $transfer) }}" method="POST" class="inline">
-                                @csrf
-                                <x-ui.button type="submit" variant="ghost" size="sm" class="h-8 w-8 p-0 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors" title="Mark as Sent">
-                                    <x-ui.icon name="send" size="4" />
-                                </x-ui.button>
-                            </form>
-                            <a href="{{ route('transfers.edit', $transfer) }}">
-                                <x-ui.button variant="ghost" size="sm" class="h-8 w-8 p-0 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" title="Edit">
-                                    <x-ui.icon name="edit-2" size="4" />
+                    <td class="p-4 text-right">
+                        <div class="flex justify-end gap-1">
+                            <a href="{{ route('transfers.show', $transfer) }}">
+                                <x-ui.button variant="ghost" size="sm" class="h-9 w-9 p-0 rounded-xl hover:bg-primary/10 hover:text-primary transition-all duration-300" title="View Details">
+                                    <x-ui.icon name="eye" size="4.5" />
                                 </x-ui.button>
                             </a>
-                        @endif
+                            
+                            @if($transfer->status === 'draft')
+                                <form action="{{ route('transfers.send', $transfer) }}" method="POST" class="inline">
+                                    @csrf
+                                    <x-ui.button type="submit" variant="ghost" size="sm" class="h-9 w-9 p-0 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-600 transition-all duration-300" title="Ship/Send Transfer" onclick="return confirm('Mark as sent? This will move stock to In-Transit.')">
+                                        <x-ui.icon name="send" size="4.5" />
+                                    </x-ui.button>
+                                </form>
+                                <a href="{{ route('transfers.edit', $transfer) }}">
+                                    <x-ui.button variant="ghost" size="sm" class="h-9 w-9 p-0 rounded-xl hover:bg-primary/10 hover:text-primary transition-all duration-300" title="Edit Draft">
+                                        <x-ui.icon name="edit-2" size="4.5" />
+                                    </x-ui.button>
+                                </a>
+                            @endif
 
-                        @if($transfer->status === 'sent')
-                            <form action="{{ route('transfers.receive', $transfer) }}" method="POST" class="inline">
-                                @csrf
-                                <x-ui.button type="submit" variant="ghost" size="sm" class="h-8 w-8 p-0 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors" title="Receive Stock">
-                                    <x-ui.icon name="check-circle" size="4" />
-                                </x-ui.button>
-                            </form>
-                        @endif
+                            @if($transfer->status === 'sent')
+                                <form action="{{ route('transfers.receive', $transfer) }}" method="POST" class="inline">
+                                    @csrf
+                                    <x-ui.button type="submit" variant="ghost" size="sm" class="h-9 w-9 p-0 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-600 transition-all duration-300" title="Receive at Destination" onclick="return confirm('Complete this transfer?')">
+                                        <x-ui.icon name="check-circle" size="4.5" />
+                                    </x-ui.button>
+                                </form>
+                            @endif
 
-                        @if(in_array($transfer->status, ['draft', 'sent']))
-                            <form action="{{ route('transfers.cancel', $transfer) }}" method="POST" class="inline" onsubmit="return confirm('Cancel this transfer?')">
-                                @csrf
-                                <x-ui.button type="submit" variant="ghost" size="sm" class="h-8 w-8 p-0 rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-colors" title="Cancel">
-                                    <x-ui.icon name="x-circle" size="4" />
-                                </x-ui.button>
-                            </form>
-                        @endif
+                            @if(in_array($transfer->status, ['draft', 'sent']))
+                                <div class="w-px h-6 bg-border/40 mx-1"></div>
+                                <form action="{{ route('transfers.cancel', $transfer) }}" method="POST" class="inline">
+                                    @csrf
+                                    <x-ui.button type="submit" variant="ghost" size="sm" class="h-9 w-9 p-0 rounded-xl hover:bg-red-500/10 hover:text-red-600 transition-all duration-300" title="Cancel Transfer" onclick="return confirm('Cancel this transfer? Stock will be released/restored.')">
+                                        <x-ui.icon name="x-circle" size="4.5" />
+                                    </x-ui.button>
+                                </form>
+                            @endif
 
-                        @if($transfer->status === 'draft')
-                            <form action="{{ route('transfers.destroy', $transfer) }}" method="POST" class="inline" onsubmit="return confirm('Delete this record?')">
-                                @csrf
-                                @method('DELETE')
-                                <x-ui.button type="submit" variant="ghost" size="sm" class="h-8 w-8 p-0 rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-colors" title="Delete">
-                                    <x-ui.icon name="trash-2" size="4" />
-                                </x-ui.button>
-                            </form>
-                        @endif
-                    </div>
-                </x-ui.table-cell>
-            </x-ui.table-row>
-        @empty
-            <x-ui.table-row>
-                <x-ui.table-cell colspan="6" class="h-40 text-center">
-                    <div class="flex flex-col items-center justify-center gap-2 opacity-50">
-                        <x-ui.icon name="inbox" size="10" />
-                        <p class="text-sm font-black uppercase tracking-widest">No transfers found</p>
-                    </div>
-                </x-ui.table-cell>
-            </x-ui.table-row>
-        @endforelse
-    </x-ui.table-body>
-</x-ui.table>
+                            @if($transfer->status === 'draft')
+                                <form action="{{ route('transfers.destroy', $transfer) }}" method="POST" class="inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <x-ui.button type="submit" variant="ghost" size="sm" class="h-9 w-9 p-0 rounded-xl hover:bg-red-500/10 hover:text-red-600 transition-all duration-300" title="Delete Draft" onclick="return confirm('Delete this record permanently?')">
+                                        <x-ui.icon name="trash-2" size="4.5" />
+                                    </x-ui.button>
+                                </form>
+                            @endif
+                        </div>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="5" class="p-20 text-center">
+                        <div class="flex flex-col items-center gap-4 opacity-20">
+                            <x-ui.icon name="repeat" size="12" />
+                            <p class="text-sm font-black uppercase tracking-widest">No stock transfers found</p>
+                        </div>
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
 
 @if($transfers->hasPages())
-    <div class="p-4 border-t border-border/40 bg-muted/5 flex justify-end items-center">
+    <div class="p-6 border-t border-border/30 bg-muted/5">
         {{ $transfers->links() }}
     </div>
 @endif

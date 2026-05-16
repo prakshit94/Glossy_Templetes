@@ -1,9 +1,4 @@
-<x-layouts.app>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-foreground leading-tight">
-            {{ __('Transfer Details') }}
-        </h2>
-    </x-slot>
+<x-layouts.app pageTitle="Transfer Details: {{ $transfer->transfer_no }}">
 
     <div class="p-6 lg:p-10">
         <div class="max-w-5xl mx-auto space-y-6">

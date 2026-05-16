@@ -20,6 +20,17 @@ class InventoryController extends Controller
             $query->where('warehouse_id', $request->warehouse_id);
         }
 
+        if ($request->filled('stock_status')) {
+            $status = $request->stock_status;
+            if ($status === 'low_stock') {
+                $query->whereRaw('quantity - reserved_qty <= 10')->where('quantity', '>', 0);
+            } elseif ($status === 'out_of_stock') {
+                $query->whereRaw('quantity - reserved_qty <= 0');
+            } elseif ($status === 'available') {
+                $query->whereRaw('quantity - reserved_qty > 0');
+            }
+        }
+
         if ($request->filled('search')) {
             $s = $request->search;
             $query->whereHas('product', function ($q) use ($s) {

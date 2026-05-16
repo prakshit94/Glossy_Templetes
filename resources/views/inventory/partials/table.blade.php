@@ -2,82 +2,107 @@
     <table class="w-full text-left border-collapse">
         <thead>
             <tr class="bg-muted/5 border-b border-border/40">
-                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Product Details</th>
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Product Detail</th>
                 <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Warehouse</th>
-                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Stock Control</th>
-                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Current Stock</th>
-                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Min Level</th>
-                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-right">Stock Update</th>
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Physical Qty</th>
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Reserved</th>
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Available</th>
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Dispatched</th>
             </tr>
         </thead>
         <tbody>
             @forelse($stocks as $stock)
+                @php
+                    $available = (float) $stock->quantity - (float) $stock->reserved_qty;
+                    $isLowStock = $available <= ($stock->product?->min_stock_level ?? 0);
+                    $isOutOfStock = $available <= 0;
+                @endphp
                 <tr class="border-b border-border/30 hover:bg-muted/10 transition-colors group">
-                    <td class="p-4">
-                        <div class="flex items-center gap-3">
-                            <div class="size-10 rounded-xl bg-gradient-to-tr from-orange-500/20 to-orange-500/5 border border-orange-500/10 flex items-center justify-center overflow-hidden shrink-0 shadow-inner group-hover:scale-105 transition-transform">
-                                @if($stock->product?->image_path)
-                                    <img src="{{ asset('storage/' . $stock->product->image_path) }}" alt="{{ $stock->product->name }}" class="size-full object-cover">
-                                @else
-                                    <x-ui.icon name="package" size="5" class="text-orange-500/40" />
+                    <!-- Product Info -->
+                    <td class="p-4 min-w-[280px]">
+                        <div class="flex items-center gap-4">
+                            <div class="relative group/img shrink-0">
+                                <div class="size-12 rounded-2xl bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center overflow-hidden shadow-inner group-hover/img:scale-110 transition-transform duration-500">
+                                    @if($stock->product?->image_path)
+                                        <img src="{{ asset('storage/' . $stock->product->image_path) }}" alt="{{ $stock->product->name }}" class="size-full object-cover">
+                                    @else
+                                        <x-ui.icon name="package" size="6" class="text-primary/40" />
+                                    @endif
+                                </div>
+                                @if($isOutOfStock)
+                                    <div class="absolute -top-1 -right-1 size-4 rounded-full bg-destructive border-2 border-background shadow-lg shadow-destructive/20 animate-pulse"></div>
+                                @elseif($isLowStock)
+                                    <div class="absolute -top-1 -right-1 size-4 rounded-full bg-orange-500 border-2 border-background shadow-lg shadow-orange-500/20"></div>
                                 @endif
                             </div>
-                            <div>
-                                @if($stock->product)
-                                    <a href="{{ route('products.show', $stock->product) }}" class="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight block">
-                                        {{ $stock->product->name }}
-                                    </a>
-                                    <div class="text-[10px] text-muted-foreground font-mono mt-1 uppercase tracking-tight">{{ $stock->product->sku }}</div>
-                                @else
-                                    <span class="text-sm font-bold text-red-500 italic">Product Missing</span>
-                                @endif
+                            <div class="min-w-0">
+                                <a href="{{ route('products.show', $stock->product_id) }}" class="text-xs font-black text-foreground group-hover:text-primary transition-colors leading-tight block truncate uppercase tracking-tight">
+                                    {{ $stock->product?->name }}
+                                </a>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-[9px] font-bold text-muted-foreground/60 bg-muted/40 px-1.5 py-0.5 rounded border border-border/40 font-mono">
+                                        {{ $stock->product?->sku }}
+                                    </span>
+                                    <span class="text-[9px] font-black uppercase tracking-widest text-primary/60">
+                                        {{ $stock->product?->category?->name }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </td>
+
+                    <!-- Warehouse -->
                     <td class="p-4">
                         <div class="flex items-center gap-2">
-                            <div class="size-2 rounded-full bg-blue-500/40"></div>
-                            <span class="text-xs font-bold text-muted-foreground uppercase tracking-widest">{{ $stock->warehouse->name }}</span>
+                            <div class="size-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]"></div>
+                            <span class="text-[10px] font-black text-foreground uppercase tracking-widest">{{ $stock->warehouse->name }}</span>
                         </div>
                     </td>
-                    <td class="p-4">
-                        <div class="flex flex-col gap-1">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[9px] font-black uppercase tracking-widest {{ $stock->product?->manage_stock ? 'text-emerald-500' : 'text-muted-foreground/30' }}">Manage Stock</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[9px] font-black uppercase tracking-widest {{ $stock->product?->allow_overselling ? 'text-orange-500' : 'text-muted-foreground/30' }}">Allow Oversell</span>
-                            </div>
-                        </div>
-                    </td>
+
+                    <!-- Physical Qty -->
                     <td class="p-4 text-center">
-                        <div class="inline-flex items-center px-4 py-1.5 rounded-2xl {{ $stock->quantity <= ($stock->product?->min_stock_level ?? 0) ? 'bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' }} border text-sm font-black tracking-tight">
-                            {{ number_format($stock->quantity) }}
+                        <div class="text-xs font-black text-foreground">
+                            {{ number_format($stock->quantity, 2) }}
                         </div>
                     </td>
-                    <td class="p-4 text-center text-xs font-bold text-muted-foreground opacity-60">
-                        {{ number_format($stock->product?->min_stock_level ?? 0) }}
-                    </td>
-                    <td class="p-4 text-right">
-                        <form action="{{ route('inventory.update', $stock) }}" method="POST" class="flex items-center justify-end gap-2">
-                            @csrf
-                            @method('PUT')
-                            <div class="relative">
-                                <input type="number" name="quantity" value="{{ $stock->quantity }}" class="w-24 h-9 px-3 rounded-xl border border-border/40 bg-background/50 text-center text-xs font-black focus:ring-2 focus:ring-primary/20 transition-all">
-                                <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Edit Qty</div>
+
+                    <!-- Reserved -->
+                    <td class="p-4 text-center">
+                        @if($stock->reserved_qty > 0)
+                            <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-orange-500/10 text-orange-600 border border-orange-500/20 text-[10px] font-black tracking-tight">
+                                <x-ui.icon name="lock" size="3" />
+                                {{ number_format($stock->reserved_qty, 2) }}
                             </div>
-                            <button type="submit" class="size-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/80 transition-all shadow-lg shadow-primary/20 hover:scale-105 active:scale-95">
-                                <x-ui.icon name="check" size="4" />
-                            </button>
-                        </form>
+                        @else
+                            <span class="text-[10px] font-bold text-muted-foreground/30">—</span>
+                        @endif
+                    </td>
+
+                    <!-- Available -->
+                    <td class="p-4 text-center">
+                        <div class="inline-flex items-center px-4 py-1.5 rounded-2xl {{ $isOutOfStock ? 'bg-destructive/10 text-destructive border-destructive/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]' : ($isLowStock ? 'bg-orange-500/10 text-orange-600 border-orange-500/20 shadow-[0_0_15px_rgba(249,115,22,0.05)]' : 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20') }} border text-sm font-black tracking-tighter">
+                            {{ number_format($available, 2) }}
+                        </div>
+                    </td>
+
+                    <!-- Dispatched -->
+                    <td class="p-4 text-center border-r border-border/10">
+                        <div class="text-[10px] font-black text-muted-foreground/60 uppercase tracking-tighter">
+                             {{ number_format($stock->dispatched_qty ?? 0, 2) }}
+                        </div>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="p-12 text-center">
-                        <div class="flex flex-col items-center gap-3 opacity-20">
-                            <x-ui.icon name="inbox" size="12" />
-                            <p class="text-sm font-black uppercase tracking-widest">No stock records found</p>
+                    <td colspan="6" class="p-20 text-center">
+                        <div class="flex flex-col items-center gap-4">
+                            <div class="size-20 rounded-3xl bg-muted/10 border border-border/40 flex items-center justify-center text-muted-foreground/20">
+                                <x-ui.icon name="inbox" size="10" />
+                            </div>
+                            <div>
+                                <p class="text-sm font-black uppercase tracking-widest text-foreground/40">No matching inventory found</p>
+                                <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Try adjusting your filters or search query</p>
+                            </div>
                         </div>
                     </td>
                 </tr>

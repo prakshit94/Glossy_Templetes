@@ -30,7 +30,7 @@ return new class extends Migration {
         });
 
         Schema::table('parties', function (Blueprint $table) {
-            $table->fullText(['name', 'email', 'phone'], 'ft_party_search');
+            $table->fullText(['firstname', 'lastname', 'company_name', 'email', 'phone'], 'ft_party_search');
         });
     }
 

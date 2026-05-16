@@ -36,6 +36,14 @@
                     <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Payment Terms</p>
                     <p class="text-xl font-bold text-foreground">{{ $customer->credit_days ?: 0 }} <span class="text-sm text-muted-foreground">Days</span></p>
                 </div>
+                <div>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Outstanding Balance</p>
+                    <p class="text-2xl font-black {{ ($customer->outstanding_balance ?? 0) > 0 ? 'text-destructive' : 'text-foreground' }}">₹{{ number_format($customer->outstanding_balance ?? 0, 2) }}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Credit Valid Till</p>
+                    <p class="text-sm font-bold text-foreground">{{ $customer->credit_valid_till ? $customer->credit_valid_till->format('M d, Y') : 'No Expiry' }}</p>
+                </div>
             </div>
         </x-ui.card>
     </div>

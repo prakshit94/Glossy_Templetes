@@ -1,7 +1,10 @@
-<x-layouts.app pageTitle="Edit Product">
+<x-layouts.app pageTitle="Edit Product: {{ $product->name }}">
 
-    <div class="p-6 lg:p-10">
-        <div class="max-w-5xl mx-auto">
+    <div class="p-6 lg:p-10" x-data="{ 
+        allowOverselling: {{ $product->allow_overselling ? 'true' : 'false' }},
+        skuEnabled: {{ $product->is_sku_enabled ? 'true' : 'false' }}
+    }">
+        <div class="max-w-6xl mx-auto">
             <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
                 <x-ui.card-header class="border-b border-border/40 bg-muted/10 p-6">
                     <div class="flex items-center justify-between">
@@ -23,7 +26,7 @@
                     </div>
                 </x-ui.card-header>
 
-                <x-ui.card-content class="p-8" x-data="{ allowOverselling: {{ $product->allow_overselling ? 'true' : 'false' }} }">
+                <x-ui.card-content class="p-8">
                     <form action="{{ route('products.update', $product) }}" method="POST" enctype="multipart/form-data" class="space-y-8">
                         @csrf
                         @method('PUT')
@@ -34,12 +37,21 @@
                                     <div class="space-y-2">
                                         <label for="name" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Product Name</label>
                                         <input type="text" name="name" id="name" value="{{ old('name', $product->name) }}" required 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium">
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
                                     </div>
-                                    <div class="space-y-2">
-                                        <label for="sku" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">SKU / Item Code</label>
+                                    <div class="space-y-2 relative group">
+                                        <div class="flex items-center justify-between ml-1">
+                                            <label for="sku" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">SKU / Item Code</label>
+                                            <label class="relative inline-flex items-center cursor-pointer group">
+                                                <input type="checkbox" name="is_sku_enabled" value="1" {{ $product->is_sku_enabled ? 'checked' : '' }} x-model="skuEnabled" class="sr-only peer">
+                                                <div class="w-8 h-4 bg-slate-200 dark:bg-muted/40 rounded-full peer peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
+                                                <span class="ml-2 text-[8px] font-black uppercase tracking-widest" :class="skuEnabled ? 'text-emerald-500' : 'text-destructive'" x-text="skuEnabled ? 'Enabled' : 'Disabled'"></span>
+                                            </label>
+                                        </div>
                                         <input type="text" name="sku" id="sku" value="{{ old('sku', $product->sku) }}" required 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium">
+                                            :readonly="!skuEnabled"
+                                            :class="!skuEnabled ? 'bg-muted/40 cursor-not-allowed opacity-60' : 'bg-background/50 focus:bg-background'"
+                                            class="w-full h-12 px-4 rounded-2xl border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-black outline-none">
                                     </div>
                                 </div>
 
@@ -47,7 +59,7 @@
                                     <div class="space-y-2">
                                         <label for="category_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Category</label>
                                         <select name="category_id" id="category_id" required 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground dark:text-foreground">
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground outline-none">
                                             <option value="" class="bg-card">Select Category</option>
                                             @foreach($categories as $category)
                                                 <optgroup label="{{ $category->name }}" class="bg-card font-black uppercase tracking-widest text-[9px]">
@@ -62,7 +74,7 @@
                                     <div class="space-y-2">
                                         <label for="brand_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Brand</label>
                                         <select name="brand_id" id="brand_id" 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground">
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground outline-none">
                                             <option value="" class="bg-card">No Brand</option>
                                             @foreach($brands as $brand)
                                                 <option value="{{ $brand->id }}" {{ old('brand_id', $product->brand_id) == $brand->id ? 'selected' : '' }} class="bg-card">{{ $brand->name }}</option>
@@ -72,7 +84,7 @@
                                     <div class="space-y-2">
                                         <label for="uom_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Unit (UOM)</label>
                                         <select name="uom_id" id="uom_id" 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground">
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground outline-none">
                                             <option value="" class="bg-card">Select Unit</option>
                                             @foreach($uoms as $uom)
                                                 <option value="{{ $uom->id }}" {{ old('uom_id', $product->uom_id) == $uom->id ? 'selected' : '' }} class="bg-card">{{ $uom->name }} ({{ $uom->short_name }})</option>
@@ -85,17 +97,17 @@
                                     <div class="space-y-2">
                                         <label for="barcode" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Barcode / UPC</label>
                                         <input type="text" name="barcode" id="barcode" value="{{ old('barcode', $product->barcode) }}" 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium">
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
                                     </div>
                                     <div class="space-y-2">
                                         <label for="weight" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Weight / Volume</label>
                                         <input type="text" name="weight" id="weight" value="{{ old('weight', $product->weight) }}" 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium">
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
                                     </div>
                                     <div class="space-y-2">
                                         <label for="min_stock_level" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Min Stock Level</label>
                                         <input type="number" name="min_stock_level" id="min_stock_level" value="{{ old('min_stock_level', $product->min_stock_level) }}" 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-black text-red-500/80">
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-black text-red-500/80 outline-none">
                                     </div>
                                 </div>
 
@@ -132,7 +144,7 @@
                                     <div class="space-y-2">
                                         <label for="tax_rate_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Tax Rate</label>
                                         <select name="tax_rate_id" id="tax_rate_id" 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground">
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground outline-none">
                                             <option value="" class="bg-card">No Tax</option>
                                             @foreach($taxRates as $rate)
                                                 <option value="{{ $rate->id }}" {{ old('tax_rate_id', $product->tax_rate_id) == $rate->id ? 'selected' : '' }} class="bg-card">{{ $rate->name }} ({{ $rate->rate }}%)</option>
@@ -143,7 +155,7 @@
                                     <div class="space-y-2">
                                         <label for="hsn_code_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">HSN Code</label>
                                         <select name="hsn_code_id" id="hsn_code_id" 
-                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground">
+                                            class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground outline-none">
                                             <option value="" class="bg-card">No HSN</option>
                                             @foreach($hsnCodes as $hsn)
                                                 <option value="{{ $hsn->id }}" {{ old('hsn_code_id', $product->hsn_code_id) == $hsn->id ? 'selected' : '' }} class="bg-card">{{ $hsn->code }} - {{ $hsn->description }}</option>
@@ -159,7 +171,7 @@
                                         <div class="space-y-2">
                                             <label for="default_warehouse_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Default Warehouse</label>
                                             <select name="default_warehouse_id" id="default_warehouse_id" 
-                                                class="w-full h-10 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-bold text-foreground">
+                                                class="w-full h-10 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-bold text-foreground outline-none">
                                                 <option value="" class="bg-card">No Default</option>
                                                 @foreach($warehouses as $warehouse)
                                                     <option value="{{ $warehouse->id }}" {{ old('default_warehouse_id', $product->default_warehouse_id) == $warehouse->id ? 'selected' : '' }} class="bg-card">{{ $warehouse->name }}</option>
@@ -171,14 +183,14 @@
                                                 <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Batch Tracking</span>
                                                 <label class="relative inline-flex items-center cursor-pointer">
                                                     <input type="checkbox" name="batch_tracking" value="1" {{ $product->batch_tracking ? 'checked' : '' }} class="sr-only peer">
-                                                    <div class="w-9 h-5 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                    <div class="w-9 h-5 bg-slate-200 dark:bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
                                                 </label>
                                             </div>
                                             <div class="flex items-center justify-between">
                                                 <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Expiry Tracking</span>
                                                 <label class="relative inline-flex items-center cursor-pointer">
                                                     <input type="checkbox" name="expiry_tracking" value="1" {{ $product->expiry_tracking ? 'checked' : '' }} class="sr-only peer">
-                                                    <div class="w-9 h-5 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                    <div class="w-9 h-5 bg-slate-200 dark:bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
                                                 </label>
                                             </div>
                                         </div>
@@ -187,11 +199,11 @@
                                     <div class="flex items-center justify-between border-t border-border/20 pt-4">
                                         <div>
                                             <p class="text-sm font-bold text-foreground">Manage Stock</p>
-                                            <p class="text-[10px] text-muted-foreground">Track inventory levels for this product</p>
+                                            <p class="text-[10px] text-muted-foreground uppercase tracking-widest font-bold opacity-60">Track inventory levels for this product</p>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" name="manage_stock" value="1" {{ $product->manage_stock ? 'checked' : '' }} class="sr-only peer">
-                                            <div class="w-11 h-6 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            <div class="w-11 h-6 bg-slate-200 dark:bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
                                         </label>
                                     </div>
 
@@ -199,19 +211,19 @@
                                         <div class="flex items-center justify-between">
                                             <div>
                                                 <p class="text-sm font-bold text-foreground">Allow Overselling</p>
-                                                <p class="text-[10px] text-muted-foreground">Allow customers to buy even if out of stock</p>
+                                                <p class="text-[10px] text-muted-foreground uppercase tracking-widest font-bold opacity-60">Sell beyond zero stock</p>
                                             </div>
                                             <label class="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" name="allow_overselling" value="1" x-model="allowOverselling" class="sr-only peer">
-                                                <div class="w-11 h-6 bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                                <div class="w-11 h-6 bg-slate-200 dark:bg-muted/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
                                             </label>
                                         </div>
 
-                                        <div x-show="allowOverselling" x-transition class="space-y-2 pl-4 border-l-2 border-primary/20">
+                                        <div x-show="allowOverselling" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-2 pl-4 border-l-2 border-primary/20">
                                             <label for="overselling_qty" class="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Overselling Limit (Qty)</label>
                                             <input type="number" name="overselling_qty" id="overselling_qty" value="{{ old('overselling_qty', $product->overselling_qty) }}" 
-                                                class="w-full h-10 px-4 rounded-xl border border-primary/20 bg-primary/5 focus:bg-primary/10 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-black text-primary placeholder:text-primary/20" placeholder="Max units to oversell">
-                                            <p class="text-[8px] text-muted-foreground mt-1 ml-1 font-bold italic">How many extra units can be sold beyond zero stock?</p>
+                                                class="w-full h-10 px-4 rounded-xl border border-primary/20 bg-primary/5 focus:bg-primary/10 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-black text-primary placeholder:text-primary/20 outline-none" placeholder="Max units to oversell">
+                                            <p class="text-[8px] text-muted-foreground mt-1 ml-1 font-bold italic">Available units beyond zero stock</p>
                                         </div>
                                     </div>
                                 </div>
@@ -219,14 +231,13 @@
                                 <div class="space-y-2">
                                     <label for="description" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Description</label>
                                     <textarea name="description" id="description" rows="4" 
-                                        class="w-full px-4 py-3 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium">{{ old('description', $product->description) }}</textarea>
+                                        class="w-full px-4 py-3 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium outline-none">{{ old('description', $product->description) }}</textarea>
                                 </div>
 
                                 <div class="space-y-2">
                                     <label for="application_instructions" class="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Application Instructions & Dosage</label>
                                     <textarea name="application_instructions" id="application_instructions" rows="4" 
-                                        class="w-full px-4 py-3 rounded-2xl border border-primary/20 bg-primary/5 focus:bg-primary/10 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="e.g. Mix 2ml in 1L of water and spray on leaves...">{{ old('application_instructions', $product->application_instructions) }}</textarea>
-                                    <p class="text-[9px] text-muted-foreground mt-1 ml-1">Update guidance for farmers on how to use this product effectively.</p>
+                                        class="w-full px-4 py-3 rounded-2xl border border-primary/20 bg-primary/5 focus:bg-primary/10 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none" placeholder="e.g. Mix 2ml in 1L of water and spray on leaves...">{{ old('application_instructions', $product->application_instructions) }}</textarea>
                                 </div>
                             </div>
 
@@ -246,28 +257,37 @@
                                         </div>
                                     </div>
 
-                                    <div class="grid grid-cols-1 gap-4">
+                                    <div class="grid grid-cols-1 gap-4 pt-2">
                                         <div class="space-y-2">
-                                            <label for="purchase_price" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Purchase</label>
-                                            <input type="number" step="0.01" name="purchase_price" id="purchase_price" value="{{ old('purchase_price', $product->purchase_price) }}" 
-                                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black">
+                                            <label for="purchase_price" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Purchase Cost</label>
+                                            <div class="relative">
+                                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">₹</span>
+                                                <input type="number" step="0.01" name="purchase_price" id="purchase_price" value="{{ old('purchase_price', $product->purchase_price) }}" 
+                                                    class="w-full h-11 pl-8 pr-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black outline-none">
+                                            </div>
                                         </div>
                                         <div class="space-y-2">
-                                            <label for="mrp" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">MRP</label>
-                                            <input type="number" step="0.01" name="mrp" id="mrp" value="{{ old('mrp', $product->mrp) }}" 
-                                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black text-orange-500">
+                                            <label for="mrp" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Maximum Retail Price (MRP)</label>
+                                            <div class="relative">
+                                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">₹</span>
+                                                <input type="number" step="0.01" name="mrp" id="mrp" value="{{ old('mrp', $product->mrp) }}" 
+                                                    class="w-full h-11 pl-8 pr-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black text-orange-500 outline-none">
+                                            </div>
                                         </div>
                                         <div class="space-y-2">
-                                            <label for="selling_price" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Selling</label>
-                                            <input type="number" step="0.01" name="selling_price" id="selling_price" value="{{ old('selling_price', $product->selling_price) }}" 
-                                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black text-primary">
+                                            <label for="selling_price" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Direct Selling Price</label>
+                                            <div class="relative">
+                                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">₹</span>
+                                                <input type="number" step="0.01" name="selling_price" id="selling_price" value="{{ old('selling_price', $product->selling_price) }}" 
+                                                    class="w-full h-11 pl-8 pr-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black text-primary outline-none">
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div class="space-y-2">
-                                        <label for="status" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Status</label>
+                                        <label for="status" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Product Status</label>
                                         <select name="status" id="status" 
-                                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-[10px] font-black uppercase tracking-widest text-foreground">
+                                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-[10px] font-black uppercase tracking-widest text-foreground outline-none">
                                             <option value="active" {{ $product->status == 'active' ? 'selected' : '' }} class="bg-card">Active</option>
                                             <option value="draft" {{ $product->status == 'draft' ? 'selected' : '' }} class="bg-card">Draft</option>
                                             <option value="out_of_stock" {{ $product->status == 'out_of_stock' ? 'selected' : '' }} class="bg-card">Out of Stock</option>

@@ -18,7 +18,10 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::query()->with(['category', 'brand', 'taxRate', 'hsnCode']);
+        $query = Product::query()->with(['category', 'brand', 'taxRate', 'hsnCode'])
+            ->withSum('stocks as total_stock', 'quantity')
+            ->withSum('stocks as total_reserved', 'reserved_qty')
+            ->withSum('stocks as total_dispatched', 'dispatched_qty');
 
         if ($request->input('filter') === 'trashed') {
             $query->onlyTrashed();
@@ -93,6 +96,11 @@ class ProductController extends Controller
             $query->where('status', $statusFilter);
         }
 
+        // SKU Enabled filter - only enabled by default
+        if ($request->input('include_disabled') !== 'true') {
+            $query->where('is_sku_enabled', true);
+        }
+
         // Text search
         if ($request->filled('q')) {
             $s = $request->q;
@@ -160,6 +168,7 @@ class ProductController extends Controller
                 'tax_label'        => $p->taxRate?->name,
                 'min_stock_level'  => $p->min_stock_level ?? 0,
                 'weight'           => $p->weight,
+                'is_sku_enabled'   => (bool) $p->is_sku_enabled,
             ];
         });
 
@@ -214,6 +223,7 @@ class ProductController extends Controller
             'attributes' => 'nullable|array',
             'overselling_qty' => 'required_if:allow_overselling,1|nullable|integer|min:0',
             'weight' => 'nullable|string|max:255',
+            'is_sku_enabled' => 'nullable|boolean',
         ]);
 
         $data['slug'] = Str::slug($data['name']);
@@ -223,6 +233,7 @@ class ProductController extends Controller
         $data['expiry_tracking'] = $request->has('expiry_tracking');
         $data['overselling_qty'] = $request->input('overselling_qty', 0);
         $data['min_stock_level'] = $request->input('min_stock_level', 0);
+        $data['is_sku_enabled'] = $request->has('is_sku_enabled');
         
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
@@ -284,6 +295,7 @@ class ProductController extends Controller
             'attributes' => 'nullable|array',
             'overselling_qty' => 'required_if:allow_overselling,1|nullable|integer|min:0',
             'weight' => 'nullable|string|max:255',
+            'is_sku_enabled' => 'nullable|boolean',
         ]);
 
         $data['slug'] = Str::slug($data['name']);
@@ -293,6 +305,7 @@ class ProductController extends Controller
         $data['expiry_tracking'] = $request->has('expiry_tracking');
         $data['overselling_qty'] = $request->input('overselling_qty', 0);
         $data['min_stock_level'] = $request->input('min_stock_level', 0);
+        $data['is_sku_enabled'] = $request->has('is_sku_enabled');
 
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');

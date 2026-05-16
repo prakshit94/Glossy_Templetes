@@ -1,89 +1,102 @@
-@php
-    $records = $records ?? collect();
-    $rows = $records instanceof \Illuminate\Pagination\AbstractPaginator ? $records->getCollection() : $records;
-@endphp
+<div class="overflow-x-auto overflow-y-visible">
+    <table class="w-full border-collapse">
+        <thead>
+            <tr class="bg-muted/5 border-b border-border/40 text-left">
+                <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Shipment Identity</th>
+                <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Customer & Order</th>
+                <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Current Status</th>
+                <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Last Milestone</th>
+                <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-border/20">
+            @forelse($shipments as $shipment)
+                <tr class="group hover:bg-muted/5 transition-all">
+                    <td class="px-6 py-6">
+                        <div class="flex items-center gap-4">
+                            <div class="size-11 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-center text-primary shadow-inner">
+                                <x-ui.icon name="package" size="5" />
+                            </div>
+                            <div>
+                                <p class="text-sm font-black text-foreground tracking-tight group-hover:text-primary transition-colors">#{{ $shipment->shipment_no }}</p>
+                                <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
+                                    <x-ui.icon name="truck" size="2.5" />
+                                    {{ $shipment->carrier_name ?? 'Logistics Pending' }}
+                                    @if($shipment->tracking_no)
+                                        <span class="size-1 rounded-full bg-muted-foreground/30"></span>
+                                        {{ $shipment->tracking_no }}
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-6">
+                        <div class="space-y-1">
+                            <a href="{{ route('orders.show', $shipment->order_id) }}" class="text-xs font-black text-foreground hover:text-primary transition-colors flex items-center gap-1.5">
+                                {{ $shipment->order->order_no }}
+                                <x-ui.icon name="external-link" size="3" class="opacity-40" />
+                            </a>
+                            <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                {{ $shipment->order->party->name ?? 'Unknown Customer' }}
+                            </p>
+                        </div>
+                    </td>
+                    <td class="px-6 py-6">
+                        @php
+                            $statusColors = [
+                                'pending' => 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+                                'shipped' => 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+                                'in_transit' => 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
+                                'delivered' => 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+                                'failed' => 'bg-destructive/10 text-destructive border-destructive/20',
+                            ];
+                            $color = $statusColors[$shipment->status] ?? 'bg-muted/10 text-muted-foreground border-border/40';
+                        @endphp
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border {{ $color }} shadow-sm">
+                            <span class="size-1.5 rounded-full bg-current"></span>
+                            <span class="text-[10px] font-black uppercase tracking-widest">{{ $shipment->status }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-6">
+                        @if($lastEvent = $shipment->events->last())
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-black text-foreground uppercase tracking-tight">{{ $lastEvent->event_name }}</span>
+                                <span class="text-[9px] font-bold opacity-60 flex items-center gap-1 mt-0.5">
+                                    <x-ui.icon name="clock" size="2.5" />
+                                    {{ $lastEvent->occurred_at->diffForHumans() }}
+                                </span>
+                            </div>
+                        @else
+                            <span class="text-[10px] font-bold opacity-40 uppercase tracking-widest italic">No milestones yet</span>
+                        @endif
+                    </td>
+                    <td class="px-6 py-6 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <a href="{{ route('order.tracking.show', $shipment->id) }}">
+                                <x-ui.button variant="outline" size="sm" class="rounded-xl border-border/60 hover:border-primary/40 hover:bg-primary/5 transition-all group/btn h-9 px-4">
+                                    <span class="text-[9px] font-black uppercase tracking-widest mr-2">Track Detail</span>
+                                    <x-ui.icon name="arrow-right" size="3" class="group-hover/btn:translate-x-0.5 transition-transform" />
+                                </x-ui.button>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="5" class="px-6 py-20 text-center">
+                        <div class="flex flex-col items-center gap-4 opacity-30">
+                            <x-ui.icon name="target" size="16" />
+                            <p class="text-lg font-black uppercase tracking-[0.2em]">No Shipments Detected</p>
+                        </div>
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
 
-@if($records instanceof \Illuminate\Pagination\AbstractPaginator && $records->hasPages())
-    <div class="p-4 border-b border-border/40 flex justify-end items-center">
-        {{ $records->links() }}
-    </div>
-@endif
-
-<x-ui.table>
-    <x-ui.table-header class="bg-muted/20">
-        <x-ui.table-row class="border-b border-border/60">
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Order</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Customer</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Carrier</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Tracking #</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">ETA</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Status</x-ui.table-head>
-            <x-ui.table-head class="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Actions</x-ui.table-head>
-        </x-ui.table-row>
-    </x-ui.table-header>
-    <x-ui.table-body>
-        @forelse($rows as $record)
-            @php $r = is_array($record) ? (object) $record : $record; @endphp
-            <x-ui.table-row class="border-b border-border/40 group hover:bg-primary/[0.02] transition-colors">
-                <x-ui.table-cell>
-                    <span class="text-sm font-black">{{ data_get($r, 'order_number') ?? data_get($r, 'order.no', '—') }}</span>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    <span class="text-xs font-medium">{{ data_get($r, 'customer_name') ?? data_get($r, 'customer.name', '—') }}</span>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    <span class="text-xs font-bold">{{ data_get($r, 'carrier') ?? data_get($r, 'carrier_name', '—') }}</span>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    <span class="text-[11px] font-mono font-bold text-muted-foreground">{{ data_get($r, 'tracking_number') ?? data_get($r, 'tracking', '—') }}</span>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    @php $eta = data_get($r, 'eta') ?? data_get($r, 'estimated_delivery'); @endphp
-                    <span class="text-xs font-bold">{{ $eta ? \Illuminate\Support\Carbon::parse($eta)->format('M j') : '—' }}</span>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    @php
-                        $st = strtolower((string) data_get($r, 'status', '—'));
-                        $badgeVariant = match ($st) {
-                            'active', 'paid', 'completed', 'sent', 'resolved', 'closed', 'approved', 'delivered', 'published', 'scheduled' => 'success',
-                            'inactive', 'cancelled', 'void', 'failed', 'rejected', 'overdue', 'expired' => 'destructive',
-                            'pending', 'draft', 'open', 'processing', 'partial', 'in_progress' => 'default',
-                            default => 'outline',
-                        };
-                    @endphp
-                    <x-ui.badge :variant="$badgeVariant" className="uppercase text-[9px] font-black tracking-[0.1em] px-2.5 py-1 rounded-lg shadow-sm">
-                        {{ str_replace('_', ' ', $st) }}
-                    </x-ui.badge>
-                </x-ui.table-cell>
-                <x-ui.table-cell class="text-right">
-                    <div class="flex justify-end gap-1.5">
-                        <x-ui.button variant="ghost" size="icon" type="button" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all" onclick="alert('Wire details when the module backend is ready.')">
-                            <x-ui.icon name="eye" size="4" />
-                        </x-ui.button>
-                        <x-ui.button variant="ghost" size="icon" type="button" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all" onclick="alert('Wire edit when the module backend is ready.')">
-                            <x-ui.icon name="edit-3" size="4" />
-                        </x-ui.button>
-                    </div>
-                </x-ui.table-cell>
-            </x-ui.table-row>
-
-        @empty
-            <x-ui.table-row>
-                <x-ui.table-cell colspan="7" class="h-60 text-center">
-                    <div class="flex flex-col items-center justify-center gap-3 opacity-40">
-                        <x-ui.icon :name="$moduleIcon ?? 'package'" size="12" />
-                        <p class="text-sm font-black uppercase tracking-[0.2em]">No orders in tracking</p>
-                        <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest max-w-md px-6">
-                            Pass <span class="font-mono text-foreground/60">$records</span> from the controller (models, arrays, or paginator).
-                        </p>
-                    </div>
-                </x-ui.table-cell>
-            </x-ui.table-row>
-        @endforelse
-    </x-ui.table-body>
-</x-ui.table>
-@if($records instanceof \Illuminate\Pagination\AbstractPaginator && $records->hasPages())
-    <div class="p-4 border-t border-border/40 bg-muted/5 flex justify-end items-center rounded-b-3xl">
-        {{ $records->links() }}
+@if($shipments->hasPages())
+    <div class="px-8 py-6 bg-muted/5 border-t border-border/40">
+        {{ $shipments->links() }}
     </div>
 @endif

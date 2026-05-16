@@ -116,7 +116,7 @@ class OrderController extends Controller
     {
         $warehouses = Warehouse::where('status', 'active')->get();
         $parties    = Party::where('status', 'active')->get();
-        $products   = Product::where('status', 'active')->get();
+        $products   = Product::where('status', 'active')->where('is_sku_enabled', true)->get();
         return view('orders.create', compact('warehouses', 'parties', 'products'));
     }
 
@@ -176,7 +176,7 @@ class OrderController extends Controller
         if (view()->exists('orders.edit')) {
             $warehouses = Warehouse::where('status', 'active')->get();
             $parties    = Party::where('status', 'active')->get();
-            $products   = Product::where('status', 'active')->get();
+            $products   = Product::where('status', 'active')->where('is_sku_enabled', true)->get();
             return view('orders.edit', compact('order', 'warehouses', 'parties', 'products'));
         }
 

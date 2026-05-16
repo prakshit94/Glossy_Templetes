@@ -15,30 +15,90 @@ class Customer extends Model
     protected $table = 'parties';
 
     protected $fillable = [
-        'name',
+        // System Identifiers
+        'uuid',
+        'party_code',
+
+        // Basic Identity
+        'type',
         'firstname',
         'middlename',
         'lastname',
-        'type',
+
+        // Contact
         'email',
         'phone',
         'alternatemobile',
         'relative_mobile',
+        'phone_number_2',
+        'relative_phone',
+
+        // Classification
+        'source',
+        'category',
+
+        // Business
+        'company_name',
         'gst_no',
         'pan_no',
         'tax_no',
+
+        // Agriculture
+        'land_area',
+        'land_unit',
+        'crops',
+        'irrigation_type',
+
+        // Financial
         'credit_limit',
         'credit_days',
+        'outstanding_balance',
+        'credit_valid_till',
+
+        // KYC
+        'aadhaar_last4',
+        'kyc_completed',
+        'kyc_verified_at',
+
+        // Engagement
+        'first_purchase_at',
+        'last_purchase_at',
+        'orders_count',
+
+        // Status & Control
         'status',
         'is_active',
+        'is_blacklisted',
+        'internal_notes',
+        'tags',
+
+        // Accounting
         'account_type_id',
+
+        // Audit
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
-        'credit_limit' => 'decimal:2',
-        'credit_days'  => 'integer',
-        'is_active'    => 'boolean',
-        'created_at'   => 'datetime',
+        'credit_limit'        => 'decimal:2',
+        'outstanding_balance' => 'decimal:2',
+        'land_area'           => 'decimal:2',
+        'credit_days'         => 'integer',
+        'orders_count'        => 'integer',
+        'is_active'           => 'boolean',
+        'is_blacklisted'      => 'boolean',
+        'kyc_completed'       => 'boolean',
+        'crops'               => 'array',
+        'tags'                => 'array',
+        'source'              => 'array',
+        'irrigation_type'     => 'array',
+        'credit_valid_till'   => 'date',
+        'first_purchase_at'   => 'date',
+        'last_purchase_at'    => 'date',
+        'kyc_verified_at'     => 'datetime',
+        'created_at'          => 'datetime',
+        'updated_at'          => 'datetime',
     ];
 
     /**
@@ -58,7 +118,7 @@ class Customer extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'phone', 'status', 'deleted_at'])
+            ->logOnly(['name', 'email', 'phone', 'status', 'is_blacklisted', 'deleted_at'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }
@@ -88,24 +148,33 @@ class Customer extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('status', 'active');
+        return $query->where('status', 'active')->where('is_active', true);
     }
 
     public function scopeSearch(Builder $query, string $search): Builder
     {
         return $query->where(function ($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%")
+            $q->where('firstname', 'like', "%{$search}%")
+              ->orWhere('lastname', 'like', "%{$search}%")
               ->orWhere('email', 'like', "%{$search}%")
               ->orWhere('phone', 'like', "%{$search}%")
-              ->orWhere('gst_no', 'like', "%{$search}%");
+              ->orWhere('gst_no', 'like', "%{$search}%")
+              ->orWhere('company_name', 'like', "%{$search}%")
+              ->orWhere('party_code', 'like', "%{$search}%");
         });
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────────
+    // ─── Helpers ────────────────────────────────────────────────────────────────
+    public function getNameAttribute(): string
+    {
+        return trim(collect([$this->firstname, $this->middlename, $this->lastname])
+            ->filter()->implode(' '));
+    }
 
     public function initials(): string
     {
-        $words = explode(' ', $this->name);
-        return strtoupper(collect($words)->take(2)->map(fn($w) => $w[0] ?? '')->implode(''));
+        $first = $this->firstname[0] ?? '';
+        $last  = $this->lastname[0]  ?? '';
+        return strtoupper($first . $last);
     }
 }

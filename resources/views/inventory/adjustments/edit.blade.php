@@ -1,16 +1,19 @@
-<x-layouts.app>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-foreground leading-tight">
-            {{ __('Edit Stock Adjustment') }}
-        </h2>
-    </x-slot>
+<x-layouts.app pageTitle="Edit Adjustment: {{ $adjustment->reference_no }}">
 
     <div class="p-6 lg:p-10" x-data="{
-        items: @js($adjustment->items->map(fn($i) => ['product_id' => $i->product_id, 'current_qty' => $i->current_qty, 'new_qty' => $i->new_qty, 'difference' => $i->difference])),
+        items: @js($adjustment->items->map(fn($i) => [
+            'product_id' => $i->product_id, 
+            'current_qty' => (float)$i->current_qty, 
+            'operator' => '=', 
+            'value' => (float)$i->new_qty, 
+            'new_qty' => (float)$i->new_qty, 
+            'difference' => (float)$i->difference,
+            'search' => $i->product->name . ' (' . $i->product->sku . ')'
+        ])),
         products: @js($products),
         
         addItem() {
-            this.items.push({ product_id: '', current_qty: 0, new_qty: 0, difference: 0 });
+            this.items.push({ product_id: '', current_qty: 0, operator: '=', value: 0, new_qty: 0, difference: 0, search: '' });
         },
         
         removeItem(index) {
@@ -19,11 +22,23 @@
             }
         },
 
-        updateDifference(index) {
-            this.items[index].difference = this.items[index].new_qty - this.items[index].current_qty;
+        recalculate(index) {
+            const item = this.items[index];
+            const cur = parseFloat(item.current_qty) || 0;
+            const val = parseFloat(item.value) || 0;
+
+            if (item.operator === '=') {
+                item.new_qty = val;
+            } else if (item.operator === '+') {
+                item.new_qty = cur + val;
+            } else if (item.operator === '-') {
+                item.new_qty = cur - val;
+            }
+            
+            item.difference = item.new_qty - cur;
         }
     }">
-        <div class="max-w-5xl mx-auto">
+        <div class="max-w-6xl mx-auto">
             <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
                 <x-ui.card-header class="border-b border-border/40 bg-muted/10 p-6">
                     <div class="flex items-center justify-between">
@@ -54,7 +69,7 @@
                             <div class="space-y-2">
                                 <label for="warehouse_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Warehouse</label>
                                 <select name="warehouse_id" id="warehouse_id" required 
-                                    class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium text-foreground">
+                                    class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium text-foreground outline-none">
                                     @foreach($warehouses as $warehouse)
                                         <option value="{{ $warehouse->id }}" {{ $adjustment->warehouse_id == $warehouse->id ? 'selected' : '' }}>{{ $warehouse->name }} ({{ $warehouse->code }})</option>
                                     @endforeach
@@ -64,7 +79,7 @@
                             <div class="space-y-2">
                                 <label for="reason" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Reason for Adjustment</label>
                                 <input type="text" name="reason" id="reason" value="{{ old('reason', $adjustment->reason) }}" required 
-                                    class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="e.g. Damaged stock, Correction">
+                                    class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none" placeholder="e.g. Damaged stock, Correction">
                             </div>
                         </div>
 
@@ -79,31 +94,51 @@
                             <div class="space-y-3">
                                 <template x-for="(item, index) in items" :key="index">
                                     <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end p-4 rounded-2xl bg-muted/10 border border-border/40 group relative">
-                                        <div class="md:col-span-5 space-y-2">
+                                        <div class="md:col-span-4 space-y-2">
                                             <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Product</label>
                                             <select :name="`items[${index}][product_id]`" x-model="item.product_id" required 
-                                                class="w-full h-10 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-medium">
+                                                class="w-full h-10 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-medium outline-none">
                                                 <option value="">Select Product</option>
-                                                <template x-for="product in products" :key="product.id">
-                                                    <option :value="product.id" x-text="`${product.name} (${product.sku})`"></option>
-                                                </template>
+                                                @foreach($products as $product)
+                                                    <option value="{{ $product->id }}">{{ $product->name }} ({{ $product->sku }})</option>
+                                                @endforeach
                                             </select>
                                         </div>
-                                        <div class="md:col-span-2 space-y-2">
-                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Current Qty</label>
-                                            <input type="number" :name="`items[${index}][current_qty]`" x-model.number="item.current_qty" @input="updateDifference(index)" step="0.01" required 
-                                                class="w-full h-10 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-black opacity-60" readonly>
+
+                                        <div class="md:col-span-1 space-y-2">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Current</label>
+                                            <div class="h-10 flex items-center justify-center rounded-xl border border-border bg-muted/20 text-xs font-black text-muted-foreground" x-text="item.current_qty"></div>
                                         </div>
+
                                         <div class="md:col-span-2 space-y-2">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Operation</label>
+                                            <select x-model="item.operator" @change="recalculate(index)"
+                                                class="w-full h-10 px-3 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-black outline-none">
+                                                <option value="=">Set (=)</option>
+                                                <option value="+">Add (+)</option>
+                                                <option value="-">Deduct (-)</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="md:col-span-2 space-y-2">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1" x-text="item.operator === '=' ? 'Set to Qty' : 'Value'"></label>
+                                            <input type="number" x-model.number="item.value" @input="recalculate(index)" step="0.01" required 
+                                                class="w-full h-10 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-black outline-none">
+                                        </div>
+
+                                        <div class="md:col-span-1 space-y-2">
                                             <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">New Qty</label>
-                                            <input type="number" :name="`items[${index}][new_qty]`" x-model.number="item.new_qty" @input="updateDifference(index)" step="0.01" required 
-                                                class="w-full h-10 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-black">
+                                            <div class="h-10 flex items-center justify-center rounded-xl border border-border bg-muted/10 text-xs font-black" x-text="item.new_qty"></div>
+                                            <input type="hidden" :name="`items[${index}][new_qty]`" :value="item.new_qty">
                                         </div>
-                                        <div class="md:col-span-2 space-y-2">
-                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Difference</label>
-                                            <div class="w-full h-10 px-4 rounded-xl border border-border bg-muted/20 flex items-center text-xs font-black" :class="item.difference > 0 ? 'text-emerald-500' : (item.difference < 0 ? 'text-red-500' : 'text-muted-foreground')" x-text="item.difference > 0 ? `+${item.difference}` : item.difference"></div>
-                                            <input type="hidden" :name="`items[${index}][difference]`" :value="item.difference">
+
+                                        <div class="md:col-span-1 space-y-2">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Diff</label>
+                                            <div class="h-10 flex items-center justify-center rounded-xl border border-border bg-muted/10 text-xs font-black" 
+                                                :class="item.difference > 0 ? 'text-emerald-500' : (item.difference < 0 ? 'text-red-500' : 'text-muted-foreground')" 
+                                                x-text="item.difference > 0 ? `+${item.difference}` : item.difference"></div>
                                         </div>
+
                                         <div class="md:col-span-1 flex justify-center">
                                             <button type="button" @click="removeItem(index)" class="h-10 w-10 rounded-xl flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors">
                                                 <x-ui.icon name="trash-2" size="4" />

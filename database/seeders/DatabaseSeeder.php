@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
             VillageSeeder::class,
             ServiceSeeder::class,
             MasterDataSeeder::class,
+            AgricultureLookupSeeder::class,
             ProductDataSeeder::class,
             PartyDataSeeder::class,
             InventoryDataSeeder::class,

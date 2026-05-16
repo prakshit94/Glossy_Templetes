@@ -10,6 +10,7 @@ return new class extends Migration {
             $table->id();
             $table->string('name')->index();
             $table->string('sku')->unique();
+            $table->boolean('is_sku_enabled')->default(true);
             $table->string('slug')->unique();
             $table->foreignId('brand_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();

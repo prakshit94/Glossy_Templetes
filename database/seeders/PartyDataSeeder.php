@@ -28,8 +28,9 @@ class PartyDataSeeder extends Seeder
             for ($i = 1; $i <= 10; $i++) {
                 $name = ucfirst($type) . " $i";
                 $partyId = DB::table('parties')->insertGetId([
-                    'name' => $name,
-                    'type' => $type,
+                    'firstname' => ucfirst($type),
+                    'lastname'  => (string) $i,
+                    'type'      => $type,
                     'email' => strtolower($type) . "$i@example.com",
                     'phone' => '98765432' . str_pad($i, 2, '0', STR_PAD_LEFT),
                     'gst_no' => '27AAAAA0000A1Z' . $i % 9,

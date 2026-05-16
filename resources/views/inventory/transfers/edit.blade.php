@@ -1,9 +1,4 @@
-<x-layouts.app>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-foreground leading-tight">
-            {{ __('Edit Stock Transfer') }}
-        </h2>
-    </x-slot>
+<x-layouts.app pageTitle="Edit Transfer: {{ $transfer->transfer_no }}">
 
     <div class="p-6 lg:p-10" x-data="{
         items: @js($transfer->items->map(fn($i) => ['product_id' => $i->product_id, 'quantity' => $i->quantity])),

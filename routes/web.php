@@ -93,13 +93,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
 
+    Route::get('order-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index'])->name('order.tracking.index');
+    Route::get('order-tracking/{shipment}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'show'])->name('order.tracking.show');
+    Route::post('order-tracking/{shipment}/events', [\App\Http\Controllers\Web\OrderTrackingController::class, 'storeEvent'])->name('order.tracking.events.store');
+    Route::put('order-tracking/{shipment}/status', [\App\Http\Controllers\Web\OrderTrackingController::class, 'updateStatus'])->name('order.tracking.status.update');
+
     $sidebarScaffoldModules = [
         'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
         'reviews' => ['title' => 'Reviews & Ratings', 'icon' => 'star'],
         'support-tickets' => ['title' => 'Support Tickets', 'icon' => 'mail'],
         'invoices' => ['title' => 'Invoices', 'icon' => 'finance'],
         'payments' => ['title' => 'Payments', 'icon' => 'credit-card'],
-        'order-tracking' => ['title' => 'Order Tracking', 'icon' => 'target'],
         'returns' => ['title' => 'Returns', 'icon' => 'return'],
         'refunds' => ['title' => 'Refunds', 'icon' => 'refresh-cw'],
         'replacement' => ['title' => 'Replacement', 'icon' => 'package'],

@@ -38,6 +38,7 @@ class Product extends Model
         'overselling_qty',
         'image_path',
         'weight',
+        'is_sku_enabled',
     ];
 
     protected $casts = [
@@ -46,6 +47,7 @@ class Product extends Model
         'allow_overselling' => 'boolean',
         'manage_stock' => 'boolean',
         'is_active' => 'boolean',
+        'is_sku_enabled' => 'boolean',
         'purchase_price' => 'decimal:2',
         'mrp' => 'decimal:2',
         'selling_price' => 'decimal:2',
