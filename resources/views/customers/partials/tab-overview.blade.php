@@ -7,9 +7,16 @@
 
             {{-- Identity Card --}}
             <div class="bg-card/60 backdrop-blur-xl border border-border/50 rounded-3xl shadow-xl overflow-hidden">
-                <div class="px-6 py-4 border-b border-border/40 bg-muted/10 flex items-center gap-2">
-                    <x-ui.icon name="user" size="4" class="text-primary" />
-                    <h3 class="text-xs font-black uppercase tracking-widest text-foreground">Personal Information</h3>
+                <div class="px-6 py-4 border-b border-border/40 bg-muted/10 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <x-ui.icon name="user" size="4" class="text-primary" />
+                        <h3 class="text-xs font-black uppercase tracking-widest text-foreground">Personal Information</h3>
+                    </div>
+                    <button type="button" @click="$dispatch('open-modal', { name: 'edit-profile-modal' })" 
+                        class="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10">
+                        <x-ui.icon name="edit-3" size="3" />
+                        Edit Profile
+                    </button>
                 </div>
                 <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
                     @foreach([
