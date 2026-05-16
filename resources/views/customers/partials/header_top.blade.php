@@ -77,12 +77,6 @@
                     <x-ui.icon name="shopping-cart" size="3.5" class="mr-2 opacity-70 group-hover:opacity-100 transition-opacity" /> Cart
                     <span x-show="cart && cart.length > 0" class="absolute -top-2 -right-2 flex size-5 items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-lg" x-text="cart ? cart.length : 0" x-cloak></span>
                 </button>
-                <a href="{{ route('customers.index') }}" class="group relative flex items-center justify-center h-9 px-4 rounded-xl bg-card border border-border/80 text-[10px] font-black uppercase tracking-widest text-foreground shadow-sm hover:shadow-md hover:border-border transition-all duration-300 hover:-translate-y-0.5">
-                    <x-ui.icon name="arrow-left" size="3.5" class="mr-2 opacity-70 group-hover:opacity-100 transition-opacity" /> Back
-                </a>
-                <a href="{{ route('customers.edit', $customer) }}" class="group relative flex items-center justify-center h-9 px-4 rounded-xl bg-gradient-to-r from-primary to-primary/90 text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all duration-300 hover:-translate-y-0.5">
-                    <x-ui.icon name="edit-3" size="3.5" class="mr-2 opacity-90" /> Edit Profile
-                </a>
             </div>
         </div>
     </div>

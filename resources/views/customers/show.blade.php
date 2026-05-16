@@ -17,9 +17,9 @@
                             <nav class="flex flex-col gap-1">
                                 <template x-for="tab in [
                                     { id: 'overview', icon: 'user',         label: 'Profile'        },
+                                    { id: 'addresses',icon: 'map-pin',      label: 'Addresses'      },
                                     { id: 'order',    icon: 'shopping-bag', label: 'Order Products' },
                                     { id: 'history',  icon: 'clock',        label: 'Order History'  },
-                                    { id: 'addresses',icon: 'map-pin',      label: 'Addresses'      },
                                     { id: 'finance',  icon: 'hash',         label: 'Finance'        },
                                     { id: 'system',   icon: 'settings',     label: 'System'         },
                                     { id: 'review',   icon: 'check-square', label: 'Order Review'   },
@@ -58,9 +58,9 @@
                 {{-- Main Content Area --}}
                 <main class="flex-1 min-w-0">
                     @include('customers.partials.tab-overview')
+                    @include('customers.partials.tab-addresses')
                     @include('customers.partials.tab-order')
                     @include('customers.partials.tab-history')
-                    @include('customers.partials.tab-addresses')
                     @include('customers.partials.tab-finance')
                     @include('customers.partials.tab-system')
                     @include('customers.partials.tab-review')

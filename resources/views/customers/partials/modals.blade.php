@@ -199,7 +199,7 @@
                 </div>
                 <div>
                     <h3 class="text-lg font-bold tracking-tight text-foreground">Edit Profile: {{ $customer->name }}</h3>
-                    <p class="text-xs text-muted-foreground mt-0.5">Complete administrative & agricultural management</p>
+                    <!-- <p class="text-xs text-muted-foreground mt-0.5">Complete administrative & agricultural management</p> -->
                 </div>
             </div>
             <button type="button" @click="$dispatch('close-modal', { name: 'edit-profile-modal' })" class="size-10 rounded-xl hover:bg-muted flex items-center justify-center transition-colors">
@@ -214,7 +214,7 @@
 
                 {{-- ─── Basic Identity ───────────────────────────────────────── --}}
                 <div class="relative">
-                    <div class="flex items-center gap-3 pb-4 mb-8 border-b border-border/40">
+                    <!-- <div class="flex items-center gap-3 pb-4 mb-8 border-b border-border/40">
                         <div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                             <x-ui.icon name="user" size="4" />
                         </div>
@@ -222,7 +222,7 @@
                             <h4 class="text-xs font-black uppercase tracking-[0.2em] text-foreground">Basic Identity</h4>
                             <p class="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mt-0.5">Personal and categorization details</p>
                         </div>
-                    </div>
+                    </div> -->
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div class="space-y-2 group">
