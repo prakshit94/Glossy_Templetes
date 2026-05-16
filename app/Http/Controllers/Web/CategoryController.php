@@ -11,8 +11,34 @@ class CategoryController extends Controller
 {
     public function index(Request $request)
     {
-        $categories = Category::withCount('products')->latest()->get();
-        return view('categories.index', compact('categories'));
+        $query = Category::withCount('products')->with('parent')->latest();
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        $perPage = $request->input('perPage', 10);
+        $categories = $query->paginate($perPage)->withQueryString();
+
+        if ($request->ajax()) {
+            return view('categories.partials.table', compact('categories'))->render();
+        }
+
+        $parentCategories = Category::all();
+
+        $totalCount = Category::count();
+        $activeCount = Category::where('status', 'active')->count();
+        $newThisMonth = Category::whereMonth('created_at', now()->month)->count();
+        $parentCount = Category::whereNull('parent_id')->count();
+
+        $stats = [
+            'total' => $totalCount,
+            'active' => $activeCount,
+            'newThisMonth' => $newThisMonth,
+            'parentCategories' => $parentCount,
+        ];
+
+        return view('categories.index', compact('categories', 'parentCategories', 'stats'));
     }
 
     public function store(Request $request)
@@ -59,5 +85,15 @@ class CategoryController extends Controller
     {
         $category->delete();
         return back()->with('success', 'Category deleted successfully.');
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = json_decode($request->ids, true);
+        if (empty($ids)) return back()->with('error', 'No categories selected.');
+
+        Category::whereIn('id', $ids)->delete();
+
+        return back()->with('success', count($ids) . ' categories deleted successfully.');
     }
 }
