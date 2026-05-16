@@ -145,7 +145,7 @@ class CustomerController extends Controller
             ->performedOn($customer)
             ->log("Registered new customer: {$customer->name}");
 
-        return redirect()->route('customers.index')
+        return redirect()->route('customers.show', $customer)
             ->with('success', 'Customer created successfully.');
     }
 
