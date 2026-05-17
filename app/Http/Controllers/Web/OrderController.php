@@ -16,7 +16,7 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::with(['party', 'warehouse'])->withCount('items');
+        $query = Order::with(['party', 'warehouse', 'invoice'])->withCount('items');
 
         /*
         |--------------------------------------------------------------------------
@@ -198,6 +198,7 @@ class OrderController extends Controller
             'shippingAddress.village',
             'billingAddress.village',
             'shipments',
+            'invoice',
         ])->findOrFail($id);
 
         $services = \App\Models\Service::active()->get();
@@ -444,6 +445,31 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             \Log::error('PDF Generation Error (Invoice): ' . $e->getMessage());
             return back()->with('error', 'Could not generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function generateInvoice(string $id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+            $invoice = $order->invoices()->latest()->first();
+
+            if (!$invoice) {
+                \App\Models\Invoice::create([
+                    'invoice_no' => 'INV-' . now()->format('Ymd') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
+                    'order_id' => $order->id,
+                    'invoice_date' => now(),
+                    'total_amount' => $order->total_amount,
+                    'tax_amount' => $order->tax_amount,
+                    'net_amount' => $order->net_amount,
+                    'status' => 'unpaid',
+                ]);
+                return back()->with('success', 'Invoice generated successfully.');
+            }
+
+            return back()->with('error', 'Invoice already exists.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error generating invoice: ' . $e->getMessage());
         }
     }
 

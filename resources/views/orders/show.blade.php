@@ -52,11 +52,20 @@
                         </a>
                     @endif
 
-                    <a href="{{ route('orders.invoice-pdf', $order) }}" target="_blank">
-                        <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-blue-600 border-blue-600/30 hover:bg-blue-600/10">
-                            <x-ui.icon name="file-text" size="3" class="mr-2" /> Invoice PDF
-                        </x-ui.button>
-                    </a>
+                    @if($order->invoice)
+                        <a href="{{ route('orders.invoice-pdf', $order) }}" target="_blank">
+                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-blue-600 border-blue-600/30 hover:bg-blue-600/10">
+                                <x-ui.icon name="file-text" size="3" class="mr-2" /> Invoice PDF
+                            </x-ui.button>
+                        </a>
+                    @else
+                        <form action="{{ route('orders.generate-invoice', $order) }}" method="POST" class="inline">
+                            @csrf
+                            <x-ui.button type="submit" variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-indigo-600 border-indigo-600/30 hover:bg-indigo-600/10">
+                                <x-ui.icon name="file-plus" size="3" class="mr-2" /> Generate Invoice
+                            </x-ui.button>
+                        </form>
+                    @endif
                     
                     <a href="{{ route('orders.cod-pdf', $order) }}" target="_blank">
                         <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-emerald-600 border-emerald-600/30 hover:bg-emerald-600/10">

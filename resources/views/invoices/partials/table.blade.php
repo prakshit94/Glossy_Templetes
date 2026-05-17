@@ -1,123 +1,155 @@
 @php
-    /** @var \Illuminate\Support\Collection|\Illuminate\Contracts\Pagination\Paginator|null $invoices */
-    $invoices = $invoices ?? collect();
-    if ($invoices instanceof \Illuminate\Pagination\AbstractPaginator) {
-        $invoiceRows = $invoices->getCollection();
-    } else {
-        $invoiceRows = $invoices;
-    }
+    $invoices = $invoices ?? new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
 @endphp
 
-@if($invoices instanceof \Illuminate\Pagination\AbstractPaginator && $invoices->hasPages())
-    <div class="p-4 border-b border-border/40 flex justify-end items-center">
+@if($invoices->hasPages())
+    <div class="p-4 border-b border-border/40 bg-muted/10 flex justify-end items-center">
         {{ $invoices->links() }}
     </div>
 @endif
 
-<x-ui.table>
-    <x-ui.table-header class="bg-muted/20">
-        <x-ui.table-row class="border-b border-border/60">
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 w-36">Invoice</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Customer / Bill to</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-right">Amount</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Due date</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Status</x-ui.table-head>
-            <x-ui.table-head class="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Actions</x-ui.table-head>
-        </x-ui.table-row>
-    </x-ui.table-header>
-    <x-ui.table-body>
-        @forelse($invoiceRows as $invoice)
-            @php
-                $inv = is_array($invoice) ? (object) $invoice : $invoice;
-                $number = data_get($inv, 'number') ?? data_get($inv, 'invoice_number', '—');
-                $customer = data_get($inv, 'customer_name')
-                    ?? data_get($inv, 'bill_to')
-                    ?? data_get($inv, 'customer.name')
-                    ?? '—';
-                $total = data_get($inv, 'total') ?? data_get($inv, 'amount', 0);
-                $due = data_get($inv, 'due_at') ?? data_get($inv, 'due_date');
-                $dueLabel = $due
-                    ? \Illuminate\Support\Carbon::parse($due)->format('M j, Y')
-                    : '—';
-                $status = strtolower((string) (data_get($inv, 'status', 'draft')));
-            @endphp
-            <x-ui.table-row class="border-b border-border/40 group hover:bg-primary/[0.02] transition-colors">
-                <x-ui.table-cell>
-                    <div class="flex items-center gap-3">
-                        <div class="size-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center text-primary shadow-inner shrink-0">
-                            <x-ui.icon name="finance" size="4" />
-                        </div>
-                        <div class="flex flex-col min-w-0">
-                            <span class="text-sm font-black tracking-tight text-foreground truncate">{{ $number }}</span>
-                            <span class="text-[9px] font-mono font-bold text-muted-foreground/40 truncate">
-                                {{ data_get($inv, 'reference') ?? data_get($inv, 'po_number', 'Ref pending') }}
-                            </span>
-                        </div>
-                    </div>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    <div class="flex flex-col gap-1 max-w-[220px]">
-                        <span class="text-sm font-bold text-foreground truncate">{{ $customer }}</span>
-                        @if(data_get($inv, 'customer_email'))
-                            <span class="text-[11px] font-medium text-muted-foreground/60 truncate lowercase">{{ data_get($inv, 'customer_email') }}</span>
-                        @endif
-                    </div>
-                </x-ui.table-cell>
-                <x-ui.table-cell class="text-right">
-                    <span class="text-sm font-black tabular-nums text-foreground">${{ number_format((float) $total, 2) }}</span>
-                    @php $currency = data_get($inv, 'currency'); @endphp
-                    @if($currency && strtoupper((string) $currency) !== 'USD')
-                        <span class="block text-[9px] font-bold text-muted-foreground/50 uppercase tracking-widest">{{ $currency }}</span>
-                    @endif
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    <div class="flex items-center gap-2">
-                        <x-ui.icon name="calendar" size="3.5" class="text-muted-foreground/40 shrink-0" />
-                        <span class="text-xs font-bold text-foreground/90">{{ $dueLabel }}</span>
-                    </div>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    @php
-                        $badgeVariant = match ($status) {
-                            'paid', 'settled' => 'success',
-                            'overdue', 'void', 'cancelled' => 'destructive',
-                            'sent', 'open', 'partial' => 'default',
-                            default => 'outline',
-                        };
-                    @endphp
-                    <x-ui.badge :variant="$badgeVariant" className="uppercase text-[9px] font-black tracking-[0.1em] px-2.5 py-1 rounded-lg shadow-sm">
-                        {{ $status }}
-                    </x-ui.badge>
-                </x-ui.table-cell>
-                <x-ui.table-cell class="text-right">
-                    <div class="flex justify-end gap-1.5">
-                        <x-ui.button variant="ghost" size="icon" type="button" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all" onclick="alert('Wire view / PDF when InvoiceController is ready.')">
-                            <x-ui.icon name="eye" size="4" />
-                        </x-ui.button>
-                        <x-ui.button variant="ghost" size="icon" type="button" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all" onclick="alert('Wire download when storage is ready.')">
-                            <x-ui.icon name="download" size="4" />
-                        </x-ui.button>
-                    </div>
-                </x-ui.table-cell>
-            </x-ui.table-row>
-        @empty
-            <x-ui.table-row>
-                <x-ui.table-cell colspan="6" class="h-60 text-center">
-                    <div class="flex flex-col items-center justify-center gap-3 opacity-40">
-                        <x-ui.icon :name="$moduleIcon ?? 'finance'" size="12" />
-                        <p class="text-sm font-black uppercase tracking-[0.2em]">No invoice records found</p>
-                        <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest max-w-md px-6">
-                            Pass <span class="font-mono text-foreground/60">$invoices</span> (models, arrays, or a paginator) from the controller to fill this table.
-                        </p>
-                    </div>
-                </x-ui.table-cell>
-            </x-ui.table-row>
-        @endforelse
-    </x-ui.table-body>
-</x-ui.table>
+<div class="relative">
+    <div class="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent hidden sm:block"></div>
 
-@if($invoices instanceof \Illuminate\Pagination\AbstractPaginator && $invoices->hasPages())
-    <div class="p-4 border-t border-border/40 bg-muted/5 flex justify-end items-center rounded-b-3xl">
+    <x-ui.table>
+        <x-ui.table-header class="bg-muted/30">
+            <x-ui.table-row class="border-b border-border/60">
+                <x-ui.table-head class="w-12 pl-5">
+                    <input type="checkbox" x-model="allSelected" @change="toggleAll"
+                        class="rounded-md border-border bg-background text-primary focus:ring-primary/25 shadow-sm">
+                </x-ui.table-head>
+                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Invoice Identity</x-ui.table-head>
+                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Associated Order</x-ui.table-head>
+                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Warehouse Node</x-ui.table-head>
+                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Associated Party</x-ui.table-head>
+                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap text-center">Payment Status</x-ui.table-head>
+                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 text-right whitespace-nowrap">Financial Total</x-ui.table-head>
+                <x-ui.table-head class="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 pr-5">Actions</x-ui.table-head>
+            </x-ui.table-row>
+        </x-ui.table-header>
+        <x-ui.table-body>
+            @forelse($invoices as $invoice)
+                <x-ui.table-row
+                    x-bind:class="selectedItems.includes({{ $invoice->id }}) ? 'bg-primary/[0.06] ring-1 ring-inset ring-primary/15' : 'hover:bg-primary/[0.03]'"
+                    class="border-b border-border/40 group/row transition-colors duration-200">
+                    
+                    <x-ui.table-cell class="pl-5 align-middle">
+                        <input type="checkbox" name="invoice_ids[]" value="{{ $invoice->id }}" 
+                            :checked="selectedItems.includes({{ $invoice->id }})" 
+                            @change="toggleItem({{ $invoice->id }})"
+                            class="rounded-md border-border bg-background text-primary focus:ring-primary/25 shadow-sm">
+                    </x-ui.table-cell>
+
+                    <x-ui.table-cell class="align-middle">
+                        <div class="flex items-center gap-4 py-0.5">
+                            <div class="shrink-0">
+                                <div class="size-11 rounded-2xl bg-gradient-to-br from-blue-500/25 to-blue-500/5 border border-blue-500/15 flex items-center justify-center text-blue-500 shadow-inner ring-1 ring-blue-500/10 group-hover/row:scale-[1.02] transition-transform duration-300">
+                                    <x-ui.icon name="file-text" size="4.5" />
+                                </div>
+                            </div>
+                            <div class="flex flex-col min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-black tracking-tight text-foreground uppercase truncate">{{ $invoice->invoice_no }}</span>
+                                    <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/40 whitespace-nowrap">ID: {{ $invoice->id }}</span>
+                                </div>
+                                <span class="text-[10px] font-bold text-muted-foreground/65 tabular-nums">
+                                    {{ optional($invoice->invoice_date)->format('M d, Y') }} at {{ optional($invoice->invoice_date)->format('h:i A') }}
+                                </span>
+                            </div>
+                        </div>
+                    </x-ui.table-cell>
+
+                    <x-ui.table-cell class="align-middle">
+                        <div class="flex items-center gap-2">
+                            <div class="size-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                <x-ui.icon name="package" size="3" />
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[11px] font-black text-foreground/80">{{ $invoice->order?->order_no ?? 'N/A' }}</span>
+                                <span class="text-[9px] font-bold text-muted-foreground/60">{{ optional($invoice->order?->order_date)->format('M d, Y') }}</span>
+                            </div>
+                        </div>
+                    </x-ui.table-cell>
+
+                    <x-ui.table-cell class="align-middle">
+                        <div class="flex items-center gap-2">
+                            <div class="size-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                                <x-ui.icon name="database" size="3" />
+                            </div>
+                            <span class="text-[11px] font-bold text-foreground/80 truncate max-w-[120px]">{{ $invoice->order?->warehouse?->name ?? 'Main Hub' }}</span>
+                        </div>
+                    </x-ui.table-cell>
+
+                    <x-ui.table-cell class="align-middle">
+                        <div class="flex items-center gap-2">
+                            <div class="size-7 rounded-lg bg-muted/40 flex items-center justify-center text-muted-foreground">
+                                <x-ui.icon name="user" size="3" />
+                            </div>
+                            <span class="text-[11px] font-bold text-foreground/80 truncate max-w-[140px]">{{ $invoice->order?->party?->name ?? 'Internal Node' }}</span>
+                        </div>
+                    </x-ui.table-cell>
+
+                    <x-ui.table-cell class="align-middle text-center">
+                        @php
+                            $statusColor = match($invoice->status) {
+                                'paid' => 'emerald',
+                                'partially_paid' => 'amber',
+                                'unpaid' => 'orange',
+                                'cancelled' => 'red',
+                                default => 'primary'
+                            };
+                        @endphp
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-{{ $statusColor }}-500/20 bg-{{ $statusColor }}-500/10 text-{{ $statusColor }}-600 text-[9px] font-black uppercase tracking-widest">
+                            {{ str_replace('_', ' ', $invoice->status) }}
+                        </span>
+                    </x-ui.table-cell>
+
+                    <x-ui.table-cell class="text-right align-middle">
+                        <div class="flex flex-col items-end">
+                            <span class="text-sm font-black text-foreground tracking-tight">₹{{ number_format((float) $invoice->net_amount, 2) }}</span>
+                            <span class="text-[9px] font-bold text-muted-foreground/60">Tax: ₹{{ number_format((float) $invoice->tax_amount, 2) }}</span>
+                        </div>
+                    </x-ui.table-cell>
+
+                    <x-ui.table-cell class="text-right align-middle pr-5">
+                        <div class="flex justify-end gap-1">
+                            <a href="{{ route('orders.show', $invoice->order_id) }}" title="Visual Order Dossier">
+                                <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
+                                    <x-ui.icon name="eye" size="4" />
+                                </x-ui.button>
+                            </a>
+                            <a href="{{ route('orders.invoice-pdf', $invoice->order_id) }}" target="_blank" title="Download Invoice PDF">
+                                <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 rounded-xl border border-transparent hover:border-blue-500/20 transition-all">
+                                    <x-ui.icon name="file-text" size="4" />
+                                </x-ui.button>
+                            </a>
+                        </div>
+                    </x-ui.table-cell>
+                </x-ui.table-row>
+            @empty
+                <x-ui.table-row>
+                    <x-ui.table-cell colspan="8" class="h-72 text-center align-middle p-0">
+                        <div class="flex flex-col items-center justify-center gap-5 py-12 px-6">
+                            <div class="size-24 rounded-3xl bg-gradient-to-br from-primary/25 via-primary/8 to-transparent border border-primary/20 flex items-center justify-center text-primary shadow-inner ring-1 ring-primary/10">
+                                <x-ui.icon name="file-text" size="12" />
+                            </div>
+                            <div class="space-y-2 max-w-md text-center">
+                                <p class="text-sm font-black uppercase tracking-[0.2em] text-foreground">No invoices in ledger</p>
+                                <p class="text-[11px] text-muted-foreground font-medium leading-relaxed">Adjust your filters or search parameters to locate generated invoices.</p>
+                            </div>
+                            <x-ui.button variant="outline" size="sm" onclick="location.reload()" class="rounded-xl border-border/60 font-bold uppercase tracking-widest text-[10px] h-10 px-6">
+                                Refresh Ledger
+                            </x-ui.button>
+                        </div>
+                    </x-ui.table-cell>
+                </x-ui.table-row>
+            @endforelse
+        </x-ui.table-body>
+    </x-ui.table>
+</div>
+
+@if($invoices->hasPages())
+    <div class="p-4 border-t border-border/40 bg-muted/10 flex justify-end items-center rounded-b-3xl">
         {{ $invoices->links() }}
     </div>
 @endif

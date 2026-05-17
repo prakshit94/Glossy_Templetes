@@ -17,6 +17,7 @@ use App\Http\Controllers\Web\TaxRateController;
 use App\Http\Controllers\Web\HsnCodeController;
 use App\Http\Controllers\Web\InventoryController;
 use App\Http\Controllers\Web\OrderController;
+use App\Http\Controllers\Web\InvoiceController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
@@ -91,6 +92,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('orders/bulk-status', [OrderController::class, 'bulkStatus'])->name('orders.bulk-status');
     Route::get('orders/bulk-print', [OrderController::class, 'bulkPrint'])->name('orders.bulk-print');
     Route::get('orders/{order}/invoice-pdf', [OrderController::class, 'downloadInvoice'])->name('orders.invoice-pdf');
+    Route::post('orders/{order}/generate-invoice', [OrderController::class, 'generateInvoice'])->name('orders.generate-invoice');
     Route::get('orders/{order}/cod-pdf', [OrderController::class, 'downloadReceipt'])->name('orders.cod-pdf');
     Route::resource('orders', OrderController::class);
     Route::post('orders/{order}/confirm', [OrderController::class, 'confirm'])->name('orders.confirm');
@@ -99,6 +101,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('orders/{order}/deliver', [OrderController::class, 'markDelivered'])->name('orders.deliver');
     Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
+
+    Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
 
     // Order / Shipment Tracking URLs mapped to OrderTrackingController
     Route::get('shipment-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index'])->name('order.tracking.index');
@@ -115,7 +119,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
         'reviews' => ['title' => 'Reviews & Ratings', 'icon' => 'star'],
         'support-tickets' => ['title' => 'Support Tickets', 'icon' => 'mail'],
-        'invoices' => ['title' => 'Invoices', 'icon' => 'finance'],
         'payments' => ['title' => 'Payments', 'icon' => 'credit-card'],
         'returns' => ['title' => 'Returns', 'icon' => 'return'],
         'refunds' => ['title' => 'Refunds', 'icon' => 'refresh-cw'],
