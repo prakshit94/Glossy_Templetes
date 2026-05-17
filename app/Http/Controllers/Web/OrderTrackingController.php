@@ -59,7 +59,9 @@ class OrderTrackingController extends Controller
             $q->latest('occurred_at');
         }])->findOrFail($id);
 
-        return view('order-tracking.show', compact('shipment'));
+        $services = \App\Models\Service::active()->get();
+
+        return view('order-tracking.show', compact('shipment', 'services'));
     }
 
     public function storeEvent(Request $request, $id)

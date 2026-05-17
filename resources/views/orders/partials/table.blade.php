@@ -96,7 +96,6 @@
                                 $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
                             } elseif ($order->status === 'processing') {
                                 $transitions[] = ['status' => 'shipped', 'label' => 'Ship Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
-                                $transitions[] = ['status' => 'delivered', 'label' => 'Deliver Order', 'type' => 'upcoming', 'icon' => 'check', 'color' => 'emerald'];
                                 $transitions[] = ['status' => 'confirmed', 'label' => 'Revert to Confirmed', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                                 $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
                             } elseif ($order->status === 'shipped') {
@@ -150,16 +149,24 @@
                                         <div class="py-1">
                                             <div class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 text-left">Fulfillment</div>
                                             @foreach($upcomming as $t)
-                                                <form action="{{ route('orders.bulk-status') }}" method="POST" class="m-0">
-                                                    @csrf
-                                                    <input type="hidden" name="ids" value="[{{ $order->id }}]">
-                                                    <input type="hidden" name="status" value="{{ $t['status'] }}">
-                                                    <button type="submit" 
+                                                @if($t['status'] === 'shipped')
+                                                    <button type="button" @click.prevent="openShipModal({{ $order->id }}, '{{ $order->order_no }}')"
                                                         class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
                                                         <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
                                                         {{ $t['label'] }}
                                                     </button>
-                                                </form>
+                                                @else
+                                                    <form action="{{ route('orders.bulk-status') }}" method="POST" class="m-0">
+                                                        @csrf
+                                                        <input type="hidden" name="ids" value="[{{ $order->id }}]">
+                                                        <input type="hidden" name="status" value="{{ $t['status'] }}">
+                                                        <button type="submit" 
+                                                            class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+                                                            <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
+                                                            {{ $t['label'] }}
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             @endforeach
                                         </div>
                                     @endif
@@ -206,63 +213,6 @@
                                 <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 rounded-xl border border-transparent hover:border-amber-500/20 transition-all">
                                     <x-ui.icon name="edit-3" size="4" />
                                 </x-ui.button>
-                            </a>
-
-                            <div x-data="{ open: false }" @click.away="open = false" class="relative inline-block text-left">
-                                <x-ui.button type="button" @click="open = !open" variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all" title="Transition Status">
-                                    <x-ui.icon name="refresh-cw" size="4" />
-                                </x-ui.button>
-
-                                <div x-show="open" x-cloak
-                                    x-transition:enter="transition ease-out duration-100"
-                                    x-transition:enter-start="transform opacity-0 scale-95"
-                                    x-transition:enter-end="transform opacity-100 scale-100"
-                                    x-transition:leave="transition ease-in duration-75"
-                                    x-transition:leave-start="transform opacity-100 scale-100"
-                                    x-transition:leave-end="transform opacity-0 scale-95"
-                                    class="absolute right-0 mt-1.5 w-48 rounded-xl bg-card border border-border/60 shadow-xl z-50 p-1 divide-y divide-border/20">
-                                    
-                                    @if(count($transitions) > 0)
-                                        @if(count($upcomming) > 0)
-                                            <div class="py-1">
-                                                <div class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 text-left">Fulfillment</div>
-                                                @foreach($upcomming as $t)
-                                                    <form action="{{ route('orders.bulk-status') }}" method="POST" class="m-0">
-                                                        @csrf
-                                                        <input type="hidden" name="ids" value="[{{ $order->id }}]">
-                                                        <input type="hidden" name="status" value="{{ $t['status'] }}">
-                                                        <button type="submit" 
-                                                            class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
-                                                            <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
-                                                            {{ $t['label'] }}
-                                                        </button>
-                                                    </form>
-                                                @endforeach
-                                            </div>
-                                        @endif
-
-                                        @if(count($reverts) > 0)
-                                            <div class="py-1">
-                                                <div class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70 text-left">Revert Change</div>
-                                                @foreach($reverts as $t)
-                                                    <form action="{{ route('orders.bulk-status') }}" method="POST" class="m-0">
-                                                        @csrf
-                                                        <input type="hidden" name="ids" value="[{{ $order->id }}]">
-                                                        <input type="hidden" name="status" value="{{ $t['status'] }}">
-                                                        <button type="submit" 
-                                                            class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-amber-600 hover:bg-amber-500/5 rounded-lg transition-colors">
-                                                            <x-ui.icon name="corner-up-left" size="3" class="text-amber-500" />
-                                                            {{ $t['label'] }}
-                                                        </button>
-                                                    </form>
-                                                @endforeach
-                                            </div>
-                                        @endif
-                                    @else
-                                        <div class="px-2.5 py-2 text-[10px] font-bold text-muted-foreground text-center">No actions available</div>
-                                    @endif
-                                </div>
-                            </div>
                         </div>
                     </x-ui.table-cell>
                 </x-ui.table-row>

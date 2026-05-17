@@ -21,6 +21,15 @@
         talukasList: @js($talukasList),
         stats: @js($stats),
         isLoading: false,
+        shipOrderNo: '',
+        shipOrderId: '',
+        shipActionUrl: '',
+        openShipModal(orderId, orderNo) {
+            this.shipOrderId = orderId;
+            this.shipOrderNo = orderNo;
+            this.shipActionUrl = `{{ route('orders.ship', ':id') }}`.replace(':id', orderId);
+            this.$dispatch('open-modal', { name: 'create-shipment-modal' });
+        },
 
         toggleAll() {
             if (this.allSelected) {
@@ -271,6 +280,45 @@
                 </x-ui.card-content>
             </x-ui.card>
         </div>
+
+    <!-- Create Shipment Modal -->
+    <x-ui.modal id="create-shipment-modal" maxWidth="md">
+        <form :action="shipActionUrl" method="POST" class="p-6 space-y-4">
+            @csrf
+            <div>
+                <h3 class="text-lg font-black text-foreground mb-1">Create Shipment</h3>
+                <p class="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Order <span x-text="shipOrderNo"></span></p>
+            </div>
+            
+            <div class="h-px bg-border/60 w-full my-2"></div>
+            
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label for="carrier_name" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Shipping Company / Carrier</label>
+                    <select id="carrier_name" name="carrier_name" class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 appearance-none cursor-pointer">
+                        <option value="">-- Select Shipping Option --</option>
+                        @foreach($services as $svc)
+                            <option value="{{ $svc->name }}">{{ $svc->name }} ({{ $svc->code }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                
+                <div class="space-y-2">
+                    <label for="tracking_no" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Tracking ID</label>
+                    <input type="text" id="tracking_no" name="tracking_no" placeholder="e.g. TRK123456789" class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-border/40">
+                <x-ui.button type="button" variant="outline" size="sm" @click="$dispatch('close-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10">
+                    Cancel
+                </x-ui.button>
+                <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
+                    <x-ui.icon name="truck" size="3" class="mr-2" /> Confirm & Ship
+                </x-ui.button>
+            </div>
+        </form>
+    </x-ui.modal>
     </div>
 
     <style>

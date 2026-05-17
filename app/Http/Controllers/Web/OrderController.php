@@ -93,9 +93,11 @@ class OrderController extends Controller
             })->distinct()->pluck('taluka_name')->filter()->sort()->values();
         });
 
+        $services = \App\Models\Service::active()->get();
+
         if ($request->ajax()) {
             return response()->json([
-                'table'     => view('orders.partials.table', compact('orders'))->render(),
+                'table'     => view('orders.partials.table', compact('orders', 'services'))->render(),
                 'districts' => $districtsList,
                 'talukas'   => $talukasList,
                 'stats'     => $stats,
@@ -108,7 +110,8 @@ class OrderController extends Controller
             'statusesList',
             'statesList',
             'districtsList',
-            'talukasList'
+            'talukasList',
+            'services'
         ));
     }
 
@@ -197,7 +200,9 @@ class OrderController extends Controller
             'shipments',
         ])->findOrFail($id);
 
-        return view('orders.show', compact('order'));
+        $services = \App\Models\Service::active()->get();
+
+        return view('orders.show', compact('order', 'services'));
     }
 
     /*

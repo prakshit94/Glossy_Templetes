@@ -129,8 +129,14 @@
                             <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
                                 <x-ui.icon name="truck" size="3" /> Carrier / Company
                             </label>
-                            <input type="text" name="carrier_name" value="{{ $shipment->carrier_name }}" placeholder="e.g. FedEx, BlueDart" 
-                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 transition-all outline-none hover:bg-background/60">
+                            <select name="carrier_name" class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer hover:bg-background/60">
+                                <option value="">-- Select Shipping Option --</option>
+                                @foreach($services as $svc)
+                                    <option value="{{ $svc->name }}" {{ $shipment->carrier_name === $svc->name ? 'selected' : '' }}>
+                                        {{ $svc->name }} ({{ $svc->code }})
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="space-y-1">
                             <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
