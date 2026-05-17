@@ -32,7 +32,8 @@
                     <x-ui.table-cell class="pl-5 align-middle">
                         <input type="checkbox" name="order_ids[]" value="{{ $order->id }}" 
                             :checked="selectedItems.includes({{ $order->id }})" 
-                            @change="toggleItem({{ $order->id }})"
+                            @change="toggleItem({{ $order->id }}, '{{ $order->status }}')"
+                            data-status="{{ $order->status }}"
                             class="rounded-md border-border bg-background text-primary focus:ring-primary/25 shadow-sm">
                     </x-ui.table-cell>
 
@@ -46,6 +47,7 @@
                             <div class="flex flex-col min-w-0">
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm font-black tracking-tight text-foreground uppercase truncate">{{ $order->order_no }}</span>
+                                    <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/40 whitespace-nowrap">ID: {{ $order->id }}</span>
                                 </div>
                                 <span class="text-[10px] font-bold text-muted-foreground/65 tabular-nums">
                                     {{ optional($order->order_date)->format('M d, Y') }} at {{ optional($order->order_date)->format('h:i A') }}
@@ -209,10 +211,21 @@
                                     <x-ui.icon name="eye" size="4" />
                                 </x-ui.button>
                             </a>
+                            <a href="{{ route('orders.invoice-pdf', $order) }}" target="_blank" title="Download Invoice">
+                                <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 rounded-xl border border-transparent hover:border-blue-500/20 transition-all">
+                                    <x-ui.icon name="file-text" size="4" />
+                                </x-ui.button>
+                            </a>
+                            <a href="{{ route('orders.cod-pdf', $order) }}" target="_blank" title="Download COD PDF">
+                                <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl border border-transparent hover:border-emerald-500/20 transition-all">
+                                    <x-ui.icon name="printer" size="4" />
+                                </x-ui.button>
+                            </a>
                             <a href="{{ route('orders.edit', $order) }}" title="Modify Structure">
                                 <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 rounded-xl border border-transparent hover:border-amber-500/20 transition-all">
                                     <x-ui.icon name="edit-3" size="4" />
                                 </x-ui.button>
+                            </a>
                         </div>
                     </x-ui.table-cell>
                 </x-ui.table-row>

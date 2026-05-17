@@ -8,6 +8,7 @@
 
     <div class="p-6 lg:p-10" x-data="{ 
         selectedItems: [], 
+        selectedStatuses: {},
         allSelected: false,
         search: @js(request('search', '')),
         perPage: @js(request('perPage', 15)),
@@ -33,20 +34,59 @@
 
         toggleAll() {
             if (this.allSelected) {
-                this.selectedItems = Array.from(
-                    document.querySelectorAll('input[name=\'order_ids[]\']')
-                ).map(el => parseInt(el.value));
+                const checkboxes = Array.from(document.querySelectorAll('input[name=\'order_ids[]\']'));
+                this.selectedItems = checkboxes.map(el => parseInt(el.value));
+                this.selectedStatuses = {};
+                checkboxes.forEach(el => {
+                    this.selectedStatuses[parseInt(el.value)] = el.getAttribute('data-status');
+                });
             } else {
                 this.selectedItems = [];
+                this.selectedStatuses = {};
             }
         },
 
-        toggleItem(id) {
+        toggleItem(id, status) {
             if (this.selectedItems.includes(id)) {
                 this.selectedItems = this.selectedItems.filter(i => i !== id);
+                delete this.selectedStatuses[id];
             } else {
                 this.selectedItems.push(id);
+                this.selectedStatuses[id] = status;
             }
+        },
+
+        canBulkFulfill(status) {
+            const selectedValues = Object.values(this.selectedStatuses);
+            if (selectedValues.length === 0) return false;
+            return selectedValues.some(current => {
+                if (status === 'confirmed') return current === 'pending';
+                if (status === 'processing') return current === 'confirmed';
+                if (status === 'shipped') return current === 'confirmed' || current === 'processing';
+                if (status === 'delivered') return current === 'shipped';
+                if (status === 'cancelled') return ['pending', 'confirmed', 'processing'].includes(current);
+                return false;
+            });
+        },
+
+        canBulkRevert(status) {
+            const selectedValues = Object.values(this.selectedStatuses);
+            if (selectedValues.length === 0) return false;
+            return selectedValues.some(current => {
+                if (status === 'pending') return ['confirmed', 'processing', 'cancelled'].includes(current);
+                if (status === 'confirmed') return current === 'processing';
+                if (status === 'processing') return current === 'shipped';
+                if (status === 'shipped') return current === 'delivered';
+                return false;
+            });
+        },
+
+        hasBulkFulfillOptions() {
+            return ['confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].some(s => this.canBulkFulfill(s));
+        },
+
+        hasBulkRevertOptions() {
+            return ['pending', 'confirmed', 'processing', 'shipped'].some(s => this.canBulkRevert(s));
         },
 
         async performSearch() {
@@ -83,6 +123,7 @@
 
             this.isLoading = false;
             this.selectedItems = [];
+            this.selectedStatuses = {};
             this.allSelected = false;
         },
 
@@ -202,10 +243,10 @@
                                     <x-slot name="content">
                                         <x-ui.dropdown-label>Mass Lifecycle Update</x-ui.dropdown-label>
                                         <div class="p-1 space-y-1 divide-y divide-border/20">
-                                            <div class="py-1">
+                                            <div class="py-1" x-show="hasBulkFulfillOptions()">
                                                 <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Fulfillment States</div>
                                                 @foreach(['confirmed' => 'Confirm Orders', 'processing' => 'Mark Processing', 'shipped' => 'Ship Orders', 'delivered' => 'Deliver Orders', 'cancelled' => 'Cancel Orders'] as $status => $label)
-                                                    <form action="{{ route('orders.bulk-status') }}" method="POST">
+                                                    <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('{{ $status }}')">
                                                         @csrf
                                                         <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
                                                         <input type="hidden" name="status" value="{{ $status }}">
@@ -216,10 +257,10 @@
                                                     </form>
                                                 @endforeach
                                             </div>
-                                            <div class="py-1">
+                                            <div class="py-1" x-show="hasBulkRevertOptions()">
                                                 <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70">Revert / Undo States</div>
                                                 @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'shipped' => 'Revert to Shipped'] as $status => $label)
-                                                    <form action="{{ route('orders.bulk-status') }}" method="POST">
+                                                    <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkRevert('{{ $status }}')">
                                                         @csrf
                                                         <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
                                                         <input type="hidden" name="status" value="{{ $status }}">
@@ -229,6 +270,29 @@
                                                         </button>
                                                     </form>
                                                 @endforeach
+                                            </div>
+                                            <div class="py-1">
+                                                <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-600/70">Bulk PDF Downloads</div>
+                                                <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
+                                                    <input type="hidden" name="type" value="invoice">
+                                                    <template x-for="id in selectedItems">
+                                                        <input type="hidden" name="ids[]" :value="id">
+                                                    </template>
+                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-blue-500/5 hover:text-blue-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
+                                                        <x-ui.icon name="file-text" size="3.5" class="mr-2 text-blue-500" />
+                                                        Bulk Invoice PDF
+                                                    </button>
+                                                </form>
+                                                <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
+                                                    <input type="hidden" name="type" value="cod">
+                                                    <template x-for="id in selectedItems">
+                                                        <input type="hidden" name="ids[]" :value="id">
+                                                    </template>
+                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-emerald-500/5 hover:text-emerald-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
+                                                        <x-ui.icon name="printer" size="3.5" class="mr-2 text-emerald-500" />
+                                                        Bulk COD PDF
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     </x-slot>

@@ -417,4 +417,95 @@ class OrderController extends Controller
         $order->delete();
         return redirect()->route('orders.index')->with('success', 'Order deleted.');
     }
+
+    public function downloadInvoice(string $id)
+    {
+        try {
+            $order = Order::with('invoices')->findOrFail($id);
+            $invoice = $order->invoices()->latest()->first();
+
+            if (!$invoice) {
+                // Auto generate invoice if not exists
+                $invoice = \App\Models\Invoice::create([
+                    'invoice_no' => 'INV-' . now()->format('Ymd') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
+                    'order_id' => $order->id,
+                    'invoice_date' => now(),
+                    'total_amount' => $order->total_amount,
+                    'tax_amount' => $order->tax_amount,
+                    'net_amount' => $order->net_amount,
+                    'status' => 'unpaid',
+                ]);
+            }
+
+            $invoice->load(['order.items.product', 'order.party', 'order.billingAddress.village', 'order.shippingAddress.village']);
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf.invoice', compact('invoice'))->setPaper('a5', 'portrait');
+            return $pdf->download("invoice-{$invoice->invoice_no}.pdf");
+        } catch (\Exception $e) {
+            \Log::error('PDF Generation Error (Invoice): ' . $e->getMessage());
+            return back()->with('error', 'Could not generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function downloadReceipt(string $id)
+    {
+        try {
+            $order = Order::with(['items.product', 'party', 'shippingAddress.village', 'billingAddress.village'])->findOrFail($id);
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf.cod', compact('order'))->setPaper('a5', 'portrait');
+            return $pdf->download("receipt-{$order->order_no}.pdf");
+        } catch (\Exception $e) {
+            \Log::error('PDF Generation Error (Receipt): ' . $e->getMessage());
+            return back()->with('error', 'Could not generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function bulkPrint(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:orders,id',
+            'type' => 'required|in:invoice,cod',
+        ]);
+
+        $orders = Order::whereIn('id', $validated['ids'])
+            ->with(['items.product', 'party', 'billingAddress.village', 'shippingAddress.village', 'invoices'])
+            ->get();
+
+        if ($orders->isEmpty()) {
+            return back()->with('error', 'No orders selected.');
+        }
+
+        if ($validated['type'] === 'invoice') {
+            // Flatten to get all invoices, and dynamically create missing ones
+            $invoices = new \Illuminate\Database\Eloquent\Collection();
+
+            foreach ($orders as $order) {
+                $invoice = $order->invoices->first();
+                if (!$invoice) {
+                    $invoice = \App\Models\Invoice::create([
+                        'invoice_no' => 'INV-' . now()->format('Ymd') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
+                        'order_id' => $order->id,
+                        'invoice_date' => now(),
+                        'total_amount' => $order->total_amount,
+                        'tax_amount' => $order->tax_amount,
+                        'net_amount' => $order->net_amount,
+                        'status' => 'unpaid',
+                    ]);
+                    $invoice->setRelation('order', $order);
+                }
+                $invoices->push($invoice);
+            }
+
+            $invoices->load(['order.party', 'order.billingAddress.village', 'order.shippingAddress.village', 'order.items.product']);
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf.bulk_invoice', compact('invoices'))->setPaper('a5', 'portrait');
+            return $pdf->download('bulk-invoices-' . now()->format('YmdHis') . '.pdf');
+        } elseif ($validated['type'] === 'cod') {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf.bulk_cod', compact('orders'))->setPaper('a5', 'portrait');
+            return $pdf->download('bulk-cod-' . now()->format('YmdHis') . '.pdf');
+        }
+
+        return back()->with('error', 'Invalid print type.');
+    }
 }
+
