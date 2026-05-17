@@ -9,6 +9,7 @@
                     $statusColor = match($order->status) {
                         'delivered', 'completed' => 'emerald',
                         'shipped' => 'blue',
+                        'processing' => 'amber',
                         'confirmed' => 'indigo',
                         'cancelled', 'returned' => 'red',
                         'pending' => 'orange',
@@ -24,7 +25,7 @@
                     <div>
                         <div class="flex items-center gap-3 mb-1">
                             <h3 class="text-2xl font-black text-foreground tracking-tight">{{ $order->order_no }}</h3>
-                            <x-ui.badge variant="{{ match($order->status) { 'shipped', 'delivered', 'completed' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', default => 'default' } }}" class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
+                            <x-ui.badge variant="{{ match($order->status) { 'shipped', 'delivered', 'completed' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', default => 'default' } }}" class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
                                 {{ str_replace('_', ' ', $order->status) }}
                             </x-ui.badge>
                         </div>
@@ -69,22 +70,16 @@
                                 <x-ui.icon name="loader" size="3" class="mr-2" /> Mark Processing
                             </x-ui.button>
                         </form>
-                        <form action="{{ route('orders.ship', $order) }}" method="POST">
-                            @csrf
-                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-                                <x-ui.icon name="truck" size="3" class="mr-2" /> Ship Now
-                            </x-ui.button>
-                        </form>
+                        <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
+                            <x-ui.icon name="truck" size="3" class="mr-2" /> Ship Now
+                        </x-ui.button>
                     @endif
 
                     {{-- Ship (processing → shipped) --}}
                     @if($order->status === 'processing')
-                        <form action="{{ route('orders.ship', $order) }}" method="POST">
-                            @csrf
-                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-                                <x-ui.icon name="truck" size="3" class="mr-2" /> Ship Order
-                            </x-ui.button>
-                        </form>
+                        <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
+                            <x-ui.icon name="truck" size="3" class="mr-2" /> Ship Order
+                        </x-ui.button>
                     @endif
 
                     {{-- Deliver (shipped → delivered) --}}
@@ -232,6 +227,34 @@
                                     <span class="text-[10px] font-medium text-muted-foreground">{{ $order->updated_at->format('M d, Y h:i A') }}</span>
                                 </p>
                             </div>
+
+                            @if($order->shipments->isNotEmpty())
+                                <div class="h-px bg-border/40 my-3"></div>
+                                @php $shipment = $order->shipments->first(); @endphp
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Carrier / Company</p>
+                                        <p class="text-xs font-bold text-foreground flex items-center gap-1">
+                                            <x-ui.icon name="truck" size="3" class="text-primary" />
+                                            {{ $shipment->carrier_name ?? 'N/A' }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Tracking ID</p>
+                                        <p class="text-xs font-bold text-primary flex items-center gap-1">
+                                            <x-ui.icon name="hash" size="3" />
+                                            {{ $shipment->tracking_no ?? 'N/A' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="pt-3">
+                                    <a href="{{ route('order.tracking.show', $shipment) }}">
+                                        <x-ui.button variant="outline" size="sm" class="w-full rounded-xl font-bold uppercase tracking-widest text-[9px] h-9 border-primary/20 hover:bg-primary/5 text-primary">
+                                            <x-ui.icon name="target" size="3" class="mr-1.5" /> Track Shipment Details
+                                        </x-ui.button>
+                                    </a>
+                                </div>
+                            @endif
                         </div>
                     </x-ui.card>
                 </div>
@@ -381,4 +404,38 @@
             </div>
         </div>
     </div>
+
+    <!-- Create Shipment Modal -->
+    <x-ui.modal id="create-shipment-modal" maxWidth="md">
+        <form action="{{ route('orders.ship', $order) }}" method="POST" class="p-6 space-y-4">
+            @csrf
+            <div>
+                <h3 class="text-lg font-black text-foreground mb-1">Create Shipment</h3>
+                <p class="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Order {{ $order->order_no }}</p>
+            </div>
+            
+            <div class="h-px bg-border/60 w-full my-2"></div>
+            
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label for="carrier_name" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Shipping Company / Carrier</label>
+                    <input type="text" id="carrier_name" name="carrier_name" placeholder="e.g. FedEx, DHL, Blue Dart" class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
+                </div>
+                
+                <div class="space-y-2">
+                    <label for="tracking_no" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Tracking ID</label>
+                    <input type="text" id="tracking_no" name="tracking_no" placeholder="e.g. TRK123456789" class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-border/40">
+                <x-ui.button type="button" variant="outline" size="sm" @click="$dispatch('close-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10">
+                    Cancel
+                </x-ui.button>
+                <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
+                    <x-ui.icon name="truck" size="3" class="mr-2" /> Confirm & Ship
+                </x-ui.button>
+            </div>
+        </form>
+    </x-ui.modal>
 </x-layouts.app>

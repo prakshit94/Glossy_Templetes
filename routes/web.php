@@ -97,10 +97,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
 
-    Route::get('order-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index'])->name('order.tracking.index');
-    Route::get('order-tracking/{shipment}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'show'])->name('order.tracking.show');
-    Route::post('order-tracking/{shipment}/events', [\App\Http\Controllers\Web\OrderTrackingController::class, 'storeEvent'])->name('order.tracking.events.store');
-    Route::put('order-tracking/{shipment}/status', [\App\Http\Controllers\Web\OrderTrackingController::class, 'updateStatus'])->name('order.tracking.status.update');
+    // Order / Shipment Tracking URLs mapped to OrderTrackingController
+    Route::get('shipment-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index'])->name('order.tracking.index');
+    Route::get('shipment-tracking/{shipment}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'show'])->name('order.tracking.show');
+    Route::post('shipment-tracking/{shipment}/events', [\App\Http\Controllers\Web\OrderTrackingController::class, 'storeEvent'])->name('order.tracking.events.store');
+    Route::put('shipment-tracking/{shipment}/status', [\App\Http\Controllers\Web\OrderTrackingController::class, 'updateStatus'])->name('order.tracking.status.update');
+
+    Route::get('order-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index']);
+    Route::get('order-tracking/{shipment}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'show']);
 
     $sidebarScaffoldModules = [
         'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
@@ -116,7 +120,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'vendors' => ['title' => 'Vendors', 'icon' => 'building'],
         'transport' => ['title' => 'Transport', 'icon' => 'truck'],
         'delivery' => ['title' => 'Delivery', 'icon' => 'truck-2'],
-        'shipment-tracking' => ['title' => 'Shipment Tracking', 'icon' => 'target'],
         'drivers' => ['title' => 'Drivers', 'icon' => 'users-2'],
         'accounts' => ['title' => 'Accounts', 'icon' => 'finance'],
         'expenses' => ['title' => 'Expenses', 'icon' => 'activity'],

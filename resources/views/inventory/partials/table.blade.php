@@ -8,6 +8,7 @@
                 <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Reserved</th>
                 <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Available</th>
                 <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Dispatched</th>
+                <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Delivered</th>
             </tr>
         </thead>
         <tbody>
@@ -86,15 +87,22 @@
                     </td>
 
                     <!-- Dispatched -->
-                    <td class="p-4 text-center border-r border-border/10">
+                    <td class="p-4 text-center">
                         <div class="text-[10px] font-black text-muted-foreground/60 uppercase tracking-tighter">
                              {{ number_format($stock->dispatched_qty ?? 0, 2) }}
+                        </div>
+                    </td>
+
+                    <!-- Delivered -->
+                    <td class="p-4 text-center border-r border-border/10">
+                        <div class="inline-flex items-center px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[10px] font-black tracking-tight">
+                            {{ number_format($stock->delivered_qty, 2) }}
                         </div>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="p-20 text-center">
+                    <td colspan="7" class="p-20 text-center">
                         <div class="flex flex-col items-center gap-4">
                             <div class="size-20 rounded-3xl bg-muted/10 border border-border/40 flex items-center justify-center text-muted-foreground/20">
                                 <x-ui.icon name="inbox" size="10" />

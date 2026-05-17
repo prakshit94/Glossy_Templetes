@@ -194,6 +194,7 @@ class OrderController extends Controller
             'updater',
             'shippingAddress.village',
             'billingAddress.village',
+            'shipments',
         ])->findOrFail($id);
 
         return view('orders.show', compact('order'));
@@ -222,7 +223,7 @@ class OrderController extends Controller
         return back()->with('success', 'Order confirmed and stock reserved.');
     }
 
-    public function ship(string $id, InventoryService $inventoryService)
+    public function ship(string $id, Request $request, InventoryService $inventoryService)
     {
         $order = Order::findOrFail($id);
 
@@ -230,8 +231,13 @@ class OrderController extends Controller
             return back()->with('error', 'Only confirmed or processing orders can be shipped.');
         }
 
+        $request->validate([
+            'carrier_name' => 'nullable|string|max:255',
+            'tracking_no' => 'nullable|string|max:255',
+        ]);
+
         try {
-            $inventoryService->shipOrder($order);
+            $inventoryService->shipOrder($order, $request->carrier_name, $request->tracking_no);
         } catch (ValidationException $e) {
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to ship order.');
         }

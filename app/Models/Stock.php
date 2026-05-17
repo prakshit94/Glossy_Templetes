@@ -41,6 +41,19 @@ class Stock extends Model
         return max(0.0, (float) $this->quantity - (float) $this->reserved_qty);
     }
 
+    /**
+     * Delivered qty = sum of delivered and completed order items for this product and warehouse.
+     */
+    public function getDeliveredQtyAttribute(): float
+    {
+        return (float) \App\Models\OrderItem::where('product_id', $this->product_id)
+            ->whereHas('order', function ($q) {
+                $q->where('warehouse_id', $this->warehouse_id)
+                  ->whereIn('status', ['delivered', 'completed']);
+            })
+            ->sum('quantity');
+    }
+
     // ─── Relationships ─────────────────────────────────────────────────────
 
     public function product(): BelongsTo

@@ -62,6 +62,9 @@ class InventoryController extends Controller
             'warehouses_count' => Warehouse::count(),
             'total_reserved'   => (float) (clone $statsBaseQuery)->sum('reserved_qty'),
             'total_dispatched' => (float) (clone $statsBaseQuery)->sum('dispatched_qty'),
+            'total_delivered'  => (float) \App\Models\OrderItem::whereHas('order', function ($q) {
+                $q->whereIn('status', ['delivered', 'completed']);
+            })->sum('quantity'),
         ];
 
         if ($request->ajax()) {

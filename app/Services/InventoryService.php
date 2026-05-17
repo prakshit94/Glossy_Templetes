@@ -484,9 +484,9 @@ class InventoryService
      * Ship a confirmed order → release reservation + deduct actual stock.
      * For purchase orders → add stock.
      */
-    public function shipOrder(Order $order): void
+    public function shipOrder(Order $order, ?string $carrierName = null, ?string $trackingNo = null): void
     {
-        DB::transaction(function () use ($order) {
+        DB::transaction(function () use ($order, $carrierName, $trackingNo) {
             /** @var Order $order */
             $order = Order::with('items')->lockForUpdate()->findOrFail($order->id);
 
@@ -552,10 +552,12 @@ class InventoryService
 
             // Create Shipment record automatically
             $shipment = \App\Models\Shipment::create([
-                'shipment_no' => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
-                'order_id'    => $order->id,
-                'status'      => 'shipped',
-                'shipped_at'  => now(),
+                'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                'order_id'     => $order->id,
+                'status'       => 'shipped',
+                'shipped_at'   => now(),
+                'carrier_name' => $carrierName,
+                'tracking_no'  => $trackingNo,
             ]);
 
             // Log initial tracking event
