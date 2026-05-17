@@ -100,16 +100,48 @@ class OrderTrackingController extends Controller
             'status' => 'required|in:pending,shipped,in_transit,delivered,failed',
             'carrier_name' => 'nullable|string|max:255',
             'tracking_no' => 'nullable|string|max:255',
+            'shipped_at' => 'nullable|date',
+            'delivered_at' => 'nullable|date',
         ]);
 
         $shipment = Shipment::findOrFail($id);
-        $shipment->update($request->only(['status', 'carrier_name', 'tracking_no']));
+        $shipment->update($request->only(['status', 'carrier_name', 'tracking_no', 'shipped_at', 'delivered_at']));
 
         if ($request->status === 'delivered') {
-            $shipment->update(['delivered_at' => now()]);
+            if (!$shipment->delivered_at) {
+                $shipment->update(['delivered_at' => now()]);
+            }
             $shipment->order->update(['status' => 'delivered']);
         }
 
-        return back()->with('success', 'Shipment status updated.');
+        return back()->with('success', 'Shipment tracking information updated successfully.');
+    }
+
+    public function updateEvent(Request $request, $id)
+    {
+        $request->validate([
+            'event_name' => 'required|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'occurred_at' => 'required|date',
+        ]);
+
+        $event = ShipmentTrackingEvent::findOrFail($id);
+        $event->update([
+            'event_name' => $request->event_name,
+            'location' => $request->location,
+            'description' => $request->description,
+            'occurred_at' => $request->occurred_at,
+        ]);
+
+        return back()->with('success', 'Tracking event updated successfully.');
+    }
+
+    public function destroyEvent($id)
+    {
+        $event = ShipmentTrackingEvent::findOrFail($id);
+        $event->delete();
+
+        return back()->with('success', 'Tracking event deleted successfully.');
     }
 }

@@ -105,34 +105,55 @@
                 </div>
             </x-ui.card>
 
-            <!-- Status Control Panel -->
+            <!-- Shipment Details Control Panel -->
             <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/40 backdrop-blur-3xl rounded-[2rem] border-dashed">
                 <div class="p-6 border-b border-border/40 bg-muted/10 flex items-center gap-3">
                     <x-ui.icon name="settings-2" size="4" class="text-primary" />
-                    <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Logistics Control</h4>
+                    <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Shipment Details & Control</h4>
                 </div>
                 <div class="p-8">
-                    <form action="{{ route('order.tracking.status.update', $shipment->id) }}" method="POST" class="space-y-6">
+                    <form action="{{ route('order.tracking.status.update', $shipment->id) }}" method="POST" class="space-y-4">
                         @csrf
                         @method('PUT')
-                        <div class="space-y-3">
+                        <div class="space-y-1">
                             <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
                                 <x-ui.icon name="activity" size="3" /> State Transition
                             </label>
-                            <select name="status" class="w-full h-14 px-5 rounded-[1.25rem] border border-border bg-background/40 text-xs font-black uppercase tracking-widest focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer hover:bg-background/60">
+                            <select name="status" class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-black uppercase tracking-widest focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer hover:bg-background/60">
                                 @foreach(['pending', 'shipped', 'in_transit', 'delivered', 'failed'] as $st)
                                     <option value="{{ $st }}" {{ $shipment->status === $st ? 'selected' : '' }}>{{ strtoupper($st) }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="space-y-3">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                                <x-ui.icon name="truck" size="3" /> Carrier / Company
+                            </label>
+                            <input type="text" name="carrier_name" value="{{ $shipment->carrier_name }}" placeholder="e.g. FedEx, BlueDart" 
+                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 transition-all outline-none hover:bg-background/60">
+                        </div>
+                        <div class="space-y-1">
                             <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
                                 <x-ui.icon name="hash" size="3" /> AWB / Air Waybill
                             </label>
                             <input type="text" name="tracking_no" value="{{ $shipment->tracking_no }}" placeholder="Enter Tracking Number" 
-                                class="w-full h-14 px-5 rounded-[1.25rem] border border-border bg-background/40 text-xs font-black font-mono tracking-widest focus:ring-4 focus:ring-primary/10 transition-all outline-none hover:bg-background/60">
+                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-black font-mono tracking-widest focus:ring-4 focus:ring-primary/10 transition-all outline-none hover:bg-background/60">
                         </div>
-                        <x-ui.button type="submit" class="w-full h-14 rounded-[1.25rem] text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                                <x-ui.icon name="calendar" size="3" /> Shipped Date
+                            </label>
+                            <input type="datetime-local" name="shipped_at" value="{{ $shipment->shipped_at ? $shipment->shipped_at->format('Y-m-d\TH:i') : '' }}" 
+                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-black focus:ring-4 focus:ring-primary/10 transition-all outline-none hover:bg-background/60">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                                <x-ui.icon name="check-circle" size="3" /> Delivered Date
+                            </label>
+                            <input type="datetime-local" name="delivered_at" value="{{ $shipment->delivered_at ? $shipment->delivered_at->format('Y-m-d\TH:i') : '' }}" 
+                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-black focus:ring-4 focus:ring-primary/10 transition-all outline-none hover:bg-background/60">
+                        </div>
+                        <x-ui.button type="submit" class="w-full h-12 rounded-xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mt-2">
                             Commit Updates
                         </x-ui.button>
                     </form>
@@ -210,11 +231,13 @@
                 <div class="p-10 relative overflow-y-auto max-h-[650px] custom-scrollbar">
                     <div class="relative space-y-12 before:content-[''] before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-[3px] before:bg-gradient-to-b before:from-primary/60 before:via-primary/20 before:to-transparent">
                         @forelse($shipment->events as $event)
-                            <div class="relative pl-14 group">
+                            <div x-data="{ editing: false }" class="relative pl-14 group">
                                 <div class="absolute left-0 top-1 size-10 rounded-full bg-background border-[6px] border-muted/30 flex items-center justify-center text-primary shadow-2xl z-10 group-hover:scale-125 group-hover:border-primary/20 transition-all duration-500">
                                     <div class="size-2.5 rounded-full bg-primary group-hover:animate-ping"></div>
                                 </div>
-                                <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                                
+                                {{-- Read View --}}
+                                <div x-show="!editing" class="flex flex-col md:flex-row md:items-start justify-between gap-6">
                                     <div class="flex-1 space-y-3">
                                         <div class="flex items-center gap-3">
                                             <h4 class="text-base font-black text-foreground tracking-tight group-hover:text-primary transition-colors duration-500">{{ $event->event_name }}</h4>
@@ -237,12 +260,62 @@
                                             </div>
                                         @endif
                                     </div>
-                                    <div class="shrink-0 pt-1">
-                                        <div class="flex flex-col items-end gap-1">
-                                            <span class="text-[10px] font-black text-foreground tracking-widest uppercase opacity-40">{{ $event->occurred_at->diffForHumans() }}</span>
-                                            <div class="size-1 rounded-full bg-primary/20"></div>
+                                    <div class="shrink-0 pt-1 flex flex-col items-end gap-3">
+                                        <div class="flex items-center gap-2 relative z-20">
+                                            <button @click="editing = true" class="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white transition-all shadow-sm">
+                                                <x-ui.icon name="edit-3" size="3" />
+                                            </button>
+                                            <form action="{{ route('order.tracking.events.destroy', $event->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this checkpoint?')" class="m-0 inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                                                    <x-ui.icon name="trash" size="3" />
+                                                </button>
+                                            </form>
                                         </div>
+                                        <span class="text-[10px] font-black text-foreground tracking-widest uppercase opacity-40">{{ $event->occurred_at->diffForHumans() }}</span>
                                     </div>
+                                </div>
+
+                                {{-- Edit View --}}
+                                <div x-show="editing" x-cloak class="bg-card/80 border border-border/50 rounded-[2rem] p-6 space-y-4">
+                                    <form action="{{ route('order.tracking.events.update', $event->id) }}" method="POST" class="space-y-4 m-0">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div class="space-y-2">
+                                                <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Milestone Title</label>
+                                                <input type="text" name="event_name" value="{{ $event->event_name }}" required 
+                                                    class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all">
+                                            </div>
+                                            <div class="space-y-2">
+                                                <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Node / Location</label>
+                                                <input type="text" name="location" value="{{ $event->location }}" 
+                                                    class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all">
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Checkpoint Time</label>
+                                            <input type="datetime-local" name="occurred_at" value="{{ $event->occurred_at->format('Y-m-d\TH:i') }}" required 
+                                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-black focus:ring-4 focus:ring-primary/10 outline-none transition-all">
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Remarks</label>
+                                            <textarea name="description" rows="2" 
+                                                class="w-full p-4 rounded-xl border border-border bg-background/40 text-xs font-medium focus:ring-4 focus:ring-primary/10 outline-none transition-all resize-none">{{ $event->description }}</textarea>
+                                        </div>
+
+                                        <div class="flex items-center justify-end gap-2 pt-2">
+                                            <button type="button" @click="editing = false" class="px-4 h-9 rounded-xl bg-card border border-border text-[10px] font-black uppercase tracking-widest hover:bg-muted transition-all">
+                                                Cancel
+                                            </button>
+                                            <button type="submit" class="px-6 h-9 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-102 transition-all">
+                                                Save Milestone
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         @empty

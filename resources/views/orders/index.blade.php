@@ -192,17 +192,35 @@
                                     </x-slot>
                                     <x-slot name="content">
                                         <x-ui.dropdown-label>Mass Lifecycle Update</x-ui.dropdown-label>
-                                        <div class="p-1 space-y-1">
-                                            @foreach(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'] as $status)
-                                                <form action="{{ route('orders.bulk-status') }}" method="POST">
-                                                    @csrf
-                                                    <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
-                                                    <input type="hidden" name="status" value="{{ $status }}">
-                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-black hover:bg-primary/10 rounded-xl flex items-center text-foreground/80 uppercase tracking-widest transition-colors">
-                                                        <x-ui.icon name="circle" size="3" class="mr-2 opacity-20 text-primary" /> {{ str_replace('_', ' ', $status) }}
-                                                    </button>
-                                                </form>
-                                            @endforeach
+                                        <div class="p-1 space-y-1 divide-y divide-border/20">
+                                            <div class="py-1">
+                                                <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Fulfillment States</div>
+                                                @foreach(['confirmed' => 'Confirm Orders', 'processing' => 'Mark Processing', 'shipped' => 'Ship Orders', 'delivered' => 'Deliver Orders', 'cancelled' => 'Cancel Orders'] as $status => $label)
+                                                    <form action="{{ route('orders.bulk-status') }}" method="POST">
+                                                        @csrf
+                                                        <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                        <input type="hidden" name="status" value="{{ $status }}">
+                                                        <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
+                                                            <span class="size-2 rounded-full bg-{{ match($status) { 'confirmed' => 'indigo', 'processing' => 'amber', 'shipped' => 'blue', 'delivered' => 'emerald', 'cancelled' => 'red' } }}-500 mr-2"></span>
+                                                            {{ $label }}
+                                                        </button>
+                                                    </form>
+                                                @endforeach
+                                            </div>
+                                            <div class="py-1">
+                                                <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70">Revert / Undo States</div>
+                                                @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'shipped' => 'Revert to Shipped'] as $status => $label)
+                                                    <form action="{{ route('orders.bulk-status') }}" method="POST">
+                                                        @csrf
+                                                        <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                        <input type="hidden" name="status" value="{{ $status }}">
+                                                        <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-amber-500/5 hover:text-amber-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
+                                                            <x-ui.icon name="corner-up-left" size="3.5" class="mr-2 text-amber-500" />
+                                                            {{ $label }}
+                                                        </button>
+                                                    </form>
+                                                @endforeach
+                                            </div>
                                         </div>
                                     </x-slot>
                                 </x-ui.dropdown>

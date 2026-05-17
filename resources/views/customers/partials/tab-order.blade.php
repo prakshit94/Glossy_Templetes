@@ -178,13 +178,18 @@
 
                             {{-- Stock --}}
                             <td class="px-4 py-3">
-                                <div class="space-y-1.5">
+                                <div class="space-y-1.5" x-data="{
+                                    get dynamicStock() {
+                                        let qtyInCart = cart.find(i => i.id === product.id)?.quantity || 0;
+                                        return Math.max(0, product.available_stock - qtyInCart);
+                                    }
+                                }">
                                     <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg inline-block"
-                                        :class="product.available_stock > 0
+                                        :class="dynamicStock > 0
                                             ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                                             : 'bg-red-500/10 text-red-500 border border-red-500/20'"
-                                        x-text="product.available_stock > 0
-                                            ? (product.available_stock >= 999 ? 'In Stock' : product.available_stock + ' units')
+                                        x-text="dynamicStock > 0
+                                            ? (product.available_stock >= 999 ? 'In Stock' : dynamicStock + ' units')
                                             : 'Out of Stock'">
                                     </span>
                                     <p class="text-[10px] text-muted-foreground" x-show="product.min_stock_level > 0" x-text="'Min: ' + product.min_stock_level"></p>
@@ -196,17 +201,22 @@
 
                             {{-- Qty + Discount inline before adding --}}
                             <td class="px-4 py-3">
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5" x-data="{
+                                    get dynamicStock() {
+                                        let qtyInCart = cart.find(i => i.id === product.id)?.quantity || 0;
+                                        return Math.max(0, product.available_stock - qtyInCart);
+                                    }
+                                }">
                                     <div class="flex items-center gap-1">
                                         <button type="button" @click="product._qty = Math.max(1, (parseInt(product._qty) || 1) - 1)"
                                             class="size-8 rounded-lg border border-border bg-background hover:bg-muted flex items-center justify-center transition-colors">
                                             <x-ui.icon name="minus" size="3" />
                                         </button>
                                         <input type="number" x-model="product._qty" min="1" 
-                                            :max="product.available_stock < 999 ? product.available_stock : 9999"
+                                            :max="product.available_stock < 999 ? dynamicStock : 9999"
                                             class="h-8 w-12 rounded-lg border border-border bg-background text-xs font-bold text-center outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                                         <button type="button" @click="product._qty = (parseInt(product._qty) || 1) + 1"
-                                            :disabled="product.available_stock !== 999 && product._qty >= product.available_stock"
+                                            :disabled="product.available_stock !== 999 && product._qty >= dynamicStock"
                                             class="size-8 rounded-lg border border-border bg-background hover:bg-muted disabled:opacity-30 flex items-center justify-center transition-colors">
                                             <x-ui.icon name="plus" size="3" />
                                         </button>
@@ -227,7 +237,7 @@
                             <td class="px-4 py-3 text-right">
                                 <button type="button"
                                     @click.prevent="addToCartWithOptions(product)"
-                                    :disabled="product.available_stock <= 0"
+                                    :disabled="product.available_stock !== 999 && Math.max(0, product.available_stock - (cart.find(i => i.id === product.id)?.quantity || 0)) <= 0"
                                     class="h-9 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm flex items-center gap-1.5 ml-auto"
                                     :class="cart.find(i => i.id === product.id)
                                         ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white'

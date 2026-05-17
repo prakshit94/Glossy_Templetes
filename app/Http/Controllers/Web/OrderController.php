@@ -297,11 +297,11 @@ class OrderController extends Controller
     | their dedicated endpoints above, never this bulk route.
     |--------------------------------------------------------------------------
     */
-    public function bulkStatus(Request $request)
+    public function bulkStatus(Request $request, InventoryService $inventoryService, OrderService $orderService)
     {
         $request->validate([
             'ids'    => 'required|json',
-            'status' => 'required|string|in:processing,delivered,returned',
+            'status' => 'required|string|in:pending,confirmed,processing,shipped,delivered,cancelled,returned',
         ]);
 
         $ids = json_decode($request->ids);
@@ -309,19 +309,99 @@ class OrderController extends Controller
             return back()->with('error', 'No orders selected.');
         }
 
-        // Only allow transitions that carry no inventory side-effects.
-        // confirmed  → use orders/{order}/confirm  (reserves stock)
-        // shipped    → use orders/{order}/ship     (deducts + dispatches)
-        // cancelled  → use orders/{order}/cancel   (releases reservation)
-        Order::whereIn('id', $ids)
-            ->whereIn('status', ['confirmed', 'processing', 'shipped', 'delivered'])
-            ->update([
-                'status'     => $request->status,
-                'updated_by' => auth()->id(),
-                'updated_at' => now(),
-            ]);
+        $targetStatus = $request->status;
+        $count = 0;
 
-        return back()->with('success', count($ids) . ' orders updated to ' . $request->status . '.');
+        try {
+            \DB::transaction(function() use ($ids, $targetStatus, $inventoryService, $orderService, &$count) {
+                $orders = Order::with('items')->whereIn('id', $ids)->get();
+
+                foreach ($orders as $order) {
+                    if ($order->status === $targetStatus) {
+                        continue;
+                    }
+
+                    // ─── FORWARD TRANSITIONS ───
+                    if ($targetStatus === 'confirmed' && $order->status === 'pending') {
+                        $inventoryService->confirmOrder($order);
+                        $count++;
+                    } elseif ($targetStatus === 'processing' && $order->status === 'confirmed') {
+                        $orderService->updateStatus($order, 'processing');
+                        $count++;
+                    } elseif ($targetStatus === 'shipped' && in_array($order->status, ['confirmed', 'processing'])) {
+                        $inventoryService->shipOrder($order, null, null);
+                        $count++;
+                    } elseif ($targetStatus === 'delivered' && in_array($order->status, ['shipped', 'processing'])) {
+                        $orderService->updateStatus($order, 'delivered');
+                        $count++;
+                    } elseif ($targetStatus === 'cancelled' && !in_array($order->status, ['delivered', 'cancelled', 'returned'])) {
+                        $inventoryService->cancelOrder($order);
+                        $count++;
+                    }
+
+                    // ─── REVERT TRANSITIONS ───
+                    elseif ($targetStatus === 'pending' && in_array($order->status, ['confirmed', 'processing', 'cancelled'])) {
+                        if (in_array($order->status, ['confirmed', 'processing']) && $order->type === 'sale' && $order->warehouse_id) {
+                            foreach ($order->items as $item) {
+                                $stock = $inventoryService->getStock((int)$item->product_id, (int)$order->warehouse_id);
+                                $releaseQty = min((float)$item->quantity, (float)$stock->reserved_qty);
+                                if ($releaseQty > 0) {
+                                    \DB::table('stocks')->where('id', $stock->id)->update([
+                                        'reserved_qty' => (float)$stock->reserved_qty - $releaseQty
+                                    ]);
+                                    \App\Models\StockReservation::where('order_id', $order->id)
+                                        ->where('product_id', $item->product_id)
+                                        ->where('warehouse_id', $order->warehouse_id)
+                                        ->where('status', 'active')
+                                        ->update(['status' => 'cancelled']);
+                                }
+                            }
+                        }
+                        $order->update(['status' => 'pending']);
+                        $count++;
+                    } elseif ($targetStatus === 'confirmed' && $order->status === 'processing') {
+                        $order->update(['status' => 'confirmed']);
+                        $count++;
+                    } elseif ($targetStatus === 'processing' && $order->status === 'shipped') {
+                        $shipments = \App\Models\Shipment::where('order_id', $order->id)->get();
+                        foreach ($shipments as $shp) {
+                            \App\Models\ShipmentTrackingEvent::where('shipment_id', $shp->id)->delete();
+                            $shp->delete();
+                        }
+                        if ($order->type === 'sale' && $order->warehouse_id) {
+                            foreach ($order->items as $item) {
+                                $stock = $inventoryService->getStock((int)$item->product_id, (int)$order->warehouse_id);
+                                \DB::table('stocks')->where('id', $stock->id)->update([
+                                    'quantity' => (float)$stock->quantity + (float)$item->quantity,
+                                    'reserved_qty' => (float)$stock->reserved_qty + (float)$item->quantity,
+                                    'dispatched_qty' => max(0.0, (float)$stock->dispatched_qty - (float)$item->quantity),
+                                ]);
+                                \App\Models\StockReservation::where('order_id', $order->id)
+                                    ->where('product_id', $item->product_id)
+                                    ->where('warehouse_id', $order->warehouse_id)
+                                    ->update(['status' => 'active']);
+                            }
+                        } elseif ($order->type === 'purchase' && $order->warehouse_id) {
+                            foreach ($order->items as $item) {
+                                $stock = $inventoryService->getStock((int)$item->product_id, (int)$order->warehouse_id);
+                                \DB::table('stocks')->where('id', $stock->id)->update([
+                                    'quantity' => max(0.0, (float)$stock->quantity - (float)$item->quantity),
+                                ]);
+                            }
+                        }
+                        $order->update(['status' => 'processing']);
+                        $count++;
+                    } elseif ($targetStatus === 'shipped' && $order->status === 'delivered') {
+                        $order->update(['status' => 'shipped']);
+                        $count++;
+                    }
+                }
+            });
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error processing status update: ' . $e->getMessage());
+        }
+
+        return back()->with('success', $count . ' orders updated successfully.');
     }
 
     public function destroy(Order $order)

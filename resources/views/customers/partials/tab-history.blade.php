@@ -1,6 +1,6 @@
 {{-- ══ TAB: Order History ══ --}}
 <div x-show="activeTab === 'history'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak>
-    @php $customer->orders?->loadMissing(['items.product', 'creator', 'updater']); @endphp
+    @php $customer->orders?->loadMissing(['items.product', 'creator', 'updater', 'shipments', 'billingAddress', 'shippingAddress']); @endphp
     <script>
         window.customerOrders_{{ $customer->id }} = @json($customer->orders);
     </script>
@@ -19,16 +19,19 @@
                                 <div class="flex items-center gap-2 mb-1">
                                     <h3 class="text-lg font-black text-foreground">{{ $order->order_no }}</h3>
                                     @php
-                                        $statusColor = match ($order->status) {
-                                            'completed', 'delivered' => 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-                                            'cancelled', 'returned' => 'bg-red-500/10 text-red-500 border-red-500/20',
-                                            'shipped', 'in_transit' => 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-                                            default => 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+                                        $statusColor = match($order->status) {
+                                            'delivered', 'completed' => 'emerald',
+                                            'shipped' => 'blue',
+                                            'processing' => 'amber',
+                                            'confirmed' => 'indigo',
+                                            'cancelled', 'returned' => 'red',
+                                            'pending' => 'orange',
+                                            default => 'primary'
                                         };
                                     @endphp
-                                    <span class="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border shadow-sm {{ $statusColor }}">
+                                    <x-ui.badge variant="{{ match($order->status) { 'shipped', 'delivered', 'completed' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', default => 'default' } }}" class="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
                                         {{ str_replace('_', ' ', $order->status) }}
-                                    </span>
+                                    </x-ui.badge>
                                 </div>
                                 <div class="text-xs text-muted-foreground font-medium flex items-center gap-2 mt-1">
                                     <x-ui.icon name="calendar" size="3" /> Placed on {{ $order->created_at->format('M d, Y h:i A') }}
@@ -62,7 +65,7 @@
                         <div class="p-6 md:p-8 border-t border-border/40 bg-background/30 space-y-8">
                             
                             {{-- Actions Bar --}}
-                            <div class="flex flex-wrap gap-3">
+                            <div class="flex flex-wrap items-center gap-3">
                                 <button type="button" @click="$dispatch('edit-order', {{ $order->id }})" class="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 text-xs font-bold shadow-sm hover:bg-amber-500 hover:text-white hover:-translate-y-0.5 transition-all">
                                     <x-ui.icon name="edit-3" size="3.5" class="mr-2" /> Edit Order
                                 </button>
@@ -72,86 +75,197 @@
                                 <button type="button" @click="window.print()" class="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all">
                                     <x-ui.icon name="printer" size="3.5" class="mr-2" /> Print Order
                                 </button>
+
+                                {{-- Unified Transition Dropdown --}}
+                                @php
+                                    $transitions = [];
+                                    if ($order->status === 'pending') {
+                                        $transitions[] = ['status' => 'confirmed', 'label' => 'Confirm Order', 'type' => 'upcoming', 'icon' => 'check-circle', 'color' => 'indigo'];
+                                        $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
+                                    } elseif ($order->status === 'confirmed') {
+                                        $transitions[] = ['status' => 'processing', 'label' => 'Mark Processing', 'type' => 'upcoming', 'icon' => 'loader', 'color' => 'amber'];
+                                        $transitions[] = ['status' => 'shipped', 'label' => 'Ship Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
+                                        $transitions[] = ['status' => 'pending', 'label' => 'Revert to Pending', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                                        $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
+                                    } elseif ($order->status === 'processing') {
+                                        $transitions[] = ['status' => 'shipped', 'label' => 'Ship Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
+                                        $transitions[] = ['status' => 'delivered', 'label' => 'Deliver Order', 'type' => 'upcoming', 'icon' => 'check', 'color' => 'emerald'];
+                                        $transitions[] = ['status' => 'confirmed', 'label' => 'Revert to Confirmed', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                                        $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
+                                    } elseif ($order->status === 'shipped') {
+                                        $transitions[] = ['status' => 'delivered', 'label' => 'Deliver Order', 'type' => 'upcoming', 'icon' => 'check', 'color' => 'emerald'];
+                                        $transitions[] = ['status' => 'processing', 'label' => 'Revert to Processing', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                                    } elseif ($order->status === 'delivered') {
+                                        $transitions[] = ['status' => 'shipped', 'label' => 'Revert to Shipped', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                                    } elseif ($order->status === 'cancelled') {
+                                        $transitions[] = ['status' => 'pending', 'label' => 'Revert to Pending', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                                    }
+                                @endphp
+
+                                <div x-data="{ open: false }" @click.away="open = false" class="relative inline-block text-left">
+                                    <button type="button" @click="open = !open" class="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-bold shadow-sm hover:bg-primary hover:text-white hover:-translate-y-0.5 transition-all">
+                                        <x-ui.icon name="refresh-cw" size="3.5" class="mr-2 animate-spin-slow" /> Transition Status
+                                    </button>
+
+                                    <div x-show="open" x-cloak
+                                        x-transition:enter="transition ease-out duration-100"
+                                        x-transition:enter-start="transform opacity-0 scale-95"
+                                        x-transition:enter-end="transform opacity-100 scale-100"
+                                        x-transition:leave="transition ease-in duration-75"
+                                        x-transition:leave-start="transform opacity-100 scale-100"
+                                        x-transition:leave-end="transform opacity-0 scale-95"
+                                        class="absolute left-0 mt-1.5 w-48 rounded-xl bg-card border border-border/60 shadow-xl z-50 p-1 divide-y divide-border/20">
+                                        
+                                        @if(count($transitions) > 0)
+                                            @php
+                                                $upcomming = array_filter($transitions, fn($t) => in_array($t['type'], ['upcoming', 'cancel']));
+                                                $reverts = array_filter($transitions, fn($t) => $t['type'] === 'revert');
+                                            @endphp
+
+                                            @if(count($upcomming) > 0)
+                                                <div class="py-1">
+                                                    <div class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 text-left">Fulfillment</div>
+                                                    @foreach($upcomming as $t)
+                                                        <form action="{{ route('orders.bulk-status') }}" method="POST" class="m-0">
+                                                            @csrf
+                                                            <input type="hidden" name="ids" value="[{{ $order->id }}]">
+                                                            <input type="hidden" name="status" value="{{ $t['status'] }}">
+                                                            <button type="submit" 
+                                                                class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+                                                                <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
+                                                                {{ $t['label'] }}
+                                                            </button>
+                                                        </form>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+
+                                            @if(count($reverts) > 0)
+                                                <div class="py-1">
+                                                    <div class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70 text-left">Revert Change</div>
+                                                    @foreach($reverts as $t)
+                                                        <form action="{{ route('orders.bulk-status') }}" method="POST" class="m-0">
+                                                            @csrf
+                                                            <input type="hidden" name="ids" value="[{{ $order->id }}]">
+                                                            <input type="hidden" name="status" value="{{ $t['status'] }}">
+                                                            <button type="submit" 
+                                                                class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-amber-600 hover:bg-amber-500/5 rounded-lg transition-colors">
+                                                                <x-ui.icon name="corner-up-left" size="3" class="text-amber-500" />
+                                                                {{ $t['label'] }}
+                                                            </button>
+                                                        </form>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                        @else
+                                            <div class="px-2.5 py-2 text-[10px] font-bold text-muted-foreground text-center">No actions available</div>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
 
                             {{-- Progress Stepper --}}
+                            @php
+                                $steps = [
+                                    ['key' => 'pending',    'label' => 'Pending',    'icon' => 'clock'],
+                                    ['key' => 'confirmed',  'label' => 'Confirmed',  'icon' => 'check-circle'],
+                                    ['key' => 'processing', 'label' => 'Processing', 'icon' => 'loader'],
+                                    ['key' => 'shipped',    'label' => 'Shipped',    'icon' => 'truck'],
+                                    ['key' => 'delivered',  'label' => 'Delivered',  'icon' => 'package-check'],
+                                ];
+                                $stepKeys = array_column($steps, 'key');
+                                $currentIndex = array_search($order->status, $stepKeys);
+                                $isCancelled = in_array($order->status, ['cancelled', 'returned']);
+                            @endphp
                             <div class="bg-card/60 backdrop-blur-md rounded-2xl border border-border/50 p-6">
                                 <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-8 flex items-center gap-2">
                                     <span class="size-2 rounded-full bg-primary inline-block shadow-lg shadow-primary/50"></span> Fulfillment Tracking
                                 </h4>
-                                <div class="relative flex justify-between items-center w-full px-2 sm:px-8">
-                                    <div class="absolute left-0 top-5 w-full h-1 bg-muted rounded-full z-0"></div>
-                                    @php
-                                        $progress = match ($order->status ?? '') {
-                                            'confirmed' => '20%',
-                                            'processing' => '40%',
-                                            'ready_to_ship' => '60%',
-                                            'shipped', 'in_transit' => '80%',
-                                            'delivered', 'completed' => '100%',
-                                            default => '0%',
-                                        };
-                                    @endphp
-                                    <div class="absolute left-0 top-5 h-1 bg-primary rounded-full z-0 transition-all duration-1000 ease-out shadow-sm" style="width: {{ $progress }}"></div>
-
-                                    <div class="relative z-10 flex justify-between w-full">
-                                        {{-- Placed --}}
-                                        <div class="flex flex-col items-center group">
-                                            <div class="size-10 rounded-full flex items-center justify-center bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-background transition-transform group-hover:scale-110">
-                                                <x-ui.icon name="shopping-cart" size="4" />
-                                            </div>
-                                            <span class="mt-3 text-xs font-bold text-foreground">Placed</span>
+                                @if(!$isCancelled)
+                                    <div class="relative flex items-start justify-between w-full max-w-4xl mx-auto px-2 sm:px-8 py-4">
+                                        {{-- Progress connector line --}}
+                                        <div class="absolute left-0 right-0 top-9 -translate-y-1/2 h-1 bg-muted/60 rounded-full overflow-hidden" style="margin: 0 2.5rem">
+                                            @php
+                                                $progress = $currentIndex !== false ? ($currentIndex / (count($steps) - 1)) * 100 : 0;
+                                            @endphp
+                                            <div class="h-full bg-{{ $statusColor }}-500 transition-all duration-1000 ease-out" style="width: {{ $progress }}%"></div>
                                         </div>
+                                        
+                                        @foreach($steps as $index => $step)
+                                            @php
+                                                $isCompleted = $currentIndex !== false && $index < $currentIndex;
+                                                $isCurrent  = $currentIndex !== false && $index === $currentIndex;
+                                                $isPending  = $currentIndex === false || $index > $currentIndex;
+                                            @endphp
+                                            <div class="relative flex flex-col items-center gap-2 z-10" style="flex: 1">
+                                                {{-- Circle --}}
+                                                <div class="
+                                                    size-10 rounded-full flex items-center justify-center border-4 transition-all duration-500 shadow-md
+                                                    {{ $isCurrent ? 'bg-'.$statusColor.'-500 border-'.$statusColor.'-200 text-white scale-110 shadow-'.$statusColor.'-500/40 ring-4 ring-'.$statusColor.'-500/20' : '' }}
+                                                    {{ $isCompleted ? 'bg-'.$statusColor.'-500 border-'.$statusColor.'-200 text-white shadow-'.$statusColor.'-500/30' : '' }}
+                                                    {{ $isPending ? 'bg-muted/30 border-background text-muted-foreground/40' : '' }}
+                                                ">
+                                                    @if($isCompleted)
+                                                        <x-ui.icon name="check" size="4" />
+                                                    @else
+                                                        <x-ui.icon name="{{ $step['icon'] }}" size="4" />
+                                                    @endif
+                                                </div>
 
-                                        {{-- Processing --}}
-                                        @php $isProc = in_array($order->status ?? '', ['confirmed', 'processing', 'ready_to_ship', 'shipped', 'in_transit', 'delivered', 'completed']); @endphp
-                                        <div class="flex flex-col items-center group">
-                                            <div class="size-10 rounded-full flex items-center justify-center {{ $isProc ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' : 'bg-card border-2 border-border text-muted-foreground' }} ring-4 ring-background transition-all duration-500 group-hover:scale-110">
-                                                <x-ui.icon name="package" size="4" />
+                                                {{-- Label --}}
+                                                <div class="flex flex-col items-center gap-0.5">
+                                                    <span class="text-[10px] font-black uppercase tracking-widest whitespace-nowrap
+                                                        {{ $isCurrent ? 'text-'.$statusColor.'-600' : ($isCompleted ? 'text-foreground' : 'text-muted-foreground/40') }}
+                                                    ">
+                                                        {{ $step['label'] }}
+                                                    </span>
+                                                    @if($isCurrent)
+                                                        <span class="size-1.5 rounded-full bg-{{ $statusColor }}-500 animate-pulse"></span>
+                                                    @endif
+                                                </div>
                                             </div>
-                                            <span class="mt-3 text-xs font-bold {{ $isProc ? 'text-foreground' : 'text-muted-foreground' }}">Processing</span>
-                                        </div>
-
-                                        {{-- Dispatched --}}
-                                        @php $isShip = in_array($order->status ?? '', ['shipped', 'in_transit', 'delivered', 'completed']); @endphp
-                                        <div class="flex flex-col items-center group">
-                                            <div class="size-10 rounded-full flex items-center justify-center {{ $isShip ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' : 'bg-card border-2 border-border text-muted-foreground' }} ring-4 ring-background transition-all duration-500 group-hover:scale-110">
-                                                <x-ui.icon name="truck" size="4" />
-                                            </div>
-                                            <span class="mt-3 text-xs font-bold {{ $isShip ? 'text-foreground' : 'text-muted-foreground' }}">Dispatched</span>
-                                        </div>
-
-                                        {{-- Delivered --}}
-                                        @php $isDone = in_array($order->status ?? '', ['delivered', 'completed']); @endphp
-                                        <div class="flex flex-col items-center group">
-                                            <div class="size-10 rounded-full flex items-center justify-center {{ $isDone ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' : 'bg-card border-2 border-border text-muted-foreground' }} ring-4 ring-background transition-all duration-500 group-hover:scale-110">
-                                                <x-ui.icon name="check" size="4" />
-                                            </div>
-                                            <span class="mt-3 text-xs font-bold {{ $isDone ? 'text-foreground' : 'text-muted-foreground' }}">Delivered</span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="flex items-center justify-center gap-3 text-destructive py-6">
+                                        <x-ui.icon name="x-circle" size="6" />
+                                        <div>
+                                            <p class="text-sm font-black uppercase tracking-widest">Order {{ ucfirst($order->status) }}</p>
+                                            <p class="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">This order has been cancelled and cannot be progressed further.</p>
                                         </div>
                                     </div>
-                                </div>
+                                @endif
                                 
                                 {{-- Tracking Info --}}
                                 @if(isset($order->shipments) && $order->shipments->isNotEmpty())
-                                    <div class="mt-8 bg-primary/5 rounded-xl border border-primary/10 p-5 flex flex-wrap gap-8 items-center">
-                                        <div class="flex items-center gap-3">
-                                            <div class="p-2 bg-background rounded-lg text-primary shadow-sm">
-                                                <x-ui.icon name="truck" size="4" />
+                                    @php $shipment = $order->shipments->first(); @endphp
+                                    <div class="mt-8 bg-primary/5 rounded-xl border border-primary/10 p-5 flex flex-wrap gap-8 items-center justify-between">
+                                        <div class="flex flex-wrap gap-8 items-center">
+                                            <div class="flex items-center gap-3">
+                                                <div class="p-2 bg-background rounded-lg text-primary shadow-sm">
+                                                    <x-ui.icon name="truck" size="4" />
+                                                </div>
+                                                <div>
+                                                    <p class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Carrier / Company</p>
+                                                    <p class="text-sm font-bold text-foreground">{{ $shipment->carrier_name ?? 'N/A' }}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Carrier</p>
-                                                <p class="text-sm font-bold text-foreground">{{ $order->shipments->first()->carrier ?? 'N/A' }}</p>
+                                            <div class="flex items-center gap-3">
+                                                <div class="p-2 bg-background rounded-lg text-primary shadow-sm">
+                                                    <x-ui.icon name="hash" size="4" />
+                                                </div>
+                                                <div>
+                                                    <p class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tracking ID</p>
+                                                    <p class="text-sm font-mono font-bold text-primary">{{ $shipment->tracking_no ?? 'N/A' }}</p>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="flex items-center gap-3">
-                                            <div class="p-2 bg-background rounded-lg text-primary shadow-sm">
-                                                <x-ui.icon name="hash" size="4" />
-                                            </div>
-                                            <div>
-                                                <p class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tracking ID</p>
-                                                <p class="text-sm font-mono font-bold text-primary">{{ $order->shipments->first()->tracking_number ?? 'N/A' }}</p>
-                                            </div>
-                                        </div>
+                                        
+                                        <a href="{{ route('order.tracking.show', $shipment) }}">
+                                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[9px] h-9 border-primary/20 hover:bg-primary/5 text-primary">
+                                                <x-ui.icon name="target" size="3" class="mr-1.5" /> Track Shipment Details
+                                            </x-ui.button>
+                                        </a>
                                     </div>
                                 @endif
                             </div>

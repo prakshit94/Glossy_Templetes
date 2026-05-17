@@ -102,6 +102,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('shipment-tracking/{shipment}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'show'])->name('order.tracking.show');
     Route::post('shipment-tracking/{shipment}/events', [\App\Http\Controllers\Web\OrderTrackingController::class, 'storeEvent'])->name('order.tracking.events.store');
     Route::put('shipment-tracking/{shipment}/status', [\App\Http\Controllers\Web\OrderTrackingController::class, 'updateStatus'])->name('order.tracking.status.update');
+    Route::put('shipment-tracking/events/{event}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'updateEvent'])->name('order.tracking.events.update');
+    Route::delete('shipment-tracking/events/{event}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'destroyEvent'])->name('order.tracking.events.destroy');
 
     Route::get('order-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index']);
     Route::get('order-tracking/{shipment}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'show']);

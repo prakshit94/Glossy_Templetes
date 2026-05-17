@@ -186,12 +186,14 @@
             return;
         }
         
-        if (qty > product.available_stock && product.available_stock !== 999) {
+        const existingIndex = this.cart.findIndex(i => i.id === product.id);
+        const existingQty = existingIndex !== -1 ? this.cart[existingIndex].quantity : 0;
+        
+        if (existingQty + qty > product.available_stock && product.available_stock !== 999) {
             this.notify('warning', 'Insufficient stock available');
             return;
         }
 
-        const existingIndex = this.cart.findIndex(i => i.id === product.id);
         if (existingIndex !== -1) {
             this.cart[existingIndex].quantity += qty;
             if (discValue > 0) {
