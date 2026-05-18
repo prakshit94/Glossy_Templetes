@@ -155,10 +155,11 @@ class ProductController extends Controller
 
             // TRUE available = on-hand minus what is already reserved for confirmed orders and pending orders
             $netAvailable = max(0.0, $totalQty - $reservedQty - $pendingQty);
+            $maxAllowedQty = $netAvailable;
 
-            // Overselling override: if stock is zero but overselling is allowed
-            if ($netAvailable <= 0 && $p->allow_overselling) {
-                $netAvailable = $p->overselling_qty ?: 999;
+            // When overselling is allowed, the maximum sellable ceiling is physical available plus the oversell limit
+            if ($p->allow_overselling) {
+                $maxAllowedQty = $netAvailable + ($p->overselling_qty ?: 999);
             }
 
             return [
@@ -174,7 +175,9 @@ class ProductController extends Controller
                 'reserved_qty'     => $reservedQty,     // held for confirmed orders
                 'pending_qty'      => $pendingQty,      // held for pending orders
                 'dispatched_qty'   => $dispatchedQty,   // already shipped (running total)
-                'available_stock'  => $netAvailable,    // what can be sold NOW
+                'available_stock'  => $maxAllowedQty,   // what can be sold NOW (ceiling)
+                'physical_available' => $netAvailable,  // true physical remaining
+                'overselling_qty'  => (int) ($p->overselling_qty ?? 0),
                 'allow_overselling'  => (bool) $p->allow_overselling,
                 'status'           => $p->status,
                 'category'         => $p->category?->name,

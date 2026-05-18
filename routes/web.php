@@ -103,6 +103,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
 
     Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+    Route::resource('payments', \App\Http\Controllers\Web\PaymentController::class);
 
     // Order / Shipment Tracking URLs mapped to OrderTrackingController
     Route::get('shipment-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index'])->name('order.tracking.index');
@@ -119,7 +120,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
         'reviews' => ['title' => 'Reviews & Ratings', 'icon' => 'star'],
         'support-tickets' => ['title' => 'Support Tickets', 'icon' => 'mail'],
-        'payments' => ['title' => 'Payments', 'icon' => 'credit-card'],
         'returns' => ['title' => 'Returns', 'icon' => 'return'],
         'refunds' => ['title' => 'Refunds', 'icon' => 'refresh-cw'],
         'replacement' => ['title' => 'Replacement', 'icon' => 'package'],

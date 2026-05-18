@@ -181,7 +181,7 @@
                                 <div class="space-y-1.5" x-data="{
                                     get dynamicStock() {
                                         let qtyInCart = cart.find(i => i.id === product.id)?.quantity || 0;
-                                        return Math.max(0, product.available_stock - qtyInCart);
+                                        return Math.max(0, product.physical_available - qtyInCart);
                                     }
                                 }">
                                     <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg inline-block"
@@ -189,12 +189,12 @@
                                             ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                                             : 'bg-red-500/10 text-red-500 border border-red-500/20'"
                                         x-text="dynamicStock > 0
-                                            ? (product.available_stock >= 999 ? 'In Stock' : dynamicStock + ' units')
+                                            ? (product.physical_available >= 999 ? 'In Stock' : dynamicStock + ' units')
                                             : 'Out of Stock'">
                                     </span>
                                     <p class="text-[10px] text-muted-foreground" x-show="product.min_stock_level > 0" x-text="'Min: ' + product.min_stock_level"></p>
                                     <span x-show="product.allow_overselling" class="text-[10px] font-bold text-amber-500 flex items-center gap-1" x-cloak>
-                                        <x-ui.icon name="zap" size="3" /> Oversell OK
+                                        <x-ui.icon name="zap" size="3" /> Oversell OK <span x-show="product.overselling_qty > 0" x-text="'(Max: ' + product.overselling_qty + ')'"></span>
                                     </span>
                                 </div>
                             </td>

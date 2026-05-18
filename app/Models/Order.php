@@ -69,4 +69,9 @@ class Order extends Model
     {
         return $this->hasOne(Invoice::class)->latestOfMany();
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
 }

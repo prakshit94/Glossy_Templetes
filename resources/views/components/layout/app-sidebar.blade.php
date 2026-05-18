@@ -156,7 +156,7 @@
          <x-layout.nav-collapsible title="Inventory" :active="request()->is('inventory*') || request()->is('warehouses*') || request()->is('stock-transfers*') || request()->is('stock-adjustments*')" :items="$inventoryItems">
             <x-slot name="icon"><x-ui.icon name="warehouse" size="5" /></x-slot>
          </x-layout.nav-collapsible>
-         <x-layout.nav-collapsible title="Sales Flow" :active="request()->is('orders*') || request()->is('invoices*') || request()->is('payments*') || request()->is('order-tracking*') || request()->is('returns*') || request()->is('refunds*') || request()->is('replacement*')" :items="$salesItems">
+         <x-layout.nav-collapsible title="Sales" :active="request()->is('orders*') || request()->is('invoices*') || request()->is('payments*') || request()->is('order-tracking*') || request()->is('returns*') || request()->is('refunds*') || request()->is('replacement*')" :items="$salesItems">
             <x-slot name="icon"><x-ui.icon name="shopping-bag" size="5" /></x-slot>
          </x-layout.nav-collapsible>
          <x-layout.nav-collapsible title="Procurement" :active="request()->is('purchase-orders*') || request()->is('suppliers*') || request()->is('vendors*')" :items="$procurementItems">
