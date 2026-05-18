@@ -140,19 +140,19 @@
                             <div class="pt-3 border-t border-border/40 space-y-2">
                                 <div class="flex justify-between">
                                     <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Village</span>
-                                    <span class="text-xs font-bold text-foreground">{{ $warehouse->village?->village_name ?? $warehouse->village_name ?? '—' }}</span>
+                                    <span class="text-xs font-bold text-foreground">{{ $warehouse->village?->village_name ?? $warehouse->village_name ?: '—' }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Post Office</span>
-                                    <span class="text-xs font-bold text-foreground">{{ $warehouse->village?->post_so_name ?? $warehouse->post_office ?? '—' }}</span>
+                                    <span class="text-xs font-bold text-foreground">{{ $warehouse->village?->post_so_name ?? $warehouse->post_office ?: '—' }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Taluka</span>
-                                    <span class="text-xs font-bold text-foreground">{{ $warehouse->village?->taluka_name ?? $warehouse->taluka ?? '—' }}</span>
+                                    <span class="text-xs font-bold text-foreground">{{ $warehouse->village?->taluka_name ?? $warehouse->taluka ?: '—' }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">District</span>
-                                    <span class="text-xs font-bold text-foreground">{{ $warehouse->village?->district_name ?? $warehouse->city ?? '—' }}</span>
+                                    <span class="text-xs font-bold text-foreground">{{ $warehouse->village?->district_name ?? $warehouse->city ?: '—' }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">State</span>
@@ -160,7 +160,30 @@
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Pincode</span>
-                                    <span class="text-xs font-bold font-mono text-foreground">{{ $warehouse->village?->pincode ?? $warehouse->pincode ?? '—' }}</span>
+                                    <span class="text-xs font-bold font-mono text-foreground">{{ $warehouse->village?->pincode ?? $warehouse->pincode ?: '—' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </x-ui.card>
+
+                    <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-3xl p-6">
+                        <div class="flex items-center gap-2 mb-6">
+                            <x-ui.icon name="shield" size="4" class="text-amber-500" />
+                            <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">Company & Tax Details</h4>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Entity Name</span>
+                                    <span class="text-xs font-bold text-foreground">{{ $warehouse->company_name ?: 'Krushify Agro Pvt. Ltd.' }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">GSTIN</span>
+                                    <span class="text-xs font-bold font-mono text-primary">{{ $warehouse->gstin ?: '24AAMCK0386L1Z6' }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Mobile</span>
+                                    <span class="text-xs font-bold text-foreground">{{ $warehouse->phone ?: '+91 9199125925' }}</span>
                                 </div>
                             </div>
                         </div>

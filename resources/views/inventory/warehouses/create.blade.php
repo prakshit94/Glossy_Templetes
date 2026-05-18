@@ -8,6 +8,9 @@
     <div class="p-6 lg:p-10" x-data="{
         form: {
             name: '{{ old('name') }}',
+            company_name: '{{ old('company_name') }}',
+            gstin: '{{ old('gstin') }}',
+            phone: '{{ old('phone') }}',
             code: '{{ old('code') }}',
             address_line_1: '{{ old('address_line_1') }}',
             address_line_2: '{{ old('address_line_2') }}',
@@ -116,6 +119,46 @@
                                     <div class="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ring rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border/40 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                     <span class="ml-3 text-sm font-medium text-foreground">Set as Default Warehouse</span>
                                 </label>
+                            </div>
+                        </div>
+                    </x-ui.card-content>
+                </x-ui.card>
+
+                <!-- Card 1.5: Company Details -->
+                <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
+                    <x-ui.card-header class="border-b border-border/40 bg-muted/10 p-6">
+                        <div class="flex items-center gap-3">
+                            <div class="size-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shadow-inner">
+                                <x-ui.icon name="shield" size="6" />
+                            </div>
+                            <div>
+                                <h3 class="text-base font-black text-foreground tracking-tight">Company & Tax Details (Sender Hub)</h3>
+                                <p class="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Official details displayed on GST invoices and dispatch receipts</p>
+                            </div>
+                        </div>
+                    </x-ui.card-header>
+
+                    <x-ui.card-content class="p-8 space-y-8">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="space-y-2">
+                                <label for="company_name" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Company / Entity Name</label>
+                                <input type="text" name="company_name" id="company_name" x-model="form.company_name" 
+                                    class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="e.g. ABC Pvt. Ltd.">
+                                @error('company_name') <p class="text-[10px] text-destructive font-bold mt-1 ml-1">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="space-y-2">
+                                <label for="gstin" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">GSTIN Number</label>
+                                <input type="text" name="gstin" id="gstin" x-model="form.gstin" 
+                                    class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-mono uppercase font-bold text-primary" placeholder="e.g. 24AAMCK0386L1Z6">
+                                @error('gstin') <p class="text-[10px] text-destructive font-bold mt-1 ml-1">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="space-y-2">
+                                <label for="phone" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Contact Phone / Mobile</label>
+                                <input type="text" name="phone" id="phone" x-model="form.phone" 
+                                    class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="e.g. +91 9199125925">
+                                @error('phone') <p class="text-[10px] text-destructive font-bold mt-1 ml-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
                     </x-ui.card-content>

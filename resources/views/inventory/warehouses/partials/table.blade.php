@@ -24,18 +24,51 @@
                     </div>
                 </x-ui.table-cell>
                 
-                <x-ui.table-cell class="text-xs font-medium text-muted-foreground">
-                    <span class="block text-foreground font-bold">{{ $warehouse->address_line_1 ?? $warehouse->address ?? 'N/A' }}</span>
-                    @php
-                        $loc = array_filter([
-                            $warehouse->village?->district_name ?? $warehouse->city,
-                            $warehouse->village?->state_name ?? $warehouse->state,
-                            $warehouse->village?->pincode ?? $warehouse->pincode
-                        ]);
-                    @endphp
-                    @if(!empty($loc))
-                        <span class="text-[11px] text-muted-foreground">{{ implode(', ', $loc) }}</span>
-                    @endif
+                <x-ui.table-cell class="text-xs">
+                    <div class="space-y-1">
+                        @if($warehouse->company_name)
+                            <div class="font-black text-primary text-xs flex items-center gap-1">
+                                <x-ui.icon name="shield" size="3.5" /> {{ $warehouse->company_name }}
+                            </div>
+                        @endif
+                        
+                        <div class="text-foreground font-bold text-xs">
+                            {{ $warehouse->address_line_1 ?? $warehouse->address ?? 'N/A' }}
+                            @if($warehouse->address_line_2), {{ $warehouse->address_line_2 }}@endif
+                        </div>
+                        
+                        @php
+                            $vName = $warehouse->village?->village_name ?? $warehouse->village_name;
+                            $pOffice = $warehouse->village?->post_so_name ?? $warehouse->post_office;
+                            $tName = $warehouse->village?->taluka_name ?? $warehouse->taluka;
+                            $dName = $warehouse->village?->district_name ?? $warehouse->city;
+                            $sName = $warehouse->village?->state_name ?? $warehouse->state;
+                            $pin = $warehouse->village?->pincode ?? $warehouse->pincode;
+
+                            $locParts = array_filter([
+                                $vName ? "Vill: " . $vName : null,
+                                $pOffice ? "PO: " . $pOffice : null,
+                                $tName ? "Tal: " . $tName : null,
+                                $dName ? "Dist: " . $dName : null,
+                                $sName,
+                                $pin ? "PIN: " . $pin : null
+                            ]);
+                        @endphp
+                        @if(!empty($locParts))
+                            <div class="text-[11px] text-muted-foreground font-medium leading-tight">
+                                {{ implode(', ', $locParts) }}
+                            </div>
+                        @endif
+
+                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-[11px] font-medium border-t border-border/30 mt-1.5">
+                            @if($warehouse->gstin)
+                                <span class="font-mono text-primary font-bold flex items-center gap-1"><x-ui.icon name="file-text" size="3" /> GSTIN: {{ $warehouse->gstin }}</span>
+                            @endif
+                            @if($warehouse->phone)
+                                <span class="text-muted-foreground flex items-center gap-1"><x-ui.icon name="phone" size="3" /> Ph: {{ $warehouse->phone }}</span>
+                            @endif
+                        </div>
+                    </div>
                 </x-ui.table-cell>
 
                 <x-ui.table-cell class="text-center font-black text-xs">

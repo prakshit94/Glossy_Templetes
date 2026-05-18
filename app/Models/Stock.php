@@ -23,11 +23,11 @@ class Stock extends Model
     ];
 
     protected $casts = [
-        'quantity'        => 'decimal:4',
-        'reserved_qty'    => 'decimal:4',
-        'dispatched_qty'  => 'decimal:4',
-        'committed_qty'   => 'decimal:4',
-        'in_transit_qty'  => 'decimal:4',
+        'quantity'        => 'float',
+        'reserved_qty'    => 'float',
+        'dispatched_qty'  => 'float',
+        'committed_qty'   => 'float',
+        'in_transit_qty'  => 'float',
     ];
 
     // ─── Computed Attributes ───────────────────────────────────────────────

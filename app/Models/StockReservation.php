@@ -21,7 +21,7 @@ class StockReservation extends Model
 
     protected $casts = [
         'expires_at' => 'datetime',
-        'quantity'   => 'decimal:4',
+        'quantity'   => 'float',
     ];
 
     public function product(): BelongsTo

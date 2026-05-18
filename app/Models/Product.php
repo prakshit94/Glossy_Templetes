@@ -99,6 +99,11 @@ class Product extends Model
         return $this->hasMany(StockMovement::class);
     }
 
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
     public function attributeValues()
     {
         return $this->belongsToMany(ProductAttributeValue::class, 'product_attribute_mapping', 'product_id', 'attribute_value_id');

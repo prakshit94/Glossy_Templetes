@@ -123,12 +123,19 @@ td {
          <table>
             <tr>
                <td width="60%">
-                  <div class="company-name">Krushify Agro Pvt Ltd.</div>
+                  <div class="company-name">{{ $invoice->order?->warehouse?->company_name ?: 'Krushify Agro Pvt. Ltd.' }}</div>
                   <div class="muted">
-                     <strong>Mobile:</strong> 9199125925<br>
-                     <strong>Address:</strong> The One World (B), 1005, Ayodhya Circle<br>
+                     <strong>Mobile:</strong> {{ $invoice->order?->warehouse?->phone ?: '9199125925' }}<br>
+                     <strong>Address:</strong>
+                     @if($invoice->order?->warehouse && $invoice->order->warehouse->address_line_1)
+                        {{ $invoice->order->warehouse->address_line_1 }}
+                        @if($invoice->order->warehouse->address_line_2), {{ $invoice->order->warehouse->address_line_2 }}@endif
+                        , {{ $invoice->order->warehouse->city ?? 'Rajkot' }}, {{ $invoice->order->warehouse->state ?? 'Gujarat' }} - {{ $invoice->order->warehouse->pincode ?? '360003' }}<br>
+                     @else
+                        The One World (B), 1005, Ayodhya Circle<br>
+                     @endif
                      <strong>Email:</strong> info@krushifyagro.com<br>
-                     <strong>GST:</strong> 24AAMCK0386L1Z6
+                     <strong>GST:</strong> {{ $invoice->order?->warehouse?->gstin ?: '24AAMCK0386L1Z6' }}
                   </div>
                </td>
                <td width="40%">

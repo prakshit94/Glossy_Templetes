@@ -144,11 +144,18 @@
 
                 <div class="box">
                     <div style="font-weight: bold; text-decoration: underline; margin-bottom: 4px;">From (Sender),</div>
-                    <strong>Krushify Agro Pvt. Ltd.</strong><br>
-                    Plot No 19, Raj Ind Amul Cross Road,<br>
-                    Ruda Transport Nagar,<br>
-                    360003 Rajkot, Gujarat. | <strong>Mobile:</strong> 9199125925<br>
-                    <strong>GST:</strong> 24AAMCK0386L1Z6
+                    <strong>{{ $order->warehouse?->company_name ?: 'Krushify Agro Pvt. Ltd.' }}</strong><br>
+                    @if($order->warehouse && $order->warehouse->address_line_1)
+                        {{ $order->warehouse->address_line_1 }}<br>
+                        @if($order->warehouse->address_line_2){{ $order->warehouse->address_line_2 }}<br>@endif
+                        {{ $order->warehouse->city ?? 'Rajkot' }}, {{ $order->warehouse->state ?? 'Gujarat' }} - {{ $order->warehouse->pincode ?? '360003' }}.
+                    @else
+                        Plot No 19, Raj Ind Amul Cross Road,<br>
+                        Ruda Transport Nagar,<br>
+                        360003 Rajkot, Gujarat.
+                    @endif
+                    | <strong>Mobile:</strong> {{ $order->warehouse?->phone ?: '9199125925' }}<br>
+                    <strong>GST:</strong> {{ $order->warehouse?->gstin ?: '24AAMCK0386L1Z6' }}
                 </div>
 
                 <div class="divider"></div>

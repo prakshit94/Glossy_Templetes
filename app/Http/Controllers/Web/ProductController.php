@@ -88,7 +88,15 @@ class ProductController extends Controller
         $query = Product::with(['category', 'brand', 'taxRate'])
             ->withSum('stocks', 'quantity')
             ->withSum('stocks', 'reserved_qty')
-            ->withSum('stocks', 'dispatched_qty');
+            ->withSum('stocks', 'dispatched_qty')
+            ->withSum(['orderItems as pending_orders_qty' => function ($q) use ($request) {
+                $q->whereHas('order', function ($o) use ($request) {
+                    $o->where('status', 'pending');
+                    if ($request->filled('exclude_order_id')) {
+                        $o->where('id', '!=', $request->exclude_order_id);
+                    }
+                });
+            }], 'quantity');
 
         // Status filter — only active by default, unless explicitly asking for all
         $statusFilter = $request->input('status', 'active');
@@ -111,16 +119,22 @@ class ProductController extends Controller
             });
         }
 
-        // Stock availability filter (uses true available = qty - reserved)
+        // Stock availability filter (uses true available = qty - reserved - pending)
         $stockFilter = $request->input('stock', '');
+        $excludeSql = "";
+        if ($request->filled('exclude_order_id')) {
+            $excId = (int) $request->exclude_order_id;
+            $excludeSql = " AND orders.id != " . $excId;
+        }
+
         if ($stockFilter === 'available') {
-            $query->where(function ($q) {
-                $q->whereHas('stocks', fn($s) => $s->whereRaw('quantity - reserved_qty > 0'))
+            $query->where(function ($q) use ($excludeSql) {
+                $q->whereRaw('(IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = products.id), 0) - IFNULL((SELECT SUM(quantity) FROM order_items JOIN orders ON orders.id = order_items.order_id WHERE order_items.product_id = products.id AND orders.status = \'pending\' AND orders.deleted_at IS NULL' . $excludeSql . '), 0)) > 0')
                   ->orWhere('allow_overselling', true);
             });
         } elseif ($stockFilter === 'out_of_stock') {
-            $query->where(function ($q) {
-                $q->whereDoesntHave('stocks', fn($s) => $s->whereRaw('quantity - reserved_qty > 0'))
+            $query->where(function ($q) use ($excludeSql) {
+                $q->whereRaw('(IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = products.id), 0) - IFNULL((SELECT SUM(quantity) FROM order_items JOIN orders ON orders.id = order_items.order_id WHERE order_items.product_id = products.id AND orders.status = \'pending\' AND orders.deleted_at IS NULL' . $excludeSql . '), 0)) <= 0')
                   ->where('allow_overselling', false);
             });
         }
@@ -134,12 +148,13 @@ class ProductController extends Controller
         $paginator  = $query->latest()->paginate($perPage)->withQueryString();
 
         $data = $paginator->through(function ($p) {
-            $totalQty    = (float) ($p->stocks_sum_quantity    ?? 0);
-            $reservedQty = (float) ($p->stocks_sum_reserved_qty ?? 0);
+            $totalQty      = (float) ($p->stocks_sum_quantity ?? 0);
+            $reservedQty   = (float) ($p->stocks_sum_reserved_qty ?? 0);
             $dispatchedQty = (float) ($p->stocks_sum_dispatched_qty ?? 0);
+            $pendingQty    = (float) ($p->pending_orders_qty ?? 0);
 
-            // TRUE available = on-hand minus what is already reserved for confirmed orders
-            $netAvailable = max(0.0, $totalQty - $reservedQty);
+            // TRUE available = on-hand minus what is already reserved for confirmed orders and pending orders
+            $netAvailable = max(0.0, $totalQty - $reservedQty - $pendingQty);
 
             // Overselling override: if stock is zero but overselling is allowed
             if ($netAvailable <= 0 && $p->allow_overselling) {
@@ -157,6 +172,7 @@ class ProductController extends Controller
                 'image_url'        => $p->image_path ? asset('storage/' . $p->image_path) : null,
                 'stock_qty'        => $totalQty,        // total physical on-hand
                 'reserved_qty'     => $reservedQty,     // held for confirmed orders
+                'pending_qty'      => $pendingQty,      // held for pending orders
                 'dispatched_qty'   => $dispatchedQty,   // already shipped (running total)
                 'available_stock'  => $netAvailable,    // what can be sold NOW
                 'allow_overselling'  => (bool) $p->allow_overselling,

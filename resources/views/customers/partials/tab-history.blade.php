@@ -1,6 +1,6 @@
 {{-- ══ TAB: Order History ══ --}}
 <div x-show="activeTab === 'history'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak>
-    @php $customer->orders?->loadMissing(['items.product', 'creator', 'updater', 'shipments', 'billingAddress', 'shippingAddress']); @endphp
+    @php $customer->orders?->loadMissing(['items.product', 'creator', 'updater', 'shipments', 'billingAddress', 'shippingAddress', 'warehouse']); @endphp
     <script>
         window.customerOrders_{{ $customer->id }} = @json($customer->orders);
     </script>
@@ -236,38 +236,95 @@
                                     </div>
                                 @endif
                                 
-                                {{-- Tracking Info --}}
-                                @if(isset($order->shipments) && $order->shipments->isNotEmpty())
-                                    @php $shipment = $order->shipments->first(); @endphp
-                                    <div class="mt-8 bg-primary/5 rounded-xl border border-primary/10 p-5 flex flex-wrap gap-8 items-center justify-between">
-                                        <div class="flex flex-wrap gap-8 items-center">
-                                            <div class="flex items-center gap-3">
-                                                <div class="p-2 bg-background rounded-lg text-primary shadow-sm">
-                                                    <x-ui.icon name="truck" size="4" />
-                                                </div>
-                                                <div>
-                                                    <p class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Carrier / Company</p>
-                                                    <p class="text-sm font-bold text-foreground">{{ $shipment->carrier_name ?? 'N/A' }}</p>
-                                                </div>
+                                {{-- Dispatch Information & Sender Details --}}
+                                <div class="mt-8 bg-card/60 backdrop-blur-md rounded-2xl border border-border/50 p-6 space-y-6">
+                                    <div class="flex items-center justify-between border-b border-border/40 pb-4">
+                                        <h4 class="text-sm font-black text-foreground flex items-center gap-2">
+                                            <x-ui.icon name="package-check" size="4" class="text-primary" /> Dispatch & Billing Details
+                                        </h4>
+                                        <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Required for GST Invoice</span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {{-- Sender / Company Info --}}
+                                        <div class="space-y-2.5 p-4 rounded-xl bg-primary/5 border border-primary/10">
+                                            <div class="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary">
+                                                <x-ui.icon name="shield" size="3.5" /> Company Information (Sender)
                                             </div>
-                                            <div class="flex items-center gap-3">
-                                                <div class="p-2 bg-background rounded-lg text-primary shadow-sm">
-                                                    <x-ui.icon name="hash" size="4" />
-                                                </div>
-                                                <div>
-                                                    <p class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tracking ID</p>
-                                                    <p class="text-sm font-mono font-bold text-primary">{{ $shipment->tracking_no ?? 'N/A' }}</p>
+                                            <div class="space-y-1 text-xs text-muted-foreground">
+                                                <p class="text-sm font-black text-foreground">{{ $order->warehouse?->company_name ?: 'Krushify Agro Pvt. Ltd.' }}</p>
+                                                <p class="font-medium leading-relaxed">
+                                                    @if($order->warehouse && $order->warehouse->address_line_1)
+                                                        {{ $order->warehouse->address_line_1 }}
+                                                        @if($order->warehouse->address_line_2), {{ $order->warehouse->address_line_2 }}@endif
+                                                        , {{ $order->warehouse->city ?? 'Rajkot' }}, {{ $order->warehouse->state ?? 'Gujarat' }} - {{ $order->warehouse->pincode ?? '360003' }}
+                                                    @else
+                                                        Plot No 19, Raj Ind Amul Cross Road, Ruda Transport Nagar, 360003 Rajkot, Gujarat.
+                                                    @endif
+                                                </p>
+                                                <div class="pt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                                                    <span class="flex items-center gap-1 font-mono text-primary font-bold"><x-ui.icon name="file-text" size="3" /> GSTIN: {{ $order->warehouse?->gstin ?: '24AAMCK0386L1Z6' }}</span>
+                                                    <span class="flex items-center gap-1 font-medium"><x-ui.icon name="phone" size="3" /> Mobile: {{ $order->warehouse?->phone ?: '+91 9199125925' }}</span>
                                                 </div>
                                             </div>
                                         </div>
-                                        
-                                        <a href="{{ route('order.tracking.show', $shipment) }}">
-                                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[9px] h-9 border-primary/20 hover:bg-primary/5 text-primary">
-                                                <x-ui.icon name="target" size="3" class="mr-1.5" /> Track Shipment Details
-                                            </x-ui.button>
-                                        </a>
+
+                                        {{-- Dispatching Warehouse Info --}}
+                                        <div class="space-y-2.5 p-4 rounded-xl bg-muted/30 border border-border/40">
+                                            <div class="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground">
+                                                <x-ui.icon name="home" size="3.5" /> Dispatching Warehouse
+                                            </div>
+                                            <div class="space-y-1 text-xs text-muted-foreground">
+                                                @if($order->warehouse)
+                                                    <p class="text-sm font-black text-foreground">{{ $order->warehouse->name }} ({{ $order->warehouse->code }})</p>
+                                                    <p class="font-medium leading-relaxed">
+                                                        {{ $order->warehouse->address_line_1 }}
+                                                        @if($order->warehouse->address_line_2)<br>{{ $order->warehouse->address_line_2 }}@endif
+                                                        @if($order->warehouse->village_name || $order->warehouse->city)
+                                                            <br>{{ $order->warehouse->village_name ?? $order->warehouse->city }}, {{ $order->warehouse->state }} - {{ $order->warehouse->pincode }}
+                                                        @endif
+                                                    </p>
+                                                @else
+                                                    <p class="text-sm font-bold text-foreground">Default Central Warehouse</p>
+                                                    <p class="font-medium leading-relaxed">Rajkot Hub, Gujarat - 360003</p>
+                                                @endif
+                                            </div>
+                                        </div>
                                     </div>
-                                @endif
+
+                                    {{-- Carrier / Shipment Tracking --}}
+                                    @if(isset($order->shipments) && $order->shipments->isNotEmpty())
+                                        @php $shipment = $order->shipments->first(); @endphp
+                                        <div class="pt-4 border-t border-border/40 flex flex-wrap gap-8 items-center justify-between">
+                                            <div class="flex flex-wrap gap-8 items-center">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="p-2 bg-background rounded-lg text-primary shadow-sm">
+                                                        <x-ui.icon name="truck" size="4" />
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Carrier / Company</p>
+                                                        <p class="text-sm font-bold text-foreground">{{ $shipment->carrier_name ?? 'N/A' }}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-3">
+                                                    <div class="p-2 bg-background rounded-lg text-primary shadow-sm">
+                                                        <x-ui.icon name="hash" size="4" />
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tracking ID</p>
+                                                        <p class="text-sm font-mono font-bold text-primary">{{ $shipment->tracking_no ?? 'N/A' }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <a href="{{ route('order.tracking.show', $shipment) }}">
+                                                <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[9px] h-9 border-primary/20 hover:bg-primary/5 text-primary">
+                                                    <x-ui.icon name="target" size="3" class="mr-1.5" /> Track Shipment Details
+                                                </x-ui.button>
+                                            </a>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
 
                             {{-- Items and Summary Grid --}}

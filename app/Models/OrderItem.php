@@ -11,6 +11,10 @@ class OrderItem extends Model
         'tax_rate', 'tax_amount', 'discount_amount', 'total_amount'
     ];
 
+    protected $casts = [
+        'quantity' => 'float',
+    ];
+
     public function order()
     {
         return $this->belongsTo(Order::class);

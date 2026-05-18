@@ -14,6 +14,12 @@ class InventoryAdjustmentItem extends Model
         'difference',
     ];
 
+    protected $casts = [
+        'current_qty' => 'float',
+        'new_qty'     => 'float',
+        'difference'  => 'float',
+    ];
+
     public function adjustment()
     {
         return $this->belongsTo(InventoryAdjustment::class, 'adjustment_id');

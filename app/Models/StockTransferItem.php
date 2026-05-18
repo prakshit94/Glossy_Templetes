@@ -12,6 +12,10 @@ class StockTransferItem extends Model
         'quantity',
     ];
 
+    protected $casts = [
+        'quantity' => 'float',
+    ];
+
     public function transfer()
     {
         return $this->belongsTo(StockTransfer::class, 'stock_transfer_id');

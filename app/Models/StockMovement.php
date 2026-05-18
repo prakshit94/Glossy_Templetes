@@ -18,10 +18,11 @@ class StockMovement extends Model
         'quantity',
         'type',
         'status',
+        'performed_by',
     ];
 
     protected $casts = [
-        'quantity' => 'decimal:4',
+        'quantity' => 'float',
     ];
 
     public function product(): BelongsTo
@@ -32,5 +33,10 @@ class StockMovement extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function performer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'performed_by');
     }
 }

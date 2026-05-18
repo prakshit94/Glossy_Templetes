@@ -219,20 +219,72 @@
             </div>
 
             {{-- 4. Dispatch Information (Warehouse) --}}
-            <div class="p-8 rounded-[2rem] bg-card border border-border shadow-sm">
-                <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3 mb-8">
-                    <span class="size-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <x-ui.icon name="warehouse" size="4" />
-                    </span>
-                    Dispatch Information
-                </h4>
+            <div class="p-8 rounded-[2rem] bg-card border border-border shadow-sm space-y-8"
+                 x-data="{ warehousesMap: @js($warehouses->keyBy('id')) }">
+                <div class="flex items-center justify-between border-b border-border/40 pb-4">
+                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3">
+                        <span class="size-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <x-ui.icon name="warehouse" size="4" />
+                        </span>
+                        Dispatch & Billing Details
+                    </h4>
+                    <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Required for GST Invoice</span>
+                </div>
+
                 <div class="max-w-md">
                     <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-3 block ml-1">Select Dispatch Hub</label>
                     <select x-model="selectedWarehouseId" class="w-full h-12 px-5 rounded-2xl border border-border bg-background/50 text-sm font-black focus:ring-4 focus:ring-primary/10 outline-none transition-all">
                         @foreach($warehouses as $wh)
-                            <option value="{{ $wh->id }}">{{ $wh->name }} — {{ $wh->location }}</option>
+                            <option value="{{ $wh->id }}">{{ $wh->name }} ({{ $wh->code }})</option>
                         @endforeach
                     </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                    {{-- Sender / Company Info --}}
+                    <div class="space-y-2.5 p-5 rounded-2xl bg-primary/5 border border-primary/10">
+                        <div class="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary">
+                            <x-ui.icon name="shield" size="3.5" /> Company Information (Sender)
+                        </div>
+                        <div class="space-y-1 text-xs text-muted-foreground">
+                            <p class="text-sm font-black text-foreground" x-text="selectedWarehouseId && warehousesMap[selectedWarehouseId]?.company_name ? warehousesMap[selectedWarehouseId].company_name : 'Krushify Agro Pvt. Ltd.'"></p>
+                            <p class="font-medium leading-relaxed" x-text="selectedWarehouseId && warehousesMap[selectedWarehouseId]?.address_line_1 ? `${warehousesMap[selectedWarehouseId].address_line_1}${warehousesMap[selectedWarehouseId].address_line_2 ? ', ' + warehousesMap[selectedWarehouseId].address_line_2 : ''}, ${warehousesMap[selectedWarehouseId].city || 'Rajkot'}, ${warehousesMap[selectedWarehouseId].state || 'Gujarat'} - ${warehousesMap[selectedWarehouseId].pincode || '360003'}` : 'Plot No 19, Raj Ind Amul Cross Road, Ruda Transport Nagar, 360003 Rajkot, Gujarat.'"></p>
+                            <div class="pt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                                <span class="flex items-center gap-1 font-mono text-primary font-bold"><x-ui.icon name="file-text" size="3" /> GSTIN: <span x-text="selectedWarehouseId && warehousesMap[selectedWarehouseId]?.gstin ? warehousesMap[selectedWarehouseId].gstin : '24AAMCK0386L1Z6'"></span></span>
+                                <span class="flex items-center gap-1 font-medium"><x-ui.icon name="phone" size="3" /> Mobile: <span x-text="selectedWarehouseId && warehousesMap[selectedWarehouseId]?.phone ? warehousesMap[selectedWarehouseId].phone : '+91 9199125925'"></span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Dispatching Warehouse Info --}}
+                    <div class="space-y-2.5 p-5 rounded-2xl bg-muted/30 border border-border/40">
+                        <div class="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground">
+                            <x-ui.icon name="home" size="3.5" /> Selected Hub Address
+                        </div>
+                        <div class="space-y-1 text-xs text-muted-foreground">
+                            <template x-if="selectedWarehouseId && warehousesMap[selectedWarehouseId]">
+                                <div>
+                                    <p class="text-sm font-black text-foreground" x-text="`${warehousesMap[selectedWarehouseId].name} (${warehousesMap[selectedWarehouseId].code})`"></p>
+                                    <p class="font-medium leading-relaxed">
+                                        <span x-text="warehousesMap[selectedWarehouseId].address_line_1"></span>
+                                        <template x-if="warehousesMap[selectedWarehouseId].address_line_2">
+                                            <span>, <span x-text="warehousesMap[selectedWarehouseId].address_line_2"></span></span>
+                                        </template>
+                                        <br>
+                                        <span x-text="warehousesMap[selectedWarehouseId].village?.village_name || warehousesMap[selectedWarehouseId].village_name || warehousesMap[selectedWarehouseId].city || '—'"></span>,
+                                        <span x-text="warehousesMap[selectedWarehouseId].state || '—'"></span> - 
+                                        <span x-text="warehousesMap[selectedWarehouseId].pincode || '—'"></span>
+                                    </p>
+                                </div>
+                            </template>
+                            <template x-if="!selectedWarehouseId || !warehousesMap[selectedWarehouseId]">
+                                <div>
+                                    <p class="text-sm font-bold text-foreground">Default Central Warehouse</p>
+                                    <p class="font-medium leading-relaxed">Rajkot Hub, Gujarat - 360003</p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </div>
             </div>
 

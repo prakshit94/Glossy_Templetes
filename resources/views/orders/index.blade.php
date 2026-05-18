@@ -1,6 +1,7 @@
 <x-layouts.app pageTitle="Orders Management">
     @php
         $qStatus = request('status') ? explode(',', request('status')) : [];
+        $qProduct = request('product') ? array_map('intval', explode(',', request('product'))) : [];
         $qState = request('state') ? explode(',', request('state')) : [];
         $qDistrict = request('district') ? explode(',', request('district')) : [];
         $qTaluka = request('taluka') ? explode(',', request('taluka')) : [];
@@ -13,10 +14,13 @@
         search: @js(request('search', '')),
         perPage: @js(request('perPage', 15)),
         statusFilter: @js($qStatus),
+        productFilter: @js($qProduct),
+        fulfillmentFilter: @js(request('fulfillment', '')),
         stateFilter: @js($qState),
         districtFilter: @js($qDistrict),
         talukaFilter: @js($qTaluka),
         statusesList: @js($statusesList),
+        productsList: @js($productsList),
         statesList: @js($statesList),
         districtsList: @js($districtsList),
         talukasList: @js($talukasList),
@@ -95,6 +99,8 @@
                 search: this.search,
                 perPage: this.perPage,
                 status: this.statusFilter.join(','),
+                product: this.productFilter.join(','),
+                fulfillment: this.fulfillmentFilter,
                 state: this.stateFilter.join(','),
                 district: this.districtFilter.join(','),
                 taluka: this.talukaFilter.join(',')
@@ -130,6 +136,8 @@
         clearFilters() {
             this.search = '';
             this.statusFilter = [];
+            this.productFilter = [];
+            this.fulfillmentFilter = '';
             this.stateFilter = [];
             this.districtFilter = [];
             this.talukaFilter = [];

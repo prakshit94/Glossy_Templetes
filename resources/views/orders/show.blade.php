@@ -286,32 +286,78 @@
                         <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Location Details</h4>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border/40">
-                        <div class="p-6">
-                            <h5 class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5"><x-ui.icon name="map-pin" size="3" /> Shipping Address</h5>
+                        <div class="p-6 space-y-4">
+                            <h5 class="text-[9px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><x-ui.icon name="map-pin" size="3" /> Shipping Address</h5>
                             @if($order->shippingAddress)
-                                <p class="text-sm font-bold text-foreground mb-1">{{ $order->shippingAddress->label ?? 'Address' }}</p>
-                                <p class="text-xs text-muted-foreground leading-relaxed">
-                                    {{ $order->shippingAddress->address_line_1 }}<br>
-                                    @if($order->shippingAddress->address_line_2){{ $order->shippingAddress->address_line_2 }}<br>@endif
-                                    {{ $order->shippingAddress->village?->village_name ?? '' }} {{ $order->shippingAddress->village?->taluka_name ?? '' }}<br>
-                                    {{ $order->shippingAddress->village?->district_name ?? '' }} {{ $order->shippingAddress->village?->state_name ?? '' }} - {{ $order->shippingAddress->village?->pincode ?? '' }}
-                                </p>
+                                <div>
+                                    <p class="text-sm font-bold text-foreground mb-1">{{ $order->shippingAddress->label ?? 'Shipping' }}</p>
+                                    <p class="text-xs text-muted-foreground font-medium mb-3">{{ $order->shippingAddress->address_line_1 }}@if($order->shippingAddress->address_line_2), {{ $order->shippingAddress->address_line_2 }}@endif</p>
+                                    <div class="pt-3 border-t border-border/40 space-y-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Village</span>
+                                            <span class="text-xs font-bold text-foreground">{{ $order->shippingAddress->village?->village_name ?? $order->shippingAddress->city ?: '—' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Post Office</span>
+                                            <span class="text-xs font-bold text-foreground">{{ $order->shippingAddress->village?->post_so_name ?: '—' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Taluka</span>
+                                            <span class="text-xs font-bold text-foreground">{{ $order->shippingAddress->village?->taluka_name ?: '—' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">District</span>
+                                            <span class="text-xs font-bold text-foreground">{{ $order->shippingAddress->village?->district_name ?? $order->shippingAddress->city ?: '—' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">State</span>
+                                            <span class="text-xs font-bold text-foreground">{{ $order->shippingAddress->village?->state_name ?? $order->shippingAddress->state ?: '—' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Pincode</span>
+                                            <span class="text-xs font-bold font-mono text-foreground">{{ $order->shippingAddress->village?->pincode ?? $order->shippingAddress->pincode ?: '—' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             @elseif($order->shipping_address)
                                 <p class="text-xs text-muted-foreground leading-relaxed">{{ $order->shipping_address }}</p>
                             @else
                                 <p class="text-xs text-muted-foreground italic">No shipping address provided.</p>
                             @endif
                         </div>
-                        <div class="p-6">
-                            <h5 class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5"><x-ui.icon name="file-text" size="3" /> Billing Address</h5>
+                        <div class="p-6 space-y-4">
+                            <h5 class="text-[9px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><x-ui.icon name="file-text" size="3" /> Billing Address</h5>
                             @if($order->billingAddress)
-                                <p class="text-sm font-bold text-foreground mb-1">{{ $order->billingAddress->label ?? 'Address' }}</p>
-                                <p class="text-xs text-muted-foreground leading-relaxed">
-                                    {{ $order->billingAddress->address_line_1 }}<br>
-                                    @if($order->billingAddress->address_line_2){{ $order->billingAddress->address_line_2 }}<br>@endif
-                                    {{ $order->billingAddress->village?->village_name ?? '' }} {{ $order->billingAddress->village?->taluka_name ?? '' }}<br>
-                                    {{ $order->billingAddress->village?->district_name ?? '' }} {{ $order->billingAddress->village?->state_name ?? '' }} - {{ $order->billingAddress->village?->pincode ?? '' }}
-                                </p>
+                                <div>
+                                    <p class="text-sm font-bold text-foreground mb-1">{{ $order->billingAddress->label ?? 'Billing' }}</p>
+                                    <p class="text-xs text-muted-foreground font-medium mb-3">{{ $order->billingAddress->address_line_1 }}@if($order->billingAddress->address_line_2), {{ $order->billingAddress->address_line_2 }}@endif</p>
+                                    <div class="pt-3 border-t border-border/40 space-y-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Village</span>
+                                            <span class="text-xs font-bold text-foreground">{{ $order->billingAddress->village?->village_name ?? $order->billingAddress->city ?: '—' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Post Office</span>
+                                            <span class="text-xs font-bold text-foreground">{{ $order->billingAddress->village?->post_so_name ?: '—' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Taluka</span>
+                                            <span class="text-xs font-bold text-foreground">{{ $order->billingAddress->village?->taluka_name ?: '—' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">District</span>
+                                            <span class="text-xs font-bold text-foreground">{{ $order->billingAddress->village?->district_name ?? $order->billingAddress->city ?: '—' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">State</span>
+                                            <span class="text-xs font-bold text-foreground">{{ $order->billingAddress->village?->state_name ?? $order->billingAddress->state ?: '—' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Pincode</span>
+                                            <span class="text-xs font-bold font-mono text-foreground">{{ $order->billingAddress->village?->pincode ?? $order->billingAddress->pincode ?: '—' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             @elseif($order->billing_address)
                                 <p class="text-xs text-muted-foreground leading-relaxed">{{ $order->billing_address }}</p>
                             @else
@@ -415,12 +461,28 @@
                     </div>
                 </x-ui.card>
 
-                <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-3xl p-6">
-                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Internal Notes</h4>
-                    <p class="text-xs text-muted-foreground italic leading-relaxed">
-                        Order processed from Warehouse: <strong>{{ $order->warehouse?->name ?? 'Default' }}</strong>. 
-                        No additional notes recorded for this transaction.
-                    </p>
+                <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-3xl p-6 space-y-4">
+                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-1.5">
+                        <x-ui.icon name="warehouse" size="3.5" /> Dispatch Hub (Warehouse)
+                    </h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Warehouse</span>
+                            <span class="text-xs font-bold text-foreground">{{ $order->warehouse?->name ?? 'Default Warehouse' }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Entity</span>
+                            <span class="text-xs font-bold text-foreground">{{ $order->warehouse?->company_name ?: 'Krushify Agro Pvt. Ltd.' }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">GSTIN</span>
+                            <span class="text-xs font-bold font-mono text-primary">{{ $order->warehouse?->gstin ?: '24AAMCK0386L1Z6' }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Mobile</span>
+                            <span class="text-xs font-bold text-foreground">{{ $order->warehouse?->phone ?: '+91 9199125925' }}</span>
+                        </div>
+                    </div>
                 </x-ui.card>
             </div>
         </div>

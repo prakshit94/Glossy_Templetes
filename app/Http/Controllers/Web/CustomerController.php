@@ -158,7 +158,7 @@ class CustomerController extends Controller
         }]);
 
         $categories = \App\Models\Category::whereNull('parent_id')->get();
-        $warehouses = \App\Models\Warehouse::where('status', 'active')->get();
+        $warehouses = \App\Models\Warehouse::with('village')->where('status', 'active')->get();
         
         // For the Edit Profile Modal
         $crops = \App\Models\Crop::where('status', 'active')->orderBy('name')->get();
@@ -291,13 +291,18 @@ class CustomerController extends Controller
 
     public function bulkDelete(Request $request)
     {
-        $ids = json_decode($request->ids, true);
-        if (empty($ids)) return back()->with('error', 'No customers selected.');
+        $request->validate(['ids' => 'required|json']);
+        $ids = array_values(array_filter(array_map('intval', json_decode($request->ids, true) ?? []), fn($id) => $id > 0));
+
+        if (empty($ids)) {
+            return back()->with('error', 'No customers selected.');
+        }
 
         Customer::whereIn('id', $ids)->delete();
 
-        activity('bulk')
-            ->withProperties(['ids' => $ids])
+        activity('customers')
+            ->causedBy(auth()->user())
+            ->withProperties(['ids' => $ids, 'count' => count($ids)])
             ->log('Bulk archived ' . count($ids) . ' customers');
 
         return back()->with('success', 'Selected customers moved to archive.');
@@ -307,14 +312,23 @@ class CustomerController extends Controller
 
     public function bulkRestore(Request $request)
     {
-        $ids = json_decode($request->ids, true);
-        if (!is_array($ids) || empty($ids)) return back()->with('error', 'No customers selected.');
+        $request->validate(['ids' => 'required|json']);
+        $ids = array_values(array_filter(array_map('intval', json_decode($request->ids, true) ?? []), fn($id) => $id > 0));
+
+        if (empty($ids)) {
+            return back()->with('error', 'No customers selected.');
+        }
 
         Customer::withoutGlobalScope('customer')
             ->withTrashed()
             ->where('type', 'customer')
             ->whereIn('id', $ids)
             ->restore();
+
+        activity('customers')
+            ->causedBy(auth()->user())
+            ->withProperties(['ids' => $ids, 'count' => count($ids)])
+            ->log('Bulk restored ' . count($ids) . ' customers');
 
         return back()->with('success', 'Selected customers restored.');
     }
@@ -323,14 +337,23 @@ class CustomerController extends Controller
 
     public function bulkForceDelete(Request $request)
     {
-        $ids = json_decode($request->ids, true);
-        if (!is_array($ids) || empty($ids)) return back()->with('error', 'No customers selected.');
+        $request->validate(['ids' => 'required|json']);
+        $ids = array_values(array_filter(array_map('intval', json_decode($request->ids, true) ?? []), fn($id) => $id > 0));
+
+        if (empty($ids)) {
+            return back()->with('error', 'No customers selected.');
+        }
 
         Customer::withoutGlobalScope('customer')
             ->withTrashed()
             ->where('type', 'customer')
             ->whereIn('id', $ids)
             ->forceDelete();
+
+        activity('customers')
+            ->causedBy(auth()->user())
+            ->withProperties(['ids' => $ids, 'count' => count($ids)])
+            ->log('Bulk permanently deleted ' . count($ids) . ' customers');
 
         return back()->with('success', 'Selected customers permanently deleted.');
     }
@@ -339,12 +362,24 @@ class CustomerController extends Controller
 
     public function bulkStatus(Request $request)
     {
-        $ids    = json_decode($request->ids, true);
+        $request->validate([
+            'ids'    => 'required|json',
+            'status' => 'required|in:active,inactive,suspended',
+        ]);
+
+        $ids    = array_values(array_filter(array_map('intval', json_decode($request->ids, true) ?? []), fn($id) => $id > 0));
         $status = $request->status;
 
-        if (is_array($ids) && count($ids) > 0) {
-            Customer::whereIn('id', $ids)->update(['status' => $status]);
+        if (empty($ids)) {
+            return back()->with('error', 'No customers selected.');
         }
+
+        Customer::whereIn('id', $ids)->update(['status' => $status]);
+
+        activity('customers')
+            ->causedBy(auth()->user())
+            ->withProperties(['ids' => $ids, 'status' => $status])
+            ->log('Bulk status update: ' . count($ids) . ' customers set to ' . $status);
 
         return back()->with('success', 'Selected customers status updated.');
     }
@@ -376,17 +411,24 @@ class CustomerController extends Controller
     public function placeOrder(Request $request, Customer $customer, OrderService $orderService)
     {
         $data = $request->validate([
-            'order_id'               => 'nullable|exists:orders,id',
-            'cart'                   => 'required|string',
-            'order_discount_amount'  => 'nullable|numeric',
-            'coupon_code'            => 'nullable|string',
-            'coupon_discount'        => 'nullable|numeric',
-            'tax_amount'             => 'required|numeric',
-            'subtotal'               => 'required|numeric',
-            'grand_total'            => 'required|numeric',
-            'warehouse_id'           => 'required|exists:warehouses,id',
-            'address_id'             => 'required|exists:party_addresses,id',
-            'billing_address_id'     => 'nullable|exists:party_addresses,id',
+            'order_id'              => 'nullable|exists:orders,id',
+            'cart'                  => 'required|string',
+            'order_discount_amount' => 'nullable|numeric',
+            'coupon_code'           => 'nullable|string',
+            'coupon_discount'       => 'nullable|numeric',
+            'tax_amount'            => 'required|numeric',
+            'subtotal'              => 'required|numeric',
+            'grand_total'           => 'required|numeric',
+            'warehouse_id'          => 'required|exists:warehouses,id',
+            // SECURITY FIX: address must belong to this customer, not any address in the system
+            'address_id'            => [
+                'required',
+                \Illuminate\Validation\Rule::exists('party_addresses', 'id')->where('party_id', $customer->id),
+            ],
+            'billing_address_id'    => [
+                'nullable',
+                \Illuminate\Validation\Rule::exists('party_addresses', 'id')->where('party_id', $customer->id),
+            ],
         ]);
 
         try {
@@ -395,10 +437,10 @@ class CustomerController extends Controller
                 $orderService->updateCustomerOrder($order, $data);
                 $msg = 'Order updated successfully!';
             } else {
-                $orderService->placeCustomerOrder($customer, $data);
-                $msg = 'Order placed successfully!';
+                $order = $orderService->placeCustomerOrder($customer, $data);
+                $msg   = 'Order placed successfully!';
             }
-            
+
             return redirect()->route('customers.show', $customer)
                 ->with('success', $msg)
                 ->with('active_tab', 'history');

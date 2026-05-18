@@ -148,6 +148,7 @@
                 category: this.productCategoryFilter,
                 perPage: this.productPerPage,
                 page: this.productPage,
+                exclude_order_id: this.editingOrderId || '',
             });
             const res = await fetch(`/products-search-api?${params}`, {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }

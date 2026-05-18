@@ -61,35 +61,43 @@ class WarehouseController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:warehouses,code',
-            'address' => 'nullable|string|max:255',
+        $validated = $request->validate([
+            'name'           => 'required|string|max:255',
+            'company_name'   => 'nullable|string|max:255',
+            'gstin'          => 'nullable|string|max:50',
+            'phone'          => 'nullable|string|max:50',
+            'code'           => 'required|string|max:50|unique:warehouses,code',
+            'address'        => 'nullable|string|max:255',
             'address_line_1' => 'required|string|max:255',
             'address_line_2' => 'nullable|string|max:255',
-            'village_id' => 'nullable|exists:villages,id',
-            'village_name' => 'nullable|string|max:255',
-            'post_office' => 'nullable|string|max:255',
-            'taluka' => 'nullable|string|max:255',
-            'city' => 'required|string|max:255',
-            'state' => 'required|string|max:255',
-            'pincode' => 'required|string|max:20',
-            'status' => 'required|in:active,inactive',
-            'is_default' => 'boolean',
+            'village_id'     => 'nullable|exists:villages,id',
+            'village_name'   => 'nullable|string|max:255',
+            'post_office'    => 'nullable|string|max:255',
+            'taluka'         => 'nullable|string|max:255',
+            'city'           => 'required|string|max:255',
+            'state'          => 'required|string|max:255',
+            'pincode'        => 'required|string|max:20',
+            'status'         => 'required|in:active,inactive',
+            'is_default'     => 'boolean',
         ]);
 
-        $data = $request->all();
-        $data['is_default'] = $request->has('is_default');
-        
-        if (empty($data['address']) && !empty($data['address_line_1'])) {
-            $data['address'] = $data['address_line_1'] . (!empty($data['city']) ? ', ' . $data['city'] : '');
+        $validated['is_default'] = $request->boolean('is_default');
+
+        if (empty($validated['address']) && !empty($validated['address_line_1'])) {
+            $validated['address'] = $validated['address_line_1'] . (!empty($validated['city']) ? ', ' . $validated['city'] : '');
         }
 
-        if ($data['is_default']) {
+        if ($validated['is_default']) {
             Warehouse::query()->update(['is_default' => false]);
         }
 
-        Warehouse::create($data);
+        $warehouse = Warehouse::create($validated);
+
+        activity('warehouses')
+            ->performedOn($warehouse)
+            ->causedBy(auth()->user())
+            ->withProperties(['name' => $warehouse->name, 'code' => $warehouse->code])
+            ->log("Warehouse '{$warehouse->name}' ({$warehouse->code}) created");
 
         return redirect()->route('warehouses.index')->with('success', 'Warehouse created successfully.');
     }
@@ -183,35 +191,43 @@ class WarehouseController extends Controller
     {
         $warehouse = Warehouse::findOrFail($id);
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:warehouses,code,' . $id,
-            'address' => 'nullable|string|max:255',
+        $validated = $request->validate([
+            'name'           => 'required|string|max:255',
+            'company_name'   => 'nullable|string|max:255',
+            'gstin'          => 'nullable|string|max:50',
+            'phone'          => 'nullable|string|max:50',
+            'code'           => 'required|string|max:50|unique:warehouses,code,' . $id,
+            'address'        => 'nullable|string|max:255',
             'address_line_1' => 'required|string|max:255',
             'address_line_2' => 'nullable|string|max:255',
-            'village_id' => 'nullable|exists:villages,id',
-            'village_name' => 'nullable|string|max:255',
-            'post_office' => 'nullable|string|max:255',
-            'taluka' => 'nullable|string|max:255',
-            'city' => 'required|string|max:255',
-            'state' => 'required|string|max:255',
-            'pincode' => 'required|string|max:20',
-            'status' => 'required|in:active,inactive',
-            'is_default' => 'boolean',
+            'village_id'     => 'nullable|exists:villages,id',
+            'village_name'   => 'nullable|string|max:255',
+            'post_office'    => 'nullable|string|max:255',
+            'taluka'         => 'nullable|string|max:255',
+            'city'           => 'required|string|max:255',
+            'state'          => 'required|string|max:255',
+            'pincode'        => 'required|string|max:20',
+            'status'         => 'required|in:active,inactive',
+            'is_default'     => 'boolean',
         ]);
 
-        $data = $request->all();
-        $data['is_default'] = $request->has('is_default');
-        
-        if (empty($data['address']) && !empty($data['address_line_1'])) {
-            $data['address'] = $data['address_line_1'] . (!empty($data['city']) ? ', ' . $data['city'] : '');
+        $validated['is_default'] = $request->boolean('is_default');
+
+        if (empty($validated['address']) && !empty($validated['address_line_1'])) {
+            $validated['address'] = $validated['address_line_1'] . (!empty($validated['city']) ? ', ' . $validated['city'] : '');
         }
 
-        if ($data['is_default']) {
+        if ($validated['is_default']) {
             Warehouse::where('id', '!=', $warehouse->id)->update(['is_default' => false]);
         }
 
-        $warehouse->update($data);
+        $warehouse->update($validated);
+
+        activity('warehouses')
+            ->performedOn($warehouse->fresh())
+            ->causedBy(auth()->user())
+            ->withProperties(['name' => $warehouse->name, 'code' => $warehouse->code])
+            ->log("Warehouse '{$warehouse->name}' ({$warehouse->code}) updated");
 
         return redirect()->route('warehouses.index')->with('success', 'Warehouse updated successfully.');
     }
@@ -222,10 +238,15 @@ class WarehouseController extends Controller
     public function destroy(string $id)
     {
         $warehouse = Warehouse::findOrFail($id);
-        
+
         if ($warehouse->stocks()->count() > 0) {
             return redirect()->route('warehouses.index')->with('error', 'Cannot delete warehouse with existing stock.');
         }
+
+        activity('warehouses')
+            ->causedBy(auth()->user())
+            ->withProperties(['name' => $warehouse->name, 'code' => $warehouse->code])
+            ->log("Warehouse '{$warehouse->name}' ({$warehouse->code}) deleted");
 
         $warehouse->delete();
 

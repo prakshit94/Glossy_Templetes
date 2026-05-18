@@ -1,11 +1,17 @@
 <x-layouts.app pageTitle="New Stock Adjustment">
     <div class="p-6 lg:p-10" x-data="{
-        items: [{ product_id: '', current_qty: 0, operator: '=', value: 0, new_qty: 0, difference: 0, open: false, search: '' }],
+        items: [{ product_id: '', current_qty: 0, operator: '', value: 0, new_qty: 0, difference: 0, open: false, search: '' }],
         products: @js($products),
         warehouseStock: {},
-        warehouseId: '',
+        warehouseId: '{{ $warehouses->firstWhere('is_default', true)?->id ?? '' }}',
         isLoadingStock: false,
         
+        init() {
+            if (this.warehouseId) {
+                this.fetchStock();
+            }
+        },
+
         async fetchStock() {
             if (!this.warehouseId) {
                 this.warehouseStock = {};
@@ -27,7 +33,7 @@
         },
 
         addItem() {
-            this.items.push({ product_id: '', current_qty: 0, operator: '=', value: 0, new_qty: 0, difference: 0, open: false, search: '' });
+            this.items.push({ product_id: '', current_qty: 0, operator: '', value: 0, new_qty: 0, difference: 0, open: false, search: '' });
         },
         
         removeItem(index) {
@@ -64,6 +70,8 @@
                 item.new_qty = cur + val;
             } else if (item.operator === '-') {
                 item.new_qty = cur - val;
+            } else {
+                item.new_qty = cur;
             }
             
             item.difference = item.new_qty - cur;
@@ -177,8 +185,9 @@
 
                                         <div class="md:col-span-2 space-y-2">
                                             <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Operation</label>
-                                            <select x-model="item.operator" @change="recalculate(index)"
+                                            <select x-model="item.operator" @change="recalculate(index)" required
                                                 class="w-full h-10 px-3 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-black outline-none">
+                                                <option value="">Select Operation</option>
                                                 <option value="=">Set (=)</option>
                                                 <option value="+">Add (+)</option>
                                                 <option value="-">Deduct (-)</option>
@@ -186,7 +195,7 @@
                                         </div>
 
                                         <div class="md:col-span-2 space-y-2">
-                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1" x-text="item.operator === '=' ? 'Set to Qty' : 'Value'"></label>
+                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1" x-text="item.operator === '=' ? 'Set to Qty' : (item.operator ? 'Value' : 'Select Operation')"></label>
                                             <input type="number" x-model.number="item.value" @input="recalculate(index)" step="0.01" required 
                                                 class="w-full h-10 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-xs font-black outline-none">
                                         </div>

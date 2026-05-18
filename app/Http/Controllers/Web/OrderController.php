@@ -3,26 +3,23 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Invoice;
 use App\Models\Order;
-use App\Models\Warehouse;
 use App\Models\Party;
 use App\Models\Product;
+use App\Models\Warehouse;
 use App\Services\InventoryService;
+use App\Services\InvoiceService;
 use App\Services\OrderService;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::with(['party', 'warehouse', 'invoice'])->withCount('items');
+        $query = Order::with(['party', 'warehouse', 'invoice', 'items.product'])->withCount('items');
 
-        /*
-        |--------------------------------------------------------------------------
-        | SEARCH
-        |--------------------------------------------------------------------------
-        */
         if ($request->filled('search')) {
             $s = trim($request->search);
             $query->where('order_no', 'like', "%$s%")
@@ -31,21 +28,40 @@ class OrderController extends Controller
                   });
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | FILTERS
-        |--------------------------------------------------------------------------
-        */
         if ($request->filled('status')) {
             $statuses = array_filter(array_map('trim', explode(',', $request->status)));
             $query->whereIn('status', $statuses);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | GEOGRAPHIC FILTERS
-        |--------------------------------------------------------------------------
-        */
+        if ($request->filled('product')) {
+            $productIds = array_filter(array_map('intval', explode(',', $request->product)));
+            if (!empty($productIds)) {
+                $query->whereHas('items', function ($q) use ($productIds) {
+                    $q->whereIn('product_id', $productIds);
+                });
+            }
+        }
+
+        if ($request->filled('fulfillment')) {
+            if ($request->fulfillment === 'unfulfillable') {
+                $query->whereIn('status', ['pending', 'confirmed', 'processing'])
+                      ->whereHas('items', function ($q) {
+                          $q->whereHas('product', function ($pq) {
+                              $pq->where('allow_overselling', false);
+                          })
+                          ->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id), 0))');
+                      });
+            } elseif ($request->fulfillment === 'fulfillable') {
+                $query->whereIn('status', ['pending', 'confirmed', 'processing'])
+                      ->whereDoesntHave('items', function ($q) {
+                          $q->whereHas('product', function ($pq) {
+                              $pq->where('allow_overselling', false);
+                          })
+                          ->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id), 0))');
+                      });
+            }
+        }
+
         if ($request->filled('state') || $request->filled('district') || $request->filled('taluka')) {
             $query->whereHas('shippingAddress.village', function ($q) use ($request) {
                 if ($request->filled('state')) {
@@ -60,11 +76,6 @@ class OrderController extends Controller
             });
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | STATS & DATA
-        |--------------------------------------------------------------------------
-        */
         $stats = [
             'total'      => (clone $query)->count(),
             'pending'    => (clone $query)->where('status', 'pending')->count(),
@@ -76,6 +87,8 @@ class OrderController extends Controller
         $orders  = $query->latest()->paginate($perPage)->withQueryString();
 
         $statusesList = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'];
+
+        $productsList = Product::where('status', 'active')->orderBy('name')->get(['id', 'name', 'sku']);
 
         $statesList = \Illuminate\Support\Facades\Cache::remember('geo_states', 3600, function () {
             return \App\Models\Village::distinct()->pluck('state_name')->filter()->sort()->values();
@@ -108,6 +121,7 @@ class OrderController extends Controller
             'orders',
             'stats',
             'statusesList',
+            'productsList',
             'statesList',
             'districtsList',
             'talukasList',
@@ -133,14 +147,14 @@ class OrderController extends Controller
         $request->merge(['items' => $items]);
 
         $request->validate([
-            'type'                  => 'required|in:sale,purchase',
-            'party_id'              => 'required|exists:parties,id',
-            'warehouse_id'          => 'required|exists:warehouses,id',
-            'order_date'            => 'required|date',
-            'items'                 => 'required|array|min:1',
-            'items.*.product_id'    => 'required|exists:products,id',
-            'items.*.quantity'      => 'required|numeric|min:0.01',
-            'items.*.unit_price'    => 'required|numeric|min:0',
+            'type'               => 'required|in:sale,purchase',
+            'party_id'           => 'required|exists:parties,id',
+            'warehouse_id'       => 'required|exists:warehouses,id',
+            'order_date'         => 'required|date',
+            'items'              => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity'   => 'required|numeric|min:0.01',
+            'items.*.unit_price' => 'required|numeric|min:0',
         ]);
 
         $party = Party::findOrFail($request->party_id);
@@ -152,7 +166,7 @@ class OrderController extends Controller
         }
 
         try {
-            $orderService->createOrder([
+            $order = $orderService->createOrder([
                 'type'         => $request->type,
                 'party_id'     => $request->party_id,
                 'warehouse_id' => $request->warehouse_id,
@@ -163,12 +177,17 @@ class OrderController extends Controller
             return back()->withInput()->with('error', collect($e->errors())->flatten()->first() ?? 'Failed to create order.');
         }
 
+        activity('orders')
+            ->performedOn($order)
+            ->causedBy(auth()->user())
+            ->withProperties(['type' => $order->type, 'party_id' => $order->party_id])
+            ->log("Order #{$order->order_no} created ({$order->type})");
+
         return redirect()->route('orders.index')->with('success', 'Order created successfully.');
     }
 
     public function edit(Order $order)
     {
-        // Seamlessly route customer orders to the Customer Profile cart interface
         if ($order->type === 'sale' && $order->party && $order->party->type === 'customer') {
             return redirect()->route('customers.show', [
                 'customer'   => $order->party_id,
@@ -191,7 +210,7 @@ class OrderController extends Controller
     {
         $order = Order::with([
             'party',
-            'warehouse',
+            'warehouse.village',
             'items.product',
             'creator',
             'updater',
@@ -206,11 +225,9 @@ class OrderController extends Controller
         return view('orders.show', compact('order', 'services'));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Status Transitions – all go through InventoryService
-    |--------------------------------------------------------------------------
-    */
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Status Transitions – all go through InventoryService / OrderService
+    // ─────────────────────────────────────────────────────────────────────────
 
     public function confirm(string $id, InventoryService $inventoryService)
     {
@@ -226,6 +243,11 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to confirm order.');
         }
 
+        activity('orders')
+            ->performedOn($order->fresh())
+            ->causedBy(auth()->user())
+            ->log("Order #{$order->order_no} confirmed — stock reserved");
+
         return back()->with('success', 'Order confirmed and stock reserved.');
     }
 
@@ -239,7 +261,7 @@ class OrderController extends Controller
 
         $request->validate([
             'carrier_name' => 'nullable|string|max:255',
-            'tracking_no' => 'nullable|string|max:255',
+            'tracking_no'  => 'nullable|string|max:255',
         ]);
 
         try {
@@ -247,6 +269,12 @@ class OrderController extends Controller
         } catch (ValidationException $e) {
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to ship order.');
         }
+
+        activity('orders')
+            ->performedOn($order->fresh())
+            ->causedBy(auth()->user())
+            ->withProperties(array_filter(['carrier' => $request->carrier_name, 'tracking' => $request->tracking_no]))
+            ->log("Order #{$order->order_no} shipped — inventory deducted");
 
         return back()->with('success', 'Order shipped and inventory updated.');
     }
@@ -261,6 +289,11 @@ class OrderController extends Controller
 
         $orderService->updateStatus($order, 'processing');
 
+        activity('orders')
+            ->performedOn($order->fresh())
+            ->causedBy(auth()->user())
+            ->log("Order #{$order->order_no} moved to processing");
+
         return back()->with('success', 'Order moved to processing.');
     }
 
@@ -273,6 +306,11 @@ class OrderController extends Controller
         }
 
         $orderService->updateStatus($order, 'delivered');
+
+        activity('orders')
+            ->performedOn($order->fresh())
+            ->causedBy(auth()->user())
+            ->log("Order #{$order->order_no} marked as delivered");
 
         return back()->with('success', 'Order marked as delivered.');
     }
@@ -287,6 +325,11 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to cancel order.');
         }
 
+        activity('orders')
+            ->performedOn($order->fresh())
+            ->causedBy(auth()->user())
+            ->log("Order #{$order->order_no} cancelled — stock reservation released");
+
         return back()->with('success', 'Order cancelled and stock released.');
     }
 
@@ -296,13 +339,12 @@ class OrderController extends Controller
         return view('orders.receipt', compact('order'));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Bulk Status – ONLY safe transitions (no inventory side-effects)
-    | Inventory-impacting transitions (confirm, ship, cancel) must use
-    | their dedicated endpoints above, never this bulk route.
-    |--------------------------------------------------------------------------
-    */
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Bulk Status
+    //  SSOT: all inventory-impacting transitions now route through services.
+    //  No raw DB::table('stocks') writes remain here.
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function bulkStatus(Request $request, InventoryService $inventoryService, OrderService $orderService)
     {
         $request->validate([
@@ -310,96 +352,66 @@ class OrderController extends Controller
             'status' => 'required|string|in:pending,confirmed,processing,shipped,delivered,cancelled,returned',
         ]);
 
-        $ids = json_decode($request->ids);
-        if (!is_array($ids) || empty($ids)) {
+        $rawIds = json_decode($request->ids, true);
+        if (!is_array($rawIds) || empty($rawIds)) {
             return back()->with('error', 'No orders selected.');
         }
 
+        // Sanitise: ensure all IDs are positive integers
+        $ids = array_values(array_filter(array_map('intval', $rawIds), fn($id) => $id > 0));
+        if (empty($ids)) {
+            return back()->with('error', 'No valid order IDs provided.');
+        }
+
         $targetStatus = $request->status;
-        $count = 0;
+        $count        = 0;
+        $errors       = [];
 
         try {
-            \DB::transaction(function() use ($ids, $targetStatus, $inventoryService, $orderService, &$count) {
-                $orders = Order::with('items')->whereIn('id', $ids)->get();
+            \DB::transaction(function () use ($ids, $targetStatus, $inventoryService, $orderService, &$count, &$errors) {
+                $orders = Order::with(['items', 'shipments'])->whereIn('id', $ids)->get();
 
                 foreach ($orders as $order) {
                     if ($order->status === $targetStatus) {
                         continue;
                     }
 
-                    // ─── FORWARD TRANSITIONS ───
-                    if ($targetStatus === 'confirmed' && $order->status === 'pending') {
-                        $inventoryService->confirmOrder($order);
-                        $count++;
-                    } elseif ($targetStatus === 'processing' && $order->status === 'confirmed') {
-                        $orderService->updateStatus($order, 'processing');
-                        $count++;
-                    } elseif ($targetStatus === 'shipped' && in_array($order->status, ['confirmed', 'processing'])) {
-                        $inventoryService->shipOrder($order, null, null);
-                        $count++;
-                    } elseif ($targetStatus === 'delivered' && in_array($order->status, ['shipped', 'processing'])) {
-                        $orderService->updateStatus($order, 'delivered');
-                        $count++;
-                    } elseif ($targetStatus === 'cancelled' && !in_array($order->status, ['delivered', 'cancelled', 'returned'])) {
-                        $inventoryService->cancelOrder($order);
-                        $count++;
-                    }
+                    try {
+                        // ─── FORWARD TRANSITIONS ───────────────────────────
+                        if ($targetStatus === 'confirmed' && $order->status === 'pending') {
+                            $inventoryService->confirmOrder($order);
+                            $count++;
+                        } elseif ($targetStatus === 'processing' && $order->status === 'confirmed') {
+                            $orderService->updateStatus($order, 'processing');
+                            $count++;
+                        } elseif ($targetStatus === 'shipped' && in_array($order->status, ['confirmed', 'processing'])) {
+                            $inventoryService->shipOrder($order, null, null);
+                            $count++;
+                        } elseif ($targetStatus === 'delivered' && in_array($order->status, ['shipped', 'processing'])) {
+                            $orderService->updateStatus($order, 'delivered');
+                            $count++;
+                        } elseif ($targetStatus === 'cancelled' && !in_array($order->status, ['delivered', 'cancelled', 'returned'])) {
+                            $inventoryService->cancelOrder($order);
+                            $count++;
 
-                    // ─── REVERT TRANSITIONS ───
-                    elseif ($targetStatus === 'pending' && in_array($order->status, ['confirmed', 'processing', 'cancelled'])) {
-                        if (in_array($order->status, ['confirmed', 'processing']) && $order->type === 'sale' && $order->warehouse_id) {
-                            foreach ($order->items as $item) {
-                                $stock = $inventoryService->getStock((int)$item->product_id, (int)$order->warehouse_id);
-                                $releaseQty = min((float)$item->quantity, (float)$stock->reserved_qty);
-                                if ($releaseQty > 0) {
-                                    \DB::table('stocks')->where('id', $stock->id)->update([
-                                        'reserved_qty' => (float)$stock->reserved_qty - $releaseQty
-                                    ]);
-                                    \App\Models\StockReservation::where('order_id', $order->id)
-                                        ->where('product_id', $item->product_id)
-                                        ->where('warehouse_id', $order->warehouse_id)
-                                        ->where('status', 'active')
-                                        ->update(['status' => 'cancelled']);
-                                }
-                            }
+                        // ─── REVERT TRANSITIONS (via InventoryService SSOT) ─
+                        } elseif ($targetStatus === 'pending' && in_array($order->status, ['confirmed', 'processing', 'cancelled'])) {
+                            $inventoryService->revertOrderToPending($order);
+                            $count++;
+                        } elseif ($targetStatus === 'confirmed' && $order->status === 'processing') {
+                            // Processing → Confirmed: no stock change, just status
+                            $order->update(['status' => 'confirmed', 'updated_by' => auth()->id()]);
+                            $count++;
+                        } elseif ($targetStatus === 'processing' && $order->status === 'shipped') {
+                            $inventoryService->revertOrderToProcessing($order);
+                            $count++;
+                        } elseif ($targetStatus === 'shipped' && $order->status === 'delivered') {
+                            // Delivered → Shipped: metadata-only revert
+                            $order->update(['status' => 'shipped', 'updated_by' => auth()->id()]);
+                            $count++;
                         }
-                        $order->update(['status' => 'pending']);
-                        $count++;
-                    } elseif ($targetStatus === 'confirmed' && $order->status === 'processing') {
-                        $order->update(['status' => 'confirmed']);
-                        $count++;
-                    } elseif ($targetStatus === 'processing' && $order->status === 'shipped') {
-                        $shipments = \App\Models\Shipment::where('order_id', $order->id)->get();
-                        foreach ($shipments as $shp) {
-                            \App\Models\ShipmentTrackingEvent::where('shipment_id', $shp->id)->delete();
-                            $shp->delete();
-                        }
-                        if ($order->type === 'sale' && $order->warehouse_id) {
-                            foreach ($order->items as $item) {
-                                $stock = $inventoryService->getStock((int)$item->product_id, (int)$order->warehouse_id);
-                                \DB::table('stocks')->where('id', $stock->id)->update([
-                                    'quantity' => (float)$stock->quantity + (float)$item->quantity,
-                                    'reserved_qty' => (float)$stock->reserved_qty + (float)$item->quantity,
-                                    'dispatched_qty' => max(0.0, (float)$stock->dispatched_qty - (float)$item->quantity),
-                                ]);
-                                \App\Models\StockReservation::where('order_id', $order->id)
-                                    ->where('product_id', $item->product_id)
-                                    ->where('warehouse_id', $order->warehouse_id)
-                                    ->update(['status' => 'active']);
-                            }
-                        } elseif ($order->type === 'purchase' && $order->warehouse_id) {
-                            foreach ($order->items as $item) {
-                                $stock = $inventoryService->getStock((int)$item->product_id, (int)$order->warehouse_id);
-                                \DB::table('stocks')->where('id', $stock->id)->update([
-                                    'quantity' => max(0.0, (float)$stock->quantity - (float)$item->quantity),
-                                ]);
-                            }
-                        }
-                        $order->update(['status' => 'processing']);
-                        $count++;
-                    } elseif ($targetStatus === 'shipped' && $order->status === 'delivered') {
-                        $order->update(['status' => 'shipped']);
-                        $count++;
+                    } catch (ValidationException $e) {
+                        $errors[] = "Order #{$order->order_no}: " . collect($e->errors())->flatten()->first();
                     }
                 }
             });
@@ -407,7 +419,19 @@ class OrderController extends Controller
             return back()->with('error', 'Error processing status update: ' . $e->getMessage());
         }
 
-        return back()->with('success', $count . ' orders updated successfully.');
+        if ($count > 0) {
+            activity('orders')
+                ->causedBy(auth()->user())
+                ->withProperties(['ids' => $ids, 'target_status' => $targetStatus, 'count' => $count])
+                ->log("Bulk status update: {$count} orders moved to '{$targetStatus}'");
+        }
+
+        $msg = $count . ' orders updated successfully.';
+        if (!empty($errors)) {
+            $msg .= ' Skipped: ' . implode('; ', $errors);
+        }
+
+        return back()->with($count > 0 ? 'success' : 'error', $msg);
     }
 
     public function destroy(Order $order)
@@ -415,30 +439,26 @@ class OrderController extends Controller
         if (!in_array($order->status, ['pending', 'cancelled'])) {
             return back()->with('error', 'Only pending or cancelled orders can be deleted.');
         }
+
+        activity('orders')
+            ->causedBy(auth()->user())
+            ->withProperties(['order_no' => $order->order_no])
+            ->log("Order #{$order->order_no} deleted");
+
         $order->delete();
         return redirect()->route('orders.index')->with('success', 'Order deleted.');
     }
 
-    public function downloadInvoice(string $id)
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Invoice & PDF — all invoice creation via InvoiceService (SSOT)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function downloadInvoice(string $id, InvoiceService $invoiceService)
     {
         try {
-            $order = Order::with('invoices')->findOrFail($id);
-            $invoice = $order->invoices()->latest()->first();
-
-            if (!$invoice) {
-                // Auto generate invoice if not exists
-                $invoice = \App\Models\Invoice::create([
-                    'invoice_no' => 'INV-' . now()->format('Ymd') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
-                    'order_id' => $order->id,
-                    'invoice_date' => now(),
-                    'total_amount' => $order->total_amount,
-                    'tax_amount' => $order->tax_amount,
-                    'net_amount' => $order->net_amount,
-                    'status' => 'unpaid',
-                ]);
-            }
-
-            $invoice->load(['order.items.product', 'order.party', 'order.billingAddress.village', 'order.shippingAddress.village']);
+            $order   = Order::with(['invoices'])->findOrFail($id);
+            $invoice = $invoiceService->generateForOrder($order);
+            $invoice->load(['order.warehouse.village', 'order.items.product', 'order.party', 'order.billingAddress.village', 'order.shippingAddress.village']);
 
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf.invoice', compact('invoice'))->setPaper('a5', 'portrait');
             return $pdf->download("invoice-{$invoice->invoice_no}.pdf");
@@ -448,26 +468,18 @@ class OrderController extends Controller
         }
     }
 
-    public function generateInvoice(string $id)
+    public function generateInvoice(string $id, InvoiceService $invoiceService)
     {
         try {
-            $order = Order::findOrFail($id);
-            $invoice = $order->invoices()->latest()->first();
+            $order   = Order::findOrFail($id);
+            $existing = $invoiceService->findForOrder($order);
 
-            if (!$invoice) {
-                \App\Models\Invoice::create([
-                    'invoice_no' => 'INV-' . now()->format('Ymd') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
-                    'order_id' => $order->id,
-                    'invoice_date' => now(),
-                    'total_amount' => $order->total_amount,
-                    'tax_amount' => $order->tax_amount,
-                    'net_amount' => $order->net_amount,
-                    'status' => 'unpaid',
-                ]);
-                return back()->with('success', 'Invoice generated successfully.');
+            if ($existing) {
+                return back()->with('error', 'Invoice already exists for this order.');
             }
 
-            return back()->with('error', 'Invoice already exists.');
+            $invoiceService->generateForOrder($order);
+            return back()->with('success', 'Invoice generated successfully.');
         } catch (\Exception $e) {
             return back()->with('error', 'Error generating invoice: ' . $e->getMessage());
         }
@@ -476,8 +488,8 @@ class OrderController extends Controller
     public function downloadReceipt(string $id)
     {
         try {
-            $order = Order::with(['items.product', 'party', 'shippingAddress.village', 'billingAddress.village'])->findOrFail($id);
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf.cod', compact('order'))->setPaper('a5', 'portrait');
+            $order = Order::with(['warehouse.village', 'items.product', 'party', 'shippingAddress.village', 'billingAddress.village'])->findOrFail($id);
+            $pdf   = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf.cod', compact('order'))->setPaper('a5', 'portrait');
             return $pdf->download("receipt-{$order->order_no}.pdf");
         } catch (\Exception $e) {
             \Log::error('PDF Generation Error (Receipt): ' . $e->getMessage());
@@ -485,16 +497,16 @@ class OrderController extends Controller
         }
     }
 
-    public function bulkPrint(Request $request)
+    public function bulkPrint(Request $request, InvoiceService $invoiceService)
     {
         $validated = $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'exists:orders,id',
-            'type' => 'required|in:invoice,cod',
+            'ids'    => 'required|array',
+            'ids.*'  => 'exists:orders,id',
+            'type'   => 'required|in:invoice,cod',
         ]);
 
         $orders = Order::whereIn('id', $validated['ids'])
-            ->with(['items.product', 'party', 'billingAddress.village', 'shippingAddress.village', 'invoices'])
+            ->with(['warehouse.village', 'items.product', 'party', 'billingAddress.village', 'shippingAddress.village', 'invoices'])
             ->get();
 
         if ($orders->isEmpty()) {
@@ -502,30 +514,20 @@ class OrderController extends Controller
         }
 
         if ($validated['type'] === 'invoice') {
-            // Flatten to get all invoices, and dynamically create missing ones
             $invoices = new \Illuminate\Database\Eloquent\Collection();
 
             foreach ($orders as $order) {
-                $invoice = $order->invoices->first();
-                if (!$invoice) {
-                    $invoice = \App\Models\Invoice::create([
-                        'invoice_no' => 'INV-' . now()->format('Ymd') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
-                        'order_id' => $order->id,
-                        'invoice_date' => now(),
-                        'total_amount' => $order->total_amount,
-                        'tax_amount' => $order->tax_amount,
-                        'net_amount' => $order->net_amount,
-                        'status' => 'unpaid',
-                    ]);
-                    $invoice->setRelation('order', $order);
-                }
+                // SSOT: use InvoiceService instead of direct Invoice::create
+                $invoice = $invoiceService->generateForOrder($order);
+                $invoice->setRelation('order', $order);
                 $invoices->push($invoice);
             }
 
-            $invoices->load(['order.party', 'order.billingAddress.village', 'order.shippingAddress.village', 'order.items.product']);
+            $invoices->load(['order.warehouse.village', 'order.party', 'order.billingAddress.village', 'order.shippingAddress.village', 'order.items.product']);
 
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf.bulk_invoice', compact('invoices'))->setPaper('a5', 'portrait');
             return $pdf->download('bulk-invoices-' . now()->format('YmdHis') . '.pdf');
+
         } elseif ($validated['type'] === 'cod') {
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf.bulk_cod', compact('orders'))->setPaper('a5', 'portrait');
             return $pdf->download('bulk-cod-' . now()->format('YmdHis') . '.pdf');
@@ -534,4 +536,3 @@ class OrderController extends Controller
         return back()->with('error', 'Invalid print type.');
     }
 }
-
