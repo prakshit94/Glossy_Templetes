@@ -28,10 +28,10 @@
             @forelse($orders as $order)
                 @php
                     $hasOutOfStock = false;
-                    if (in_array($order->status, ['pending', 'confirmed', 'processing'])) {
+                    if ($order->status === 'pending') {
                         foreach ($order->items as $item) {
                             $prod = $item->product;
-                            if ($prod && !$prod->allow_overselling && $item->quantity > $prod->available_stock) {
+                            if ($prod && $item->quantity > $prod->available_stock) {
                                 $hasOutOfStock = true;
                                 break;
                             }
@@ -216,7 +216,7 @@
                                 @php
                                     $prod = $item->product;
                                     $isItemOOS = false;
-                                    if (in_array($order->status, ['pending', 'confirmed', 'processing']) && $prod && !$prod->allow_overselling) {
+                                    if ($order->status === 'pending' && $prod) {
                                         if ($item->quantity > $prod->available_stock) {
                                             $isItemOOS = true;
                                         }

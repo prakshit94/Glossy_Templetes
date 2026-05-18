@@ -44,21 +44,20 @@ class OrderController extends Controller
 
         if ($request->filled('fulfillment')) {
             if ($request->fulfillment === 'unfulfillable') {
-                $query->whereIn('status', ['pending', 'confirmed', 'processing'])
+                $query->where('status', 'pending')
                       ->whereHas('items', function ($q) {
-                          $q->whereHas('product', function ($pq) {
-                              $pq->where('allow_overselling', false);
-                          })
-                          ->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id), 0))');
+                          $q->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id), 0))');
                       });
             } elseif ($request->fulfillment === 'fulfillable') {
-                $query->whereIn('status', ['pending', 'confirmed', 'processing'])
-                      ->whereDoesntHave('items', function ($q) {
-                          $q->whereHas('product', function ($pq) {
-                              $pq->where('allow_overselling', false);
-                          })
-                          ->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id), 0))');
-                      });
+                $query->where(function ($query) {
+                    $query->whereIn('status', ['confirmed', 'processing'])
+                          ->orWhere(function ($q) {
+                              $q->where('status', 'pending')
+                                ->whereDoesntHave('items', function ($iq) {
+                                    $iq->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id), 0))');
+                                });
+                          });
+                });
             }
         }
 
