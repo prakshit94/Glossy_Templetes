@@ -24,7 +24,19 @@
                     </div>
                 </x-ui.table-cell>
                 
-                <x-ui.table-cell class="text-xs font-medium text-muted-foreground">{{ $warehouse->address ?? 'N/A' }}{{ $warehouse->state ? ', ' . $warehouse->state : '' }}</x-ui.table-cell>
+                <x-ui.table-cell class="text-xs font-medium text-muted-foreground">
+                    <span class="block text-foreground font-bold">{{ $warehouse->address_line_1 ?? $warehouse->address ?? 'N/A' }}</span>
+                    @php
+                        $loc = array_filter([
+                            $warehouse->village?->district_name ?? $warehouse->city,
+                            $warehouse->village?->state_name ?? $warehouse->state,
+                            $warehouse->village?->pincode ?? $warehouse->pincode
+                        ]);
+                    @endphp
+                    @if(!empty($loc))
+                        <span class="text-[11px] text-muted-foreground">{{ implode(', ', $loc) }}</span>
+                    @endif
+                </x-ui.table-cell>
 
                 <x-ui.table-cell class="text-center font-black text-xs">
                     {{ number_format($warehouse->stocks_count) }}
