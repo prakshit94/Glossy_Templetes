@@ -153,13 +153,15 @@ class ProductController extends Controller
             $dispatchedQty = (float) ($p->stocks_sum_dispatched_qty ?? 0);
             $pendingQty    = (float) ($p->pending_orders_qty ?? 0);
 
-            // TRUE available = on-hand minus what is already reserved for confirmed orders and pending orders
-            $netAvailable = max(0.0, $totalQty - $reservedQty - $pendingQty);
-            $maxAllowedQty = $netAvailable;
+            // TRUE raw remaining = on-hand minus what is already reserved for confirmed orders and pending orders
+            $rawAvailable  = $totalQty - $reservedQty - $pendingQty;
+            $netAvailable  = max(0.0, $rawAvailable);
 
-            // When overselling is allowed, the maximum sellable ceiling is physical available plus the oversell limit
+            // When overselling is allowed, any physical deficit ($rawAvailable < 0) correctly deducts from overselling_qty limit
             if ($p->allow_overselling) {
-                $maxAllowedQty = $netAvailable + ($p->overselling_qty ?: 999);
+                $maxAllowedQty = max(0.0, $rawAvailable + (float) ($p->overselling_qty ?: 999));
+            } else {
+                $maxAllowedQty = $netAvailable;
             }
 
             return [

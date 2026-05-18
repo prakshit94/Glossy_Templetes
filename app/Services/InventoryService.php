@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\InventoryAdjustment;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\Stock;
 use App\Models\StockMovement;
 use App\Models\StockReservation;
@@ -301,11 +302,16 @@ class InventoryService
 
         return DB::transaction(function () use ($productId, $warehouseId, $quantity, $orderId) {
             $stock        = $this->getStockForUpdate($productId, $warehouseId);
-            $availableQty = (float) $stock->quantity - (float) $stock->reserved_qty;
+            $product      = Product::find($productId);
+            $rawAvailable = (float) $stock->quantity - (float) $stock->reserved_qty;
+            $maxReservable = $rawAvailable;
+            if ($product?->allow_overselling) {
+                $maxReservable += (float) ($product->overselling_qty ?: 999);
+            }
 
-            if ($availableQty < $quantity) {
+            if ($maxReservable < $quantity) {
                 throw ValidationException::withMessages([
-                    'quantity' => "Not enough available stock to reserve. Available: {$availableQty}, Requested: {$quantity}.",
+                    'quantity' => "Not enough stock (including oversell allowance) to reserve. Available: {$maxReservable}, Requested: {$quantity}.",
                 ]);
             }
 
@@ -455,11 +461,16 @@ class InventoryService
                 foreach ($order->items as $item) {
                     // Reserve stock – uses its own internal lock, same transaction
                     $stock        = $this->getStockForUpdate((int) $item->product_id, (int) $order->warehouse_id);
-                    $availableQty = (float) $stock->quantity - (float) $stock->reserved_qty;
+                    $product      = Product::find((int) $item->product_id);
+                    $rawAvailable = (float) $stock->quantity - (float) $stock->reserved_qty;
+                    $maxReservable = $rawAvailable;
+                    if ($product?->allow_overselling) {
+                        $maxReservable += (float) ($product->overselling_qty ?: 999);
+                    }
 
-                    if ($availableQty < (float) $item->quantity) {
+                    if ($maxReservable < (float) $item->quantity) {
                         throw ValidationException::withMessages([
-                            'quantity' => "Insufficient stock for product ID {$item->product_id}. Available: {$availableQty}.",
+                            'quantity' => "Insufficient stock (including oversell allowance) for product ID {$item->product_id}. Available: {$maxReservable}.",
                         ]);
                     }
 
@@ -537,7 +548,8 @@ class InventoryService
                         ]);
                     }
 
-                    if ((float) $stock->quantity < $qty) {
+                    $product = Product::find($productId);
+                    if (!$product?->allow_overselling && (float) $stock->quantity < $qty) {
                         throw ValidationException::withMessages([
                             'quantity' => "Insufficient physical stock for product ID {$productId}.",
                         ]);
