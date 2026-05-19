@@ -14,8 +14,14 @@
         <div class="hidden xl:block pr-3">
             <p class="text-xs font-black uppercase tracking-[0.1em] text-foreground leading-tight">
                 {{ auth()->user()->name ?? 'User' }}</p>
-            <p class="text-[9px] font-bold text-muted-foreground uppercase opacity-70 mt-0.5">
-                {{ auth()->user()->roles->first()->name ?? 'Member' }}</p>
+            <p class="text-[9px] font-bold text-emerald-500 uppercase opacity-90 mt-0.5 flex items-center gap-1">
+                <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                @if(auth()->check() && auth()->user()->last_login_at)
+                    Session: {{ auth()->user()->last_login_at->shortAbsoluteDiffForHumans() }}
+                @else
+                    Session Active
+                @endif
+            </p>
         </div>
         <div class="hidden lg:block pr-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -37,14 +43,31 @@
         <div class="p-6 relative overflow-hidden">
             <div class="absolute -top-10 -right-10 size-32 bg-primary/10 blur-[40px] rounded-full"></div>
             <div class="relative z-10 space-y-1">
-                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Session Registry
-                </p>
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Session Registry</p>
                 <p class="text-sm font-black text-foreground">{{ auth()->user()->name ?? 'User' }}</p>
-                <div class="flex items-center gap-2 mt-2">
-                    <span
-                        class="px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20 italic">
-                        {{ auth()->user()->roles->first()->name ?? 'Member' }}
-                    </span>
+                <p class="text-[10px] font-bold text-muted-foreground mb-2">{{ auth()->user()->email ?? '' }}</p>
+                
+                <div class="flex flex-col gap-2 mt-3">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20 italic">
+                            {{ auth()->user()->roles->first()->name ?? 'Member' }}
+                        </span>
+                        <span class="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-widest border border-emerald-500/20 flex items-center gap-1">
+                            <span class="size-1 rounded-full bg-emerald-500"></span> Active
+                        </span>
+                    </div>
+                    
+                    <div class="mt-2 p-2.5 rounded-xl bg-muted/30 border border-border/50">
+                        <p class="text-[8px] font-black uppercase tracking-[0.1em] text-muted-foreground mb-1">Session Started</p>
+                        <p class="text-xs font-bold text-foreground">
+                            @if(auth()->check() && auth()->user()->last_login_at)
+                                {{ auth()->user()->last_login_at->format('M d, h:i A') }}
+                                <span class="text-[9px] text-muted-foreground ml-1">({{ auth()->user()->last_login_at->diffForHumans() }})</span>
+                            @else
+                                Currently Active
+                            @endif
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

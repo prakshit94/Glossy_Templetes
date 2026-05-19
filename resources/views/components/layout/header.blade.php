@@ -6,11 +6,34 @@
 
     $sections = [
         'dashboard*' => ['Dashboard', '/dashboard', 'Home'],
+        
+        // Catalog
+        'products*'   => ['Products', '/products', 'Catalog'],
+        'categories*' => ['Categories', '/categories', 'Catalog'],
+        'brands*'     => ['Brands', '/brands', 'Catalog'],
+        'attributes*' => ['Attributes', '/attributes', 'Catalog'],
+        
+        // Sales
+        'orders*'     => ['Orders', '/orders', 'Sales'],
+        'returns*'    => ['Returns', '/returns', 'Sales'],
+        'refunds*'    => ['Refunds', '/refunds', 'Sales'],
+        'payments*'   => ['Payments', '/payments', 'Sales'],
+        'invoices*'   => ['Invoices', '/invoices', 'Sales'],
+        'shipment-tracking*' => ['Shipment Tracking', '/shipment-tracking', 'Sales'],
+        
+        // CRM
+        'customers*'  => ['Customers', '/customers', 'CRM'],
+        'farmers*'    => ['Farmers', '/farmers', 'CRM'],
+        
+        // Inventory
+        'warehouses*' => ['Warehouses', '/warehouses', 'Inventory'],
+        'stocks*'     => ['Stocks', '/stocks', 'Inventory'],
+        
+        // System
         'users*'     => ['Users', '/users', 'System'],
         'roles*'     => ['Roles', '/roles', 'System'],
         'settings*'  => ['Settings', '/settings', 'System'],
         'profile*'   => ['Profile', '/profile', 'Account'],
-        // Add more sections as needed for your project
     ];
 
     foreach ($sections as $pattern => $data) {

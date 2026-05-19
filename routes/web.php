@@ -17,12 +17,11 @@ use App\Http\Controllers\Web\TaxRateController;
 use App\Http\Controllers\Web\HsnCodeController;
 use App\Http\Controllers\Web\InventoryController;
 use App\Http\Controllers\Web\OrderController;
+use App\Http\Controllers\Web\OrderReturnController;
 use App\Http\Controllers\Web\InvoiceController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [\App\Http\Controllers\Web\DashboardController::class, 'index'])->name('dashboard');
 
     Route::post('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
     Route::post('/users/bulk-restore', [UserController::class, 'bulkRestore'])->name('users.bulk-restore');
@@ -102,10 +101,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
 
+    Route::resource('returns', OrderReturnController::class);
+    Route::post('returns/{return}/status', [OrderReturnController::class, 'updateStatus'])->name('returns.status');
+
     Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('payments/search-orders', [\App\Http\Controllers\Web\PaymentController::class, 'searchOrders'])->name('payments.search-orders');
     Route::post('payments/bulk-upload', [\App\Http\Controllers\Web\PaymentController::class, 'bulkUpload'])->name('payments.bulk-upload');
     Route::resource('payments', \App\Http\Controllers\Web\PaymentController::class);
+
+    Route::post('refunds/{refund}/status', [\App\Http\Controllers\Web\RefundController::class, 'updateStatus'])->name('refunds.status');
+    Route::resource('refunds', \App\Http\Controllers\Web\RefundController::class)->except(['edit', 'update', 'destroy']);
 
     // Order / Shipment Tracking URLs mapped to OrderTrackingController
     Route::get('shipment-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index'])->name('order.tracking.index');
@@ -122,8 +127,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
         'reviews' => ['title' => 'Reviews & Ratings', 'icon' => 'star'],
         'support-tickets' => ['title' => 'Support Tickets', 'icon' => 'mail'],
-        'returns' => ['title' => 'Returns', 'icon' => 'return'],
-        'refunds' => ['title' => 'Refunds', 'icon' => 'refresh-cw'],
         'replacement' => ['title' => 'Replacement', 'icon' => 'package'],
         'purchase-orders' => ['title' => 'Purchase Orders', 'icon' => 'purchase'],
         'suppliers' => ['title' => 'Suppliers', 'icon' => 'building'],
