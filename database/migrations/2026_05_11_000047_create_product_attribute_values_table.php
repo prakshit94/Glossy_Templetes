@@ -11,6 +11,7 @@ return new class extends Migration {
             $table->foreignId('attribute_id')->constrained('product_attributes')->cascadeOnDelete();
             $table->string('value');
             $table->string('color_code')->nullable();
+            $table->string('status')->default('active')->index();
             $table->timestamps();
 
             $table->index(['attribute_id', 'value']);

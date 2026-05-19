@@ -56,7 +56,7 @@ return new class extends Migration {
             | Source / Classification
             |--------------------------------------------------------------------------
             */
-            $table->string('source', 50)->nullable();
+            $table->json('source')->nullable();
 
             // Existing generic type retained
             $table->string('category')->nullable(); // individual/business
@@ -80,7 +80,7 @@ return new class extends Migration {
             $table->decimal('land_area', 10, 2)->nullable();
             $table->string('land_unit')->default('acre');
             $table->json('crops')->nullable();
-            $table->string('irrigation_type')->nullable();
+            $table->json('irrigation_type')->nullable();
 
             /*
             |--------------------------------------------------------------------------

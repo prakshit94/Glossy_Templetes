@@ -23,6 +23,8 @@ return new class extends Migration {
             $table->decimal('purchase_price', 15, 2)->default(0);
             $table->decimal('mrp', 15, 2)->default(0);
             $table->decimal('selling_price', 15, 2)->default(0);
+            $table->decimal('default_discount', 5, 2)->default(0);
+            $table->string('default_discount_type')->default('percent');
             $table->integer('min_stock_level')->default(0);
             $table->boolean('batch_tracking')->default(false);
             $table->boolean('expiry_tracking')->default(false);
