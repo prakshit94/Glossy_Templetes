@@ -21,7 +21,9 @@ class OrderTrackingController extends Controller
                   ->orWhereHas('order', function($o) use ($s) {
                       $o->where('order_no', 'like', "%$s%")
                         ->orWhereHas('party', function($p) use ($s) {
-                            $p->where('name', 'like', "%$s%");
+                            $p->where('firstname', 'like', "%$s%")
+                              ->orWhere('lastname', 'like', "%$s%")
+                              ->orWhere('company_name', 'like', "%$s%");
                         });
                   });
             });
@@ -89,7 +91,7 @@ class OrderTrackingController extends Controller
             
             if ($request->update_shipment_status === 'delivered') {
                 $shipment->update(['delivered_at' => $request->occurred_at]);
-                $shipment->order->update(['status' => 'delivered']);
+                app(\App\Services\OrderService::class)->updateStatus($shipment->order, 'delivered');
             }
         }
 
@@ -113,7 +115,7 @@ class OrderTrackingController extends Controller
             if (!$shipment->delivered_at) {
                 $shipment->update(['delivered_at' => now()]);
             }
-            $shipment->order->update(['status' => 'delivered']);
+            app(\App\Services\OrderService::class)->updateStatus($shipment->order, 'delivered');
         }
 
         return back()->with('success', 'Shipment tracking information updated successfully.');

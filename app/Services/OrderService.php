@@ -224,6 +224,13 @@ class OrderService
             'updated_by' => auth()->id(),
         ]);
 
+        if ($status === 'delivered') {
+            $order->shipments()->where('status', '!=', 'delivered')->update([
+                'status' => 'delivered',
+                'delivered_at' => now(),
+            ]);
+        }
+
         activity('orders')
             ->performedOn($order)
             ->log("Order #{$order->order_no} status updated to {$status}");

@@ -26,13 +26,21 @@
                                 <x-ui.icon name="package" size="5" />
                             </div>
                             <div>
-                                <p class="text-sm font-black text-foreground tracking-tight group-hover:text-primary transition-colors">#{{ $shipment->shipment_no }}</p>
+                                <p x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $shipment->shipment_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer text-sm font-black text-foreground tracking-tight hover:text-primary transition-colors flex items-center gap-1.5 relative group/copy w-max">
+                                    #{{ $shipment->shipment_no }}
+                                    <x-ui.icon name="copy" size="3.5" class="opacity-0 group-hover/copy:opacity-100 transition-opacity text-primary" />
+                                    <span x-show="copied" x-cloak class="absolute -top-6 left-0 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none">Copied!</span>
+                                </p>
                                 <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
                                     <x-ui.icon name="truck" size="2.5" />
                                     {{ $shipment->carrier_name ?? 'Logistics Pending' }}
                                     @if($shipment->tracking_no)
                                         <span class="size-1 rounded-full bg-muted-foreground/30"></span>
-                                        {{ $shipment->tracking_no }}
+                                        <span x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $shipment->tracking_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer hover:text-primary transition-colors flex items-center gap-1 relative group/copy">
+                                            {{ $shipment->tracking_no }}
+                                            <x-ui.icon name="copy" size="2.5" class="opacity-0 group-hover/copy:opacity-100 text-primary" />
+                                            <span x-show="copied" x-cloak class="absolute -top-6 left-0 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg normal-case tracking-normal">Copied!</span>
+                                        </span>
                                     @endif
                                 </p>
                             </div>
@@ -40,9 +48,13 @@
                     </td>
                     <td class="px-6 py-6">
                         <div class="space-y-1">
-                            <a href="{{ route('orders.show', $shipment->order_id) }}" class="text-xs font-black text-foreground hover:text-primary transition-colors flex items-center gap-1.5">
-                                {{ $shipment->order->order_no }}
-                                <x-ui.icon name="external-link" size="3" class="opacity-40" />
+                            <a href="{{ route('orders.show', $shipment->order_id) }}" class="text-xs font-black text-foreground hover:text-primary transition-colors flex items-center gap-1.5 group/link w-max">
+                                <span x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $shipment->order->order_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="relative group/copy flex items-center gap-1 cursor-pointer">
+                                    {{ $shipment->order->order_no }}
+                                    <x-ui.icon name="copy" size="3" class="opacity-0 group-hover/copy:opacity-100 text-primary transition-opacity" />
+                                    <span x-show="copied" x-cloak class="absolute -top-6 left-0 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg tracking-normal">Copied!</span>
+                                </span>
+                                <x-ui.icon name="external-link" size="3.5" class="opacity-40 group-hover/link:opacity-100 transition-opacity" />
                             </a>
                             <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                                 {{ $shipment->order->party->name ?? 'Unknown Customer' }}

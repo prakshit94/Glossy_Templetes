@@ -25,7 +25,9 @@ class InvoiceController extends Controller
                   ->orWhereHas('order', function ($oq) use ($search) {
                       $oq->where('order_no', 'like', "%{$search}%")
                          ->orWhereHas('party', function ($pq) use ($search) {
-                             $pq->where('name', 'like', "%{$search}%");
+                             $pq->where('firstname', 'like', "%{$search}%")
+                                ->orWhere('lastname', 'like', "%{$search}%")
+                                ->orWhere('company_name', 'like', "%{$search}%");
                          });
                   });
             });

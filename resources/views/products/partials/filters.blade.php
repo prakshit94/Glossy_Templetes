@@ -14,7 +14,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <template x-for="item in categoriesList.filter(i => i.name.toLowerCase().includes(filter.toLowerCase()))" :key="item.slug">
                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="categoryFilter.includes(item.slug) ? 'bg-primary/5' : ''">
-                    <input type="checkbox" :value="item.slug" x-model="categoryFilter" @change="performSearch" class="rounded border-border text-primary">
+                    <input type="checkbox" :value="item.slug" x-model="categoryFilter" @change="performSearch()" class="rounded border-border text-primary">
                     <span class="text-[11px]" x-text="item.name"></span>
                 </label>
             </template>
@@ -38,7 +38,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <template x-for="item in statusList.filter(i => i.label.toLowerCase().includes(filter.toLowerCase()))" :key="item.value">
                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="statusFilter.includes(item.value) ? 'bg-primary/5' : ''">
-                    <input type="checkbox" :value="item.value" x-model="statusFilter" @change="performSearch" class="rounded border-border text-primary">
+                    <input type="checkbox" :value="item.value" x-model="statusFilter" @change="performSearch()" class="rounded border-border text-primary">
                     <span class="text-[11px]" x-text="item.label"></span>
                 </label>
             </template>

@@ -59,7 +59,11 @@
                             </div>
                             <div class="flex flex-col min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-sm font-black tracking-tight text-foreground uppercase truncate">{{ $order->order_no }}</span>
+                                    <span x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $order->order_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer text-sm font-black tracking-tight text-foreground uppercase truncate hover:text-primary transition-colors flex items-center gap-1.5 relative group/copy w-max">
+                                        {{ $order->order_no }}
+                                        <x-ui.icon name="copy" size="3" class="opacity-0 group-hover/copy:opacity-100 transition-opacity text-primary" />
+                                        <span x-show="copied" x-cloak class="absolute -top-6 left-0 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none normal-case tracking-normal">Copied!</span>
+                                    </span>
                                     <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/40 whitespace-nowrap">ID: {{ $order->id }}</span>
                                 </div>
                                 <span class="text-[10px] font-bold text-muted-foreground/65 tabular-nums">

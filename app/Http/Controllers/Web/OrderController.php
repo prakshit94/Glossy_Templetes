@@ -21,12 +21,26 @@ class OrderController extends Controller
         $query = Order::with(['party', 'warehouse', 'invoice', 'items.product'])->withCount('items');
 
         if ($request->filled('search')) {
-            $s = trim($request->search);
-            $query->where('order_no', 'like', "%$s%")
-                  ->orWhereHas('party', function ($q) use ($s) {
-                      $q->where('name', 'like', "%$s%");
-                  });
-        }
+
+    $s = trim($request->search);
+
+    $query->where(function ($subQuery) use ($s) {
+
+        // Search by order number
+        $subQuery->where('order_no', 'LIKE', "%{$s}%")
+
+            // Search in party table
+            ->orWhereHas('party', function ($q) use ($s) {
+
+                $q->where('firstname', 'LIKE', "%{$s}%")
+                    ->orWhere('lastname', 'LIKE', "%{$s}%")
+                    ->orWhere('company_name', 'LIKE', "%{$s}%")
+                    ->orWhere('phone', 'LIKE', "%{$s}%");
+
+            });
+
+    });
+}
 
         if ($request->filled('status')) {
             $statuses = array_filter(array_map('trim', explode(',', $request->status)));
@@ -230,10 +244,17 @@ class OrderController extends Controller
 
     public function confirm(string $id, InventoryService $inventoryService)
     {
-        $order = Order::findOrFail($id);
+        $order = Order::with('items')->findOrFail($id);
 
         if ($order->status !== 'pending') {
             return back()->with('error', 'Only pending orders can be confirmed.');
+        }
+
+        foreach ($order->items as $item) {
+            $available = $inventoryService->getAvailableQty($item->product_id, $order->warehouse_id);
+            if ($item->quantity > $available) {
+                return back()->with('error', 'Insufficient on-hand stock to confirm this order.');
+            }
         }
 
         try {
@@ -378,6 +399,12 @@ class OrderController extends Controller
                     try {
                         // ─── FORWARD TRANSITIONS ───────────────────────────
                         if ($targetStatus === 'confirmed' && $order->status === 'pending') {
+                            foreach ($order->items as $item) {
+                                $available = $inventoryService->getAvailableQty($item->product_id, $order->warehouse_id);
+                                if ($item->quantity > $available) {
+                                    throw ValidationException::withMessages(['error' => 'Insufficient on-hand stock to confirm this order.']);
+                                }
+                            }
                             $inventoryService->confirmOrder($order);
                             $count++;
                         } elseif ($targetStatus === 'processing' && $order->status === 'confirmed') {

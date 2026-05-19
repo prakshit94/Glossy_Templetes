@@ -49,7 +49,11 @@
                             </div>
                             <div class="flex flex-col min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-sm font-black tracking-tight text-foreground uppercase truncate">{{ $invoice->invoice_no }}</span>
+                                    <span x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $invoice->invoice_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer text-sm font-black tracking-tight text-foreground uppercase truncate hover:text-blue-500 transition-colors flex items-center gap-1.5 relative group/copy w-max">
+                                        {{ $invoice->invoice_no }}
+                                        <x-ui.icon name="copy" size="3" class="opacity-0 group-hover/copy:opacity-100 transition-opacity text-blue-500" />
+                                        <span x-show="copied" x-cloak class="absolute -top-6 left-0 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none normal-case tracking-normal">Copied!</span>
+                                    </span>
                                     <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/40 whitespace-nowrap">ID: {{ $invoice->id }}</span>
                                 </div>
                                 <span class="text-[10px] font-bold text-muted-foreground/65 tabular-nums">
@@ -65,7 +69,15 @@
                                 <x-ui.icon name="package" size="3" />
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[11px] font-black text-foreground/80">{{ $invoice->order?->order_no ?? 'N/A' }}</span>
+                                @if($invoice->order)
+                                    <span x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $invoice->order->order_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer text-[11px] font-black text-foreground/80 hover:text-primary transition-colors flex items-center gap-1 relative group/copy w-max">
+                                        {{ $invoice->order->order_no }}
+                                        <x-ui.icon name="copy" size="2.5" class="opacity-0 group-hover/copy:opacity-100 transition-opacity text-primary" />
+                                        <span x-show="copied" x-cloak class="absolute -top-6 left-0 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none normal-case tracking-normal">Copied!</span>
+                                    </span>
+                                @else
+                                    <span class="text-[11px] font-black text-foreground/80">N/A</span>
+                                @endif
                                 <span class="text-[9px] font-bold text-muted-foreground/60">{{ optional($invoice->order?->order_date)->format('M d, Y') }}</span>
                             </div>
                         </div>
@@ -105,9 +117,12 @@
                     </x-ui.table-cell>
 
                     <x-ui.table-cell class="text-right align-middle">
-                        <div class="flex flex-col items-end">
+                        <div class="flex flex-col items-end gap-1">
                             <span class="text-sm font-black text-foreground tracking-tight">₹{{ number_format((float) $invoice->net_amount, 2) }}</span>
-                            <span class="text-[9px] font-bold text-muted-foreground/60">Tax: ₹{{ number_format((float) $invoice->tax_amount, 2) }}</span>
+                            <div class="flex items-center gap-2 text-[10px] font-bold mt-0.5">
+                                <span class="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider border border-emerald-500/20">Paid: ₹{{ number_format((float) $invoice->paid_amount, 2) }}</span>
+                                <span class="text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider border border-orange-500/20">Due: ₹{{ number_format((float) $invoice->due_amount, 2) }}</span>
+                            </div>
                         </div>
                     </x-ui.table-cell>
 

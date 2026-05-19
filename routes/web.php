@@ -103,6 +103,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
 
     Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+    Route::get('payments/search-orders', [\App\Http\Controllers\Web\PaymentController::class, 'searchOrders'])->name('payments.search-orders');
+    Route::post('payments/bulk-upload', [\App\Http\Controllers\Web\PaymentController::class, 'bulkUpload'])->name('payments.bulk-upload');
     Route::resource('payments', \App\Http\Controllers\Web\PaymentController::class);
 
     // Order / Shipment Tracking URLs mapped to OrderTrackingController

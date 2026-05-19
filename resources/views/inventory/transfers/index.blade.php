@@ -141,7 +141,7 @@
                         <div class="flex flex-wrap items-center gap-3">
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status</span>
-                                <select x-model="status" @change="performSearch" 
+                                <select x-model="status" @change="performSearch()" 
                                     class="h-10 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-primary/20 transition-all">
                                     <option value="">All Statuses</option>
                                     <option value="draft">Draft (Unsent)</option>
@@ -150,14 +150,14 @@
                                     <option value="cancelled">Cancelled</option>
                                 </select>
                             </div>
-                            <button @click="clearFilters" class="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors">
+                            <button @click="clearFilters()" class="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors">
                                 Reset Filters
                             </button>
                         </div>
 
                         <div class="relative group w-full lg:max-w-md shrink-0">
                             <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <input type="text" x-model="search" @input.debounce.500ms="performSearch"
+                            <input type="text" x-model="search" @input.debounce.500ms="performSearch()"
                                 placeholder="Search by transfer no..."
                                 class="pl-9 pr-10 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
                             <div x-show="isLoading" x-cloak class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">

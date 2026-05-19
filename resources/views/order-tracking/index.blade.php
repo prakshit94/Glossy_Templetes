@@ -119,7 +119,7 @@
                         <div class="flex flex-wrap items-center gap-4">
                             <div class="flex items-center gap-3">
                                 <span class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Show</span>
-                                <select x-model="perPage" @change="performSearch" 
+                                <select x-model="perPage" @change="performSearch()" 
                                     class="h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-primary/20 transition-all outline-none">
                                     <option value="15">15 Entries</option>
                                     <option value="30">30 Entries</option>
@@ -129,7 +129,7 @@
                             </div>
                             <div class="flex items-center gap-3">
                                 <span class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</span>
-                                <select x-model="status" @change="performSearch" 
+                                <select x-model="status" @change="performSearch()" 
                                     class="h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-primary/20 transition-all outline-none">
                                     <option value="">All Logistics</option>
                                     <option value="pending">Pending</option>
@@ -139,7 +139,7 @@
                                     <option value="failed">Failed</option>
                                 </select>
                             </div>
-                            <button @click="clearFilters" class="h-11 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors flex items-center gap-2 group">
+                            <button @click="clearFilters()" class="h-11 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors flex items-center gap-2 group">
                                 <x-ui.icon name="rotate-ccw" size="3" class="group-hover:rotate-[-45deg] transition-transform" />
                                 Reset
                             </button>
@@ -147,7 +147,7 @@
 
                         <div class="relative group w-full lg:max-w-md shrink-0">
                             <x-ui.icon name="search" size="4" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <input type="text" x-model="search" @input.debounce.500ms="performSearch"
+                            <input type="text" x-model="search" @input.debounce.500ms="performSearch()"
                                 placeholder="Search Shipment #, Order #, Tracking #..."
                                 class="pl-10 pr-12 py-3 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none font-medium">
                             <div x-show="isLoading" x-cloak class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">

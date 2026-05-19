@@ -39,6 +39,7 @@
         stats: @js($stats),
         isLoading: false,
         isCreateOpen: false,
+        isUploadOpen: false,
 
         toggleAll() {
             if (this.allSelected) {
@@ -174,6 +175,11 @@
                             </div>
 
                             <div class="flex items-center gap-3">
+                                <button type="button" @click="isUploadOpen = true"
+                                    class="h-10 px-4 rounded-2xl bg-muted/50 hover:bg-muted text-foreground text-xs font-black uppercase tracking-wider flex items-center gap-2 border border-border transition-all duration-300">
+                                    <x-ui.icon name="upload-cloud" size="4" />
+                                    <span class="hidden sm:inline">Bulk CSV</span>
+                                </button>
                                 <button type="button" @click="isCreateOpen = true"
                                     class="h-10 px-5 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300">
                                     <x-ui.icon name="plus" size="4" />
@@ -190,7 +196,7 @@
 
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Show</span>
-                                <select x-model="perPage" @change="performSearch" class="h-10 px-3 rounded-xl border border-border bg-background/50 text-xs font-medium focus:ring-1 focus:ring-primary outline-none shadow-sm">
+                                <select x-model="perPage" @change="performSearch()" class="h-10 px-3 rounded-xl border border-border bg-background/50 text-xs font-medium focus:ring-1 focus:ring-primary outline-none shadow-sm">
                                     <option value="15">15</option>
                                     <option value="25">25</option>
                                     <option value="50">50</option>
@@ -215,7 +221,7 @@
                                         <div class="max-h-60 overflow-y-auto custom-scrollbar">
                                             <template x-for="item in statusesList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
                                                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="statusFilter.includes(item) ? 'bg-primary/5' : ''">
-                                                    <input type="checkbox" :value="item" x-model="statusFilter" @change="performSearch" class="rounded border-border text-primary">
+                                                    <input type="checkbox" :value="item" x-model="statusFilter" @change="performSearch()" class="rounded border-border text-primary">
                                                     <span class="text-[11px] uppercase tracking-widest font-black" x-text="item"></span>
                                                 </label>
                                             </template>
@@ -239,7 +245,7 @@
                                         <div class="max-h-60 overflow-y-auto custom-scrollbar">
                                             <template x-for="item in methodsList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
                                                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="methodFilter.includes(item) ? 'bg-primary/5' : ''">
-                                                    <input type="checkbox" :value="item" x-model="methodFilter" @change="performSearch" class="rounded border-border text-primary">
+                                                    <input type="checkbox" :value="item" x-model="methodFilter" @change="performSearch()" class="rounded border-border text-primary">
                                                     <span class="text-[11px] uppercase tracking-widest font-black" x-text="item"></span>
                                                 </label>
                                             </template>
@@ -247,14 +253,14 @@
                                     </div>
                                 </div>
                                 
-                                <x-ui.button variant="ghost" size="sm" @click="clearFilters" class="rounded-xl h-10 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
+                                <x-ui.button variant="ghost" size="sm" @click="clearFilters()" class="rounded-xl h-10 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
                                     Clear All
                                 </x-ui.button>
                             </div>
 
                             <div class="lg:ml-auto relative group w-full lg:max-w-md shrink-0">
                                 <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                <input type="text" x-model="search" @input.debounce.500ms="performSearch"
+                                <input type="text" x-model="search" @input.debounce.500ms="performSearch()"
                                     placeholder="Search payment #, TXN ID, invoice # or party..."
                                     class="pl-9 pr-10 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
                                 <div x-show="isLoading" x-cloak class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -299,16 +305,85 @@
                 </div>
                 <form action="{{ route('payments.store') }}" method="POST" class="p-6 space-y-5">
                     @csrf
-                    <div>
-                        <label class="block text-xs font-black uppercase tracking-widest text-muted-foreground mb-2">Select Associated Order</label>
-                        <select name="order_id" required class="w-full h-11 px-4 rounded-xl border border-border bg-background text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
-                            <option value="">-- Choose Order --</option>
-                            @foreach($ordersList as $ord)
-                                <option value="{{ $ord->id }}" {{ old('order_id') == $ord->id ? 'selected' : '' }}>
-                                    {{ $ord->order_no }} ({{ $ord->party?->name ?? 'Internal Node' }}) — ₹{{ number_format((float) $ord->net_amount, 2) }}
-                                </option>
-                            @endforeach
-                        </select>
+                    <div x-data="{
+                        query: '',
+                        results: [],
+                        selectedId: '',
+                        selectedText: '-- Choose Order --',
+                        selectedItem: null,
+                        isOpen: false,
+                        isLoading: false,
+                        async searchOrders() {
+                            if (this.query.length < 2) {
+                                this.results = [];
+                                return;
+                            }
+                            this.isLoading = true;
+                            try {
+                                let res = await fetch(`{{ route('payments.search-orders') }}?q=${this.query}`);
+                                this.results = await res.json();
+                            } catch (e) {}
+                            this.isLoading = false;
+                            this.isOpen = true;
+                        },
+                        selectOrder(item) {
+                            this.selectedId = item.id;
+                            this.selectedText = item.text;
+                            this.selectedItem = item;
+                            this.isOpen = false;
+                            this.query = '';
+                            document.querySelector('input[name=amount]').value = item.due_amount;
+                        }
+                    }" class="relative">
+                        <label class="block text-xs font-black uppercase tracking-widest text-muted-foreground mb-2">Select Associated Order or Invoice</label>
+                        <input type="hidden" name="order_id" :value="selectedId" required>
+                        <button type="button" @click="isOpen = !isOpen" class="w-full h-11 px-4 rounded-xl border border-border bg-background text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none flex items-center justify-between text-left">
+                            <span x-text="selectedText" :class="selectedId ? 'text-foreground' : 'text-muted-foreground'"></span>
+                            <x-ui.icon name="chevron-down" size="4" class="text-muted-foreground/60" />
+                        </button>
+                        
+                        <div x-show="isOpen" @click.away="isOpen = false" x-cloak class="absolute z-[250] top-full mt-2 w-full bg-popover border border-border rounded-xl shadow-2xl p-2 overflow-hidden flex flex-col max-h-64">
+                            <div class="relative">
+                                <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                <input type="text" x-model="query" @input.debounce.300ms="searchOrders()" placeholder="Search Order ID, Invoice ID..." class="w-full h-10 pl-9 pr-4 rounded-lg border border-border bg-background text-sm focus:ring-2 focus:ring-primary/20 outline-none mb-2" autofocus>
+                                <x-ui.icon x-show="isLoading" name="refresh-cw" size="3" class="absolute right-3 top-1/2 -translate-y-1/2 text-primary animate-spin" x-cloak />
+                            </div>
+                            
+                            <div class="overflow-y-auto custom-scrollbar flex-1 space-y-1">
+                                <template x-if="results.length === 0 && query.length >= 2 && !isLoading">
+                                    <div class="px-3 py-2 text-xs font-bold text-muted-foreground text-center">No orders found.</div>
+                                </template>
+                                <template x-if="query.length < 2">
+                                    <div class="px-3 py-2 text-xs font-bold text-muted-foreground text-center">Type at least 2 characters to search.</div>
+                                </template>
+                                <template x-for="item in results" :key="item.id">
+                                    <button type="button" @click="selectOrder(item)" class="w-full text-left px-3 py-2 rounded-lg hover:bg-primary/5 hover:text-primary text-xs font-bold transition-colors">
+                                        <span x-text="item.text"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Info display when an order is selected -->
+                        <div x-show="selectedItem" x-cloak class="mt-4 p-4 rounded-xl border border-border bg-muted/30">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Order Breakdown</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-center divide-x divide-border">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] font-bold text-muted-foreground uppercase">Total Amount</span>
+                                    <span class="text-sm font-black text-foreground" x-text="selectedItem ? '₹' + Number(selectedItem.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2}) : '₹0.00'"></span>
+                                </div>
+                                <div class="flex flex-col pl-2">
+                                    <span class="text-[10px] font-bold text-muted-foreground uppercase">Already Paid</span>
+                                    <span class="text-sm font-black text-emerald-500" x-text="selectedItem ? '₹' + Number(selectedItem.paid_amount).toLocaleString('en-IN', {minimumFractionDigits: 2}) : '₹0.00'"></span>
+                                </div>
+                                <div class="flex flex-col pl-2">
+                                    <span class="text-[10px] font-bold text-muted-foreground uppercase">Pending Due</span>
+                                    <span class="text-sm font-black text-orange-500" x-text="selectedItem ? '₹' + Number(selectedItem.due_amount).toLocaleString('en-IN', {minimumFractionDigits: 2}) : '₹0.00'"></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -355,6 +430,50 @@
                         </button>
                         <button type="submit" class="h-11 px-8 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300">
                             Confirm & Record
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bulk CSV Upload Modal -->
+        <div x-show="isUploadOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" x-cloak>
+            <div @click.away="isUploadOpen = false" class="bg-card border border-border/60 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-border/40 bg-muted/10 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
+                            <x-ui.icon name="upload-cloud" size="5" />
+                        </div>
+                        <div>
+                            <h3 class="text-base font-black tracking-tight text-foreground">Bulk Update via CSV</h3>
+                            <p class="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Update Payments in Batch</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="isUploadOpen = false" class="size-8 rounded-xl bg-background border border-border/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all">
+                        <x-ui.icon name="x" size="4" />
+                    </button>
+                </div>
+                <form action="{{ route('payments.bulk-upload') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-5">
+                    @csrf
+                    <div>
+                        <p class="text-xs text-muted-foreground font-semibold leading-relaxed mb-4">
+                            Upload a CSV file to update multiple payments at once. The CSV must contain a <strong>payment_no</strong> column to identify the payment. You can optionally include columns for <strong>transaction_id</strong>, <strong>status</strong>, <strong>amount</strong>, <strong>payment_method</strong>, and <strong>payment_date</strong>.
+                        </p>
+                        <div class="relative group">
+                            <input type="file" name="csv_file" accept=".csv,.txt" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" @change="$refs.fileName.textContent = $event.target.files[0] ? $event.target.files[0].name : 'Browse CSV file...'">
+                            <div class="w-full h-24 rounded-xl border-2 border-dashed border-border/60 group-hover:border-primary/50 group-hover:bg-primary/5 transition-all flex flex-col items-center justify-center text-muted-foreground gap-2">
+                                <x-ui.icon name="upload-cloud" size="6" />
+                                <span class="text-xs font-bold" x-ref="fileName">Browse CSV file...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-border/40 flex items-center justify-end gap-3">
+                        <button type="button" @click="isUploadOpen = false" class="h-11 px-6 rounded-2xl bg-muted hover:bg-muted/80 text-xs font-black uppercase tracking-widest text-muted-foreground transition-all">
+                            Cancel
+                        </button>
+                        <button type="submit" class="h-11 px-8 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300">
+                            Upload & Update
                         </button>
                     </div>
                 </form>

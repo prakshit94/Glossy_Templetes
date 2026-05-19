@@ -14,7 +14,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <template x-for="item in statesList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="stateFilter.includes(item) ? 'bg-primary/5' : ''">
-                    <input type="checkbox" :value="item" x-model="stateFilter" @change="performSearch" class="rounded border-border text-primary">
+                    <input type="checkbox" :value="item" x-model="stateFilter" @change="performSearch()" class="rounded border-border text-primary">
                     <span class="text-[11px]" x-text="item"></span>
                 </label>
             </template>
@@ -38,7 +38,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <template x-for="item in districtsList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="districtFilter.includes(item) ? 'bg-primary/5' : ''">
-                    <input type="checkbox" :value="item" x-model="districtFilter" @change="performSearch" class="rounded border-border text-primary">
+                    <input type="checkbox" :value="item" x-model="districtFilter" @change="performSearch()" class="rounded border-border text-primary">
                     <span class="text-[11px]" x-text="item"></span>
                 </label>
             </template>
@@ -62,7 +62,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <template x-for="item in talukasList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="talukaFilter.includes(item) ? 'bg-primary/5' : ''">
-                    <input type="checkbox" :value="item" x-model="talukaFilter" @change="performSearch" class="rounded border-border text-primary">
+                    <input type="checkbox" :value="item" x-model="talukaFilter" @change="performSearch()" class="rounded border-border text-primary">
                     <span class="text-[11px]" x-text="item"></span>
                 </label>
             </template>

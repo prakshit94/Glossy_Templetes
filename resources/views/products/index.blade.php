@@ -136,7 +136,7 @@
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div class="flex flex-wrap items-center gap-3">
                             <div class="flex bg-muted/50 p-1 rounded-xl border border-border/50 shadow-inner">
-                                <button @click="clearFilters" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-background shadow-sm text-primary ring-1 ring-border/50 uppercase tracking-tight hover:bg-muted">
+                                <button @click="clearFilters()" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-background shadow-sm text-primary ring-1 ring-border/50 uppercase tracking-tight hover:bg-muted">
                                     Clear All Filters
                                 </button>
                             </div>
@@ -199,7 +199,7 @@
                             
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Show</span>
-                                <select x-model="perPage" @change="performSearch" class="h-9 px-3 rounded-xl border border-border bg-background/50 text-xs font-medium focus:ring-1 focus:ring-primary outline-none">
+                                <select x-model="perPage" @change="performSearch()" class="h-9 px-3 rounded-xl border border-border bg-background/50 text-xs font-medium focus:ring-1 focus:ring-primary outline-none">
                                     <option value="10">10</option>
                                     <option value="25">25</option>
                                     <option value="50">50</option>
@@ -212,7 +212,7 @@
 
                         <div class="relative group w-full lg:max-w-xs">
                             <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <input type="text" x-model="search" @input.debounce.500ms="performSearch" placeholder="Search catalog..." 
+                            <input type="text" x-model="search" @input.debounce.500ms="performSearch()" placeholder="Search catalog..." 
                                 class="pl-9 pr-4 py-2 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
                         </div>
                     </div>

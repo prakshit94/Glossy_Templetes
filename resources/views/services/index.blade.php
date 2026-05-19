@@ -165,7 +165,7 @@
 
                         <div class="relative group w-full lg:max-w-xs">
                             <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <input type="text" x-model="search" @input.debounce.500ms="performSearch" placeholder="Search services..." 
+                            <input type="text" x-model="search" @input.debounce.500ms="performSearch()" placeholder="Search services..." 
                                 class="pl-9 pr-4 py-2 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm">
                         </div>
                     </div>

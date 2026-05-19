@@ -157,7 +157,7 @@
                         </div>
                         <div class="relative group w-full lg:w-64 shrink-0">
                             <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <input type="text" x-model="search" @input.debounce.500ms="performSearch" placeholder="Search brands..." 
+                            <input type="text" x-model="search" @input.debounce.500ms="performSearch()" placeholder="Search brands..." 
                                 class="pl-9 pr-4 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
                         </div>
                         <x-ui.button @click.stop="openAddModal" class="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-primary/20 w-full lg:w-auto">

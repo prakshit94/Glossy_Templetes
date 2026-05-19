@@ -138,7 +138,7 @@
                             <!-- Per Page Selector -->
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:inline-block">Show</span>
-                                <select x-model="perPage" @change="performSearch" class="h-9 px-3 py-1.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs font-medium shadow-sm">
+                                <select x-model="perPage" @change="performSearch()" class="h-9 px-3 py-1.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs font-medium shadow-sm">
                                     <option value="15">15</option>
                                     <option value="30">30</option>
                                     <option value="50">50</option>
@@ -146,7 +146,7 @@
                                 </select>
                             </div>
                             <!-- Event Filter -->
-                            <select x-model="eventFilter" @change="performSearch" class="h-9 px-3 py-1.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs font-medium shadow-sm w-full sm:w-auto">
+                            <select x-model="eventFilter" @change="performSearch()" class="h-9 px-3 py-1.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs font-medium shadow-sm w-full sm:w-auto">
                                 <option value="">All Events</option>
                                 <option value="created">Created</option>
                                 <option value="updated">Updated</option>
@@ -158,7 +158,7 @@
                         <!-- Right Side: Search Input -->
                         <div class="relative group w-full lg:max-w-xs shrink-0">
                             <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <input type="text" x-model="search" @input.debounce.500ms="performSearch"
+                            <input type="text" x-model="search" @input.debounce.500ms="performSearch()"
                                 placeholder="Search logs..." 
                                 class="pl-9 pr-4 py-2 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all w-full text-xs shadow-sm">
                             <div x-show="isLoading" class="absolute right-3 top-1/2 -translate-y-1/2">

@@ -34,7 +34,9 @@ class PaymentController extends Controller
                   ->orWhereHas('order', function ($oq) use ($search) {
                       $oq->where('order_no', 'like', "%{$search}%")
                          ->orWhereHas('party', function ($pq) use ($search) {
-                             $pq->where('name', 'like', "%{$search}%")
+                             $pq->where('firstname', 'like', "%{$search}%")
+                                ->orWhere('lastname', 'like', "%{$search}%")
+                                ->orWhere('company_name', 'like', "%{$search}%")
                                 ->orWhere('phone', 'like', "%{$search}%");
                          });
                   });
@@ -94,8 +96,8 @@ class PaymentController extends Controller
             'Wallet' => 'Wallet / Others',
         ];
 
-        // Also fetch active orders/invoices for the create modal dropdown
-        $ordersList = Order::with('party')->latest()->limit(100)->get();
+        // We will fetch orders dynamically via AJAX in the create modal.
+        $ordersList = collect([]);
 
         if ($request->ajax()) {
             return response()->json([
@@ -105,6 +107,122 @@ class PaymentController extends Controller
         }
 
         return view('payments.index', compact('payments', 'stats', 'statusesList', 'methodsList', 'ordersList'));
+    }
+
+    /**
+     * Search orders/invoices for the record payment modal.
+     */
+    public function searchOrders(Request $request): JsonResponse
+    {
+        $search = $request->input('q');
+        if (!$search) {
+            return response()->json([]);
+        }
+
+        $orders = Order::with('party', 'invoice')
+            ->where('order_no', 'like', "%{$search}%")
+            ->orWhereHas('invoice', function($q) use ($search) {
+                $q->where('invoice_no', 'like', "%{$search}%");
+            })
+            ->limit(20)
+            ->get();
+            
+        $results = $orders->map(function($order) {
+            $invoiceText = $order->invoice ? " | Inv: {$order->invoice->invoice_no}" : "";
+            $partyName = $order->party ? "{$order->party->firstname} {$order->party->lastname}" : "Internal Node";
+            
+            $paid = $order->payments()->where('status', 'completed')->sum('amount');
+            $due = max(0, $order->net_amount - $paid);
+            
+            return [
+                'id' => $order->id,
+                'text' => "{$order->order_no}{$invoiceText} ({$partyName})",
+                'total_amount' => $order->net_amount,
+                'paid_amount' => $paid,
+                'due_amount' => $due
+            ];
+        });
+
+        return response()->json($results);
+    }
+
+    /**
+     * Bulk update payments via CSV.
+     */
+    public function bulkUpload(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:5120', // 5MB max
+        ]);
+
+        $file = $request->file('csv_file');
+        $path = $file->getRealPath();
+
+        $data = array_map('str_getcsv', file($path));
+        
+        if (count($data) < 2) {
+            return back()->with('error', 'CSV file is empty or missing data rows.');
+        }
+
+        // Extract header
+        $header = array_map('strtolower', array_map('trim', array_shift($data)));
+        
+        // Expected columns (flexible order)
+        $paymentNoIdx = array_search('payment_no', $header);
+        if ($paymentNoIdx === false) {
+            $paymentNoIdx = array_search('payment reference', $header);
+        }
+
+        if ($paymentNoIdx === false) {
+            return back()->with('error', 'CSV must contain a "payment_no" or "payment reference" column to identify payments.');
+        }
+
+        $updatedCount = 0;
+        $errors = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($data as $rowIndex => $row) {
+                if (empty(array_filter($row))) continue; // Skip empty rows
+
+                $paymentNo = trim($row[$paymentNoIdx] ?? '');
+                if (!$paymentNo) continue;
+
+                $payment = Payment::where('payment_no', $paymentNo)->first();
+                
+                if (!$payment) {
+                    $errors[] = "Row " . ($rowIndex + 2) . ": Payment {$paymentNo} not found.";
+                    continue;
+                }
+
+                $updateData = [];
+
+                foreach (['transaction_id', 'status', 'amount', 'payment_method', 'payment_date'] as $field) {
+                    $idx = array_search($field, $header);
+                    if ($idx !== false && isset($row[$idx]) && trim($row[$idx]) !== '') {
+                        $updateData[$field] = trim($row[$idx]);
+                    }
+                }
+
+                if (!empty($updateData)) {
+                    $payment->update($updateData);
+                    $updatedCount++;
+                }
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Error processing CSV: ' . $e->getMessage());
+        }
+
+        if (count($errors) > 0) {
+            $msg = "{$updatedCount} payments updated. Issues: " . implode('; ', array_slice($errors, 0, 3));
+            if (count($errors) > 3) $msg .= " and " . (count($errors) - 3) . " more.";
+            return back()->with('warning', $msg);
+        }
+
+        return back()->with('success', "{$updatedCount} payments successfully updated via CSV.");
     }
 
     /**

@@ -166,7 +166,7 @@
 
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Show</span>
-                                <select x-model="perPage" @change="performSearch" class="h-10 px-3 rounded-xl border border-border bg-background/50 text-xs font-medium focus:ring-1 focus:ring-primary outline-none shadow-sm">
+                                <select x-model="perPage" @change="performSearch()" class="h-10 px-3 rounded-xl border border-border bg-background/50 text-xs font-medium focus:ring-1 focus:ring-primary outline-none shadow-sm">
                                     <option value="15">15</option>
                                     <option value="25">25</option>
                                     <option value="50">50</option>
@@ -191,7 +191,7 @@
                                         <div class="max-h-60 overflow-y-auto custom-scrollbar">
                                             <template x-for="item in statusesList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
                                                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="statusFilter.includes(item) ? 'bg-primary/5' : ''">
-                                                    <input type="checkbox" :value="item" x-model="statusFilter" @change="performSearch" class="rounded border-border text-primary">
+                                                    <input type="checkbox" :value="item" x-model="statusFilter" @change="performSearch()" class="rounded border-border text-primary">
                                                     <span class="text-[11px] uppercase tracking-widest font-black" x-text="item.replace('_', ' ')"></span>
                                                 </label>
                                             </template>
@@ -199,14 +199,14 @@
                                     </div>
                                 </div>
                                 
-                                <x-ui.button variant="ghost" size="sm" @click="clearFilters" class="rounded-xl h-10 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
+                                <x-ui.button variant="ghost" size="sm" @click="clearFilters()" class="rounded-xl h-10 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
                                     Clear All
                                 </x-ui.button>
                             </div>
 
                             <div class="lg:ml-auto relative group w-full lg:max-w-md shrink-0">
                                 <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                <input type="text" x-model="search" @input.debounce.500ms="performSearch"
+                                <input type="text" x-model="search" @input.debounce.500ms="performSearch()"
                                     placeholder="Search invoice number, order number or party..."
                                     class="pl-9 pr-10 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
                                 <div x-show="isLoading" x-cloak class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">

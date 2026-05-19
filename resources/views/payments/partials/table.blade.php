@@ -58,6 +58,10 @@
                             <div class="flex flex-col min-w-0">
                                 <div class="flex items-center gap-2">
                                     <a href="{{ route('payments.show', $payment->id) }}" class="text-sm font-black tracking-tight text-foreground uppercase truncate hover:text-primary transition-colors">{{ $payment->payment_no }}</a>
+                                    <span x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $payment->payment_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer hover:text-primary transition-colors relative group/copy flex items-center justify-center -ml-0.5">
+                                        <x-ui.icon name="copy" size="3" class="opacity-40 group-hover/copy:opacity-100" />
+                                        <span x-show="copied" x-cloak class="absolute -top-6 left-1/2 -translate-x-1/2 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none normal-case tracking-normal z-50">Copied!</span>
+                                    </span>
                                     <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/40 whitespace-nowrap">ID: {{ $payment->id }}</span>
                                 </div>
                                 <span class="text-[10px] font-bold text-muted-foreground/65 tabular-nums mt-0.5">
@@ -73,6 +77,10 @@
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Order</span>
                                     <a href="{{ route('orders.show', $payment->order->id) }}" class="text-xs font-bold text-foreground/80 hover:text-primary truncate">{{ $payment->order->order_no }}</a>
+                                    <span x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $payment->order->order_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer hover:text-primary transition-colors relative group/copy flex items-center justify-center -ml-0.5">
+                                        <x-ui.icon name="copy" size="3" class="opacity-40 group-hover/copy:opacity-100" />
+                                        <span x-show="copied" x-cloak class="absolute -top-6 left-1/2 -translate-x-1/2 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none normal-case tracking-normal z-50">Copied!</span>
+                                    </span>
                                 </div>
                                 <div class="text-[11px] font-bold text-muted-foreground truncate max-w-[180px]">
                                     {{ $payment->order->party?->name ?? 'Internal Node' }}
@@ -82,6 +90,10 @@
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20">Invoice</span>
                                     <span class="text-[11px] font-mono text-muted-foreground">{{ $payment->invoice->invoice_no }}</span>
+                                    <span x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $payment->invoice->invoice_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer hover:text-purple-500 transition-colors relative group/copy flex items-center justify-center -ml-0.5">
+                                        <x-ui.icon name="copy" size="3" class="opacity-40 group-hover/copy:opacity-100" />
+                                        <span x-show="copied" x-cloak class="absolute -top-6 left-1/2 -translate-x-1/2 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none normal-case tracking-normal z-50">Copied!</span>
+                                    </span>
                                 </div>
                             @endif
                         </div>
@@ -92,8 +104,14 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-[11px] font-black text-foreground">{{ $payment->payment_method ?: 'Standard' }}</span>
                             </div>
-                            <span class="text-[10px] font-mono font-bold bg-muted/60 px-2 py-0.5 rounded-lg text-muted-foreground inline-block">
+                            <span class="text-[10px] font-mono font-bold bg-muted/60 px-2 py-0.5 rounded-lg text-muted-foreground inline-flex items-center gap-1.5 group/txn">
                                 {{ $payment->transaction_id ?: 'TXN-PENDING' }}
+                                @if($payment->transaction_id)
+                                    <span x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $payment->transaction_id }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer hover:text-primary transition-colors relative group/copy inline-flex items-center justify-center">
+                                        <x-ui.icon name="copy" size="3" class="opacity-0 group-hover/txn:opacity-100 transition-opacity" />
+                                        <span x-show="copied" x-cloak class="absolute -top-6 left-1/2 -translate-x-1/2 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none normal-case tracking-normal z-50">Copied!</span>
+                                    </span>
+                                @endif
                             </span>
                         </div>
                     </x-ui.table-cell>

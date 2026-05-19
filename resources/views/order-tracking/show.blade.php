@@ -49,6 +49,11 @@
                             <x-ui.icon name="arrow-left" size="3.5" class="mr-2" /> Back to Dashboard
                         </x-ui.button>
                     </a>
+                    <a href="{{ route('orders.show', $shipment->order->id) }}">
+                        <x-ui.button variant="outline" size="sm" class="rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 px-8 border-border/40 bg-primary/10 text-primary hover:bg-primary/20 backdrop-blur-md transition-all">
+                            <x-ui.icon name="external-link" size="3.5" class="mr-2" /> View Order #{{ $shipment->order->order_no }}
+                        </x-ui.button>
+                    </a>
                 </div>
             </div>
         </x-ui.card>
@@ -70,9 +75,10 @@
                         <div class="size-20 rounded-3xl bg-background border-2 border-primary/20 flex items-center justify-center shadow-2xl group-hover:border-primary transition-all duration-500 ring-8 ring-primary/5">
                             <x-ui.icon name="warehouse" size="8" class="text-primary/80 group-hover:scale-110 transition-transform" />
                         </div>
-                        <div class="text-center">
+                        <div class="text-center max-w-[200px]">
                             <p class="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1.5 opacity-60">Source Origin</p>
-                            <p class="text-lg font-black text-foreground tracking-tight">{{ $shipment->order->warehouse->name ?? 'Regional Hub' }}</p>
+                            <p class="text-lg font-black text-foreground tracking-tight truncate" title="{{ $shipment->order->warehouse->name ?? 'Regional Hub' }}">{{ $shipment->order->warehouse->name ?? 'Regional Hub' }}</p>
+                            <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1 truncate" title="{{ $shipment->order->warehouse->address_line_1 ?? $shipment->order->warehouse->address ?? '' }} {{ $shipment->order->warehouse->village_name ?? $shipment->order->warehouse->city ?? '' }}">{{ $shipment->order->warehouse->address_line_1 ?? $shipment->order->warehouse->address ?? '' }} {{ $shipment->order->warehouse->village_name ?? $shipment->order->warehouse->city ?? '' }}</p>
                             <p class="text-[10px] font-bold text-primary tracking-[0.2em] uppercase mt-1">{{ $shipment->order->warehouse->code ?? 'H-01' }}</p>
                         </div>
                     </div>
@@ -96,9 +102,10 @@
                         <div class="size-20 rounded-3xl bg-background border-2 border-emerald-500/20 flex items-center justify-center shadow-2xl group-hover:border-emerald-500 transition-all duration-500 ring-8 ring-emerald-500/5">
                             <x-ui.icon name="map-pin" size="8" class="text-emerald-500 group-hover:scale-110 transition-transform" />
                         </div>
-                        <div class="text-center">
+                        <div class="text-center max-w-[200px]">
                             <p class="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1.5 opacity-60">Final Destination</p>
-                            <p class="text-lg font-black text-foreground tracking-tight">{{ $shipment->order->party->name ?? 'Customer' }}</p>
+                            <p class="text-lg font-black text-foreground tracking-tight truncate" title="{{ $shipment->order->party->name ?? 'Customer' }}">{{ $shipment->order->party->name ?? 'Customer' }}</p>
+                            <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1 truncate" title="{{ $shipment->order->shipping_address ?? 'N/A' }}">{{ $shipment->order->shipping_address ?? 'N/A' }}</p>
                             <p class="text-[10px] font-bold text-emerald-500 tracking-[0.2em] uppercase mt-1">Order {{ $shipment->order->order_no }}</p>
                         </div>
                     </div>
@@ -207,7 +214,7 @@
                                     <span class="inline-flex items-center justify-center size-8 rounded-lg bg-muted text-foreground text-xs font-black">{{ (int) $item->quantity }}</span>
                                 </td>
                                 <td class="px-8 py-5 text-right">
-                                    <span class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">In Transit</span>
+                                    <span class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{{ str_replace('_', ' ', $shipment->status) }}</span>
                                 </td>
                             </tr>
                         @endforeach

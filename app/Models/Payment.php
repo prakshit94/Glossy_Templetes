@@ -26,6 +26,26 @@ class Payment extends Model
         'amount' => 'decimal:2',
     ];
 
+    protected static function booted()
+    {
+        $syncInvoice = function ($payment) {
+            if ($payment->invoice_id) {
+                $invoice = $payment->invoice;
+                $paid = $invoice->payments()->where('status', 'completed')->sum('amount');
+                if ($paid >= $invoice->net_amount) {
+                    $invoice->update(['status' => 'paid']);
+                } elseif ($paid > 0) {
+                    $invoice->update(['status' => 'partially_paid']);
+                } else {
+                    $invoice->update(['status' => 'unpaid']);
+                }
+            }
+        };
+
+        static::saved($syncInvoice);
+        static::deleted($syncInvoice);
+    }
+
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);

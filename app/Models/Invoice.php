@@ -36,4 +36,14 @@ class Invoice extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    public function getPaidAmountAttribute()
+    {
+        return $this->payments()->where('status', 'completed')->sum('amount');
+    }
+
+    public function getDueAmountAttribute()
+    {
+        return max(0, $this->net_amount - $this->paid_amount);
+    }
 }

@@ -14,7 +14,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <template x-for="item in productsList.filter(i => i.name.toLowerCase().includes(filter.toLowerCase()) || (i.sku && i.sku.toLowerCase().includes(filter.toLowerCase())))" :key="item.id">
                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="productFilter.includes(item.id) ? 'bg-blue-500/5' : ''">
-                    <input type="checkbox" :value="item.id" x-model="productFilter" @change="performSearch" class="rounded border-border text-blue-500">
+                    <input type="checkbox" :value="item.id" x-model="productFilter" @change="performSearch()" class="rounded border-border text-blue-500">
                     <span class="text-[11px] font-bold truncate max-w-[200px]" x-text="item.name + (item.sku ? ' (' + item.sku + ')' : '')"></span>
                 </label>
             </template>
@@ -24,7 +24,7 @@
 
 <!-- Fulfillment Status Filter -->
 <div class="relative">
-    <select x-model="fulfillmentFilter" @change="performSearch" class="h-9 px-3 rounded-xl border border-border bg-background/50 text-[11px] font-bold text-muted-foreground focus:text-foreground outline-none shadow-sm cursor-pointer hover:bg-background transition-all">
+    <select x-model="fulfillmentFilter" @change="performSearch()" class="h-9 px-3 rounded-xl border border-border bg-background/50 text-[11px] font-bold text-muted-foreground focus:text-foreground outline-none shadow-sm cursor-pointer hover:bg-background transition-all">
         <option value="">Fulfillment: All Active</option>
         <option value="fulfillable">🟢 Fulfillable (In Stock)</option>
         <option value="unfulfillable">🔴 Unfulfillable (Out of Stock)</option>
@@ -47,7 +47,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <template x-for="item in statusesList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="statusFilter.includes(item) ? 'bg-primary/5' : ''">
-                    <input type="checkbox" :value="item" x-model="statusFilter" @change="performSearch" class="rounded border-border text-primary">
+                    <input type="checkbox" :value="item" x-model="statusFilter" @change="performSearch()" class="rounded border-border text-primary">
                     <span class="text-[11px] uppercase tracking-widest font-bold" x-text="item.replace('_', ' ')"></span>
                 </label>
             </template>
@@ -72,7 +72,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <template x-for="item in statesList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="stateFilter.includes(item) ? 'bg-fuchsia-500/5' : ''">
-                    <input type="checkbox" :value="item" x-model="stateFilter" @change="performSearch" class="rounded border-border text-fuchsia-500">
+                    <input type="checkbox" :value="item" x-model="stateFilter" @change="performSearch()" class="rounded border-border text-fuchsia-500">
                     <span class="text-[11px]" x-text="item"></span>
                 </label>
             </template>
@@ -96,7 +96,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <template x-for="item in districtsList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="districtFilter.includes(item) ? 'bg-purple-500/5' : ''">
-                    <input type="checkbox" :value="item" x-model="districtFilter" @change="performSearch" class="rounded border-border text-purple-500">
+                    <input type="checkbox" :value="item" x-model="districtFilter" @change="performSearch()" class="rounded border-border text-purple-500">
                     <span class="text-[11px]" x-text="item"></span>
                 </label>
             </template>
@@ -120,7 +120,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <template x-for="item in talukasList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
                 <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="talukaFilter.includes(item) ? 'bg-indigo-500/5' : ''">
-                    <input type="checkbox" :value="item" x-model="talukaFilter" @change="performSearch" class="rounded border-border text-indigo-500">
+                    <input type="checkbox" :value="item" x-model="talukaFilter" @change="performSearch()" class="rounded border-border text-indigo-500">
                     <span class="text-[11px]" x-text="item"></span>
                 </label>
             </template>
