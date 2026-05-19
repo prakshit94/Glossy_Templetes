@@ -165,6 +165,7 @@
                                         <input type="text" name="phone" value="{{ old('phone') }}" placeholder="+91 98765 43210"
                                             class="w-full pl-11 pr-4 py-3 rounded-2xl bg-background/40 border border-border/60 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-sm text-sm font-medium">
                                     </div>
+                                    @error('phone') <p class="text-[10px] font-bold text-destructive uppercase tracking-widest mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div class="space-y-2 group">
                                     <label class="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground group-focus-within:text-primary transition-colors">Alternate Mobile</label>

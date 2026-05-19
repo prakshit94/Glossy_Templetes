@@ -128,6 +128,14 @@
 
                     <x-ui.table-cell class="text-right align-middle pr-5">
                         <div class="flex justify-end gap-1">
+                            @if($invoice->status !== 'paid' && $invoice->status !== 'cancelled' && $invoice->order_id)
+                                <x-ui.button variant="ghost" size="icon" 
+                                    @click="$dispatch('open-modal', { name: 'record-payment-modal', data: { order_id: '{{ $invoice->order_id }}', order_no: '{{ $invoice->order?->order_no }}', invoice_no: '{{ $invoice->invoice_no }}', total_amount: {{ $invoice->net_amount }}, paid_amount: {{ $invoice->paid_amount }}, due_amount: {{ $invoice->due_amount }} } })"
+                                    title="Record Payment"
+                                    className="size-9 text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl border border-transparent hover:border-emerald-500/20 transition-all">
+                                    <x-ui.icon name="credit-card" size="4" />
+                                </x-ui.button>
+                            @endif
                             <a href="{{ route('orders.show', $invoice->order_id) }}" title="Visual Order Dossier">
                                 <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
                                     <x-ui.icon name="eye" size="4" />

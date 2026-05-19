@@ -77,6 +77,14 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
+        if ($request->filled('phone')) {
+            $phone = preg_replace('/\D/', '', $request->input('phone'));
+            if (strlen($phone) > 10) {
+                $phone = substr($phone, -10);
+            }
+            $request->merge(['phone' => $phone]);
+        }
+
         $data = $request->validate([
             // Basic Identity
             'party_code'       => 'nullable|string|max:50|unique:parties,party_code',
@@ -86,7 +94,12 @@ class CustomerController extends Controller
 
             // Contact
             'email'            => 'nullable|email|max:255',
-            'phone'            => 'nullable|string|max:20',
+            'phone'            => [
+                'nullable',
+                'string',
+                'max:20',
+                \Illuminate\Validation\Rule::unique('parties', 'phone')->where(fn($q) => $q->where('type', 'customer')->whereNull('deleted_at'))
+            ],
             'alternatemobile'  => 'nullable|string|max:20',
             'relative_mobile'  => 'nullable|string|max:20',
             'phone_number_2'   => 'nullable|string|max:20',
@@ -185,6 +198,14 @@ class CustomerController extends Controller
 
     public function update(Request $request, Customer $customer)
     {
+        if ($request->filled('phone')) {
+            $phone = preg_replace('/\D/', '', $request->input('phone'));
+            if (strlen($phone) > 10) {
+                $phone = substr($phone, -10);
+            }
+            $request->merge(['phone' => $phone]);
+        }
+
         $data = $request->validate([
             // Basic Identity
             'party_code'       => 'nullable|string|max:50|unique:parties,party_code,' . $customer->id,
@@ -194,7 +215,12 @@ class CustomerController extends Controller
 
             // Contact
             'email'            => 'nullable|email|max:255',
-            'phone'            => 'nullable|string|max:20',
+            'phone'            => [
+                'nullable',
+                'string',
+                'max:20',
+                \Illuminate\Validation\Rule::unique('parties', 'phone')->where(fn($q) => $q->where('type', 'customer')->whereNull('deleted_at'))->ignore($customer->id)
+            ],
             'alternatemobile'  => 'nullable|string|max:20',
             'relative_mobile'  => 'nullable|string|max:20',
             'phone_number_2'   => 'nullable|string|max:20',

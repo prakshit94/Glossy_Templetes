@@ -41,6 +41,102 @@
         isCreateOpen: false,
         isUploadOpen: false,
 
+        csvFileName: 'Browse CSV file...',
+        previewRows: [],
+        previewHeaders: [],
+        showPreview: false,
+        csvError: '',
+        
+        getStatusColor(status) {
+            const s = status ? status.toLowerCase().trim() : '';
+            if (s === 'completed') return 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20';
+            if (s === 'pending') return 'bg-amber-500/10 text-amber-500 border border-amber-500/20';
+            if (s === 'failed') return 'bg-rose-500/10 text-rose-500 border border-rose-500/20';
+            if (s === 'refunded') return 'bg-purple-500/10 text-purple-500 border border-purple-500/20';
+            return 'bg-muted text-muted-foreground border border-border';
+        },
+        
+        isHeaderType(header, type) {
+            if (!header) return false;
+            const h = header.toLowerCase().trim();
+            return h === type || h === type.replace('_', ' ');
+        },
+        
+        handleFileChange(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                this.csvFileName = 'Browse CSV file...';
+                this.showPreview = false;
+                this.previewRows = [];
+                this.csvError = '';
+                return;
+            }
+            this.csvFileName = file.name;
+            
+            // Read and parse CSV for preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                this.parseCSV(text);
+            };
+            reader.readAsText(file);
+        },
+        
+        parseCSV(text) {
+            this.csvError = '';
+            const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+            if (lines.length === 0) {
+                this.csvError = 'CSV file is empty.';
+                this.showPreview = false;
+                return;
+            }
+            
+            // Parse headers
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            
+            // Validate expected columns
+            const paymentNoIdx = headers.indexOf('payment_no');
+            const refIdx = headers.indexOf('payment reference');
+            const targetIdx = paymentNoIdx !== -1 ? paymentNoIdx : refIdx;
+            
+            if (targetIdx === -1) {
+                this.csvError = 'CSV must contain a payment_no or payment reference column.';
+                this.showPreview = false;
+                return;
+            }
+            
+            this.previewHeaders = lines[0].split(',').map(h => h.trim());
+            
+            const rows = [];
+            // Parse all rows
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',').map(c => c.trim());
+                if (cols.length === headers.length) {
+                    rows.push(cols);
+                }
+            }
+            
+            this.previewRows = rows;
+            this.showPreview = true;
+        },
+        
+        downloadTemplate() {
+            const headers = ['payment_no', 'amount', 'payment_method', 'transaction_id', 'payment_date', 'status'];
+            const row1 = ['PAY-0001', '500.00', 'Cash', 'TXN123456789', '2026-05-19 12:00:00', 'completed'];
+            const row2 = ['PAY-0002', '1250.00', 'UPI', 'TXN987654321', '2026-05-19 12:30:00', 'completed'];
+            const csvContent = [headers.join(','), row1.join(','), row2.join(',')].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'payments_bulk_template.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        },
+
         toggleAll() {
             if (this.allSelected) {
                 this.selectedItems = Array.from(
@@ -437,12 +533,15 @@
         </div>
 
         <!-- Bulk CSV Upload Modal -->
-        <div x-show="isUploadOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" x-cloak>
-            <div @click.away="isUploadOpen = false" class="bg-card border border-border/60 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col">
+        <div x-show="isUploadOpen" 
+             x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" x-cloak>
+            <div @click.away="isUploadOpen = false" 
+                 :class="showPreview ? 'max-w-4xl' : 'max-w-lg'"
+                 class="bg-card border border-border/60 rounded-3xl shadow-2xl w-full overflow-hidden flex flex-col transition-all duration-300">
                 <div class="p-6 border-b border-border/40 bg-muted/10 flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <div class="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
-                            <x-ui.icon name="upload-cloud" size="5" />
+                            <x-ui.icon name="upload" size="5" />
                         </div>
                         <div>
                             <h3 class="text-base font-black tracking-tight text-foreground">Bulk Update via CSV</h3>
@@ -459,12 +558,76 @@
                         <p class="text-xs text-muted-foreground font-semibold leading-relaxed mb-4">
                             Upload a CSV file to update multiple payments at once. The CSV must contain a <strong>payment_no</strong> column to identify the payment. You can optionally include columns for <strong>transaction_id</strong>, <strong>status</strong>, <strong>amount</strong>, <strong>payment_method</strong>, and <strong>payment_date</strong>.
                         </p>
+                        
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">Select CSV File</label>
+                            <button type="button" @click="downloadTemplate" class="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1">
+                                <x-ui.icon name="download" size="3" />
+                                Download Template
+                            </button>
+                        </div>
+
                         <div class="relative group">
-                            <input type="file" name="csv_file" accept=".csv,.txt" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" @change="$refs.fileName.textContent = $event.target.files[0] ? $event.target.files[0].name : 'Browse CSV file...'">
+                            <input type="file" name="csv_file" accept=".csv,.txt" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" @change="handleFileChange($event)">
                             <div class="w-full h-24 rounded-xl border-2 border-dashed border-border/60 group-hover:border-primary/50 group-hover:bg-primary/5 transition-all flex flex-col items-center justify-center text-muted-foreground gap-2">
-                                <x-ui.icon name="upload-cloud" size="6" />
-                                <span class="text-xs font-bold" x-ref="fileName">Browse CSV file...</span>
+                                <x-ui.icon name="upload" size="6" />
+                                <span class="text-xs font-bold" x-text="csvFileName">Browse CSV file...</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Error Alert -->
+                    <div x-show="csvError" class="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold" x-cloak>
+                        <span x-text="csvError"></span>
+                    </div>
+
+                    <!-- Preview Container -->
+                    <div x-show="showPreview" class="space-y-3" x-cloak>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground flex items-center gap-2">
+                                CSV Data Preview
+                                <span class="bg-primary/10 text-primary border border-primary/20 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider" x-text="previewRows.length + ' records'"></span>
+                            </span>
+                        </div>
+                        <div class="border border-border/40 rounded-2xl overflow-x-auto overflow-y-auto bg-background/20 max-h-64 shadow-inner">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-muted/50 border-b border-border/30">
+                                        <template x-for="header in previewHeaders" :key="header">
+                                            <th class="p-3 font-bold text-muted-foreground uppercase text-[9px] tracking-wider whitespace-nowrap" x-text="header"></th>
+                                        </template>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(row, idx) in previewRows" :key="idx">
+                                        <tr class="border-b border-border/10 hover:bg-muted/5 transition-all">
+                                            <template x-for="(val, colIdx) in row" :key="colIdx">
+                                                <td class="p-3 font-medium text-foreground whitespace-nowrap">
+                                                    <!-- Status Badge -->
+                                                    <template x-if="isHeaderType(previewHeaders[colIdx], 'status')">
+                                                        <span :class="getStatusColor(val)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider" x-text="val"></span>
+                                                    </template>
+                                                    
+                                                    <!-- Payment No or Transaction ID (Monospace font code block) -->
+                                                    <template x-if="isHeaderType(previewHeaders[colIdx], 'payment_no') || isHeaderType(previewHeaders[colIdx], 'transaction_id')">
+                                                        <span class="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border/50 text-muted-foreground" x-text="val"></span>
+                                                    </template>
+
+                                                    <!-- Amount Bold -->
+                                                    <template x-if="isHeaderType(previewHeaders[colIdx], 'amount')">
+                                                        <span class="font-black text-foreground" x-text="isNaN(parseFloat(val)) ? val : '₹' + parseFloat(val).toFixed(2)"></span>
+                                                    </template>
+
+                                                    <!-- Other fields -->
+                                                    <template x-if="!isHeaderType(previewHeaders[colIdx], 'status') && !isHeaderType(previewHeaders[colIdx], 'payment_no') && !isHeaderType(previewHeaders[colIdx], 'transaction_id') && !isHeaderType(previewHeaders[colIdx], 'amount')">
+                                                        <span class="text-muted-foreground font-semibold" x-text="val"></span>
+                                                    </template>
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -472,7 +635,7 @@
                         <button type="button" @click="isUploadOpen = false" class="h-11 px-6 rounded-2xl bg-muted hover:bg-muted/80 text-xs font-black uppercase tracking-widest text-muted-foreground transition-all">
                             Cancel
                         </button>
-                        <button type="submit" class="h-11 px-8 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300">
+                        <button type="submit" :disabled="csvError !== ''" :class="csvError !== '' ? 'opacity-50 cursor-not-allowed' : ''" class="h-11 px-8 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300">
                             Upload & Update
                         </button>
                     </div>

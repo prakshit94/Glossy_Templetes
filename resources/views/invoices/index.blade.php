@@ -234,4 +234,115 @@
             </x-ui.card>
         </div>
     </div>
+
+    <!-- Record Payment Modal -->
+    <x-ui.modal id="record-payment-modal" maxWidth="md">
+        <div x-data="{
+            orderId: '',
+            orderNo: '',
+            invoiceNo: '',
+            totalAmount: 0,
+            paidAmount: 0,
+            dueAmount: 0
+        }"
+        x-on:open-modal.window="if ($event.detail.name == 'record-payment-modal' && $event.detail.data) {
+            orderId = $event.detail.data.order_id;
+            orderNo = $event.detail.data.order_no;
+            invoiceNo = $event.detail.data.invoice_no;
+            totalAmount = $event.detail.data.total_amount;
+            paidAmount = $event.detail.data.paid_amount;
+            dueAmount = $event.detail.data.due_amount;
+            $nextTick(() => {
+                document.getElementById('amount').value = dueAmount;
+            });
+        }">
+            <form action="{{ route('payments.store') }}" method="POST" class="p-6 space-y-4">
+                @csrf
+                <input type="hidden" name="order_id" :value="orderId">
+                <div>
+                    <h3 class="text-lg font-black text-foreground mb-1">Record New Payment</h3>
+                    <p class="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Log a transaction against Invoice <span class="text-primary font-black" x-text="invoiceNo"></span></p>
+                </div>
+                
+                <div class="h-px bg-border/60 w-full my-2"></div>
+                
+                <div class="space-y-4">
+                    <!-- Info display for selected invoice -->
+                    <div class="p-4 rounded-xl border border-border bg-muted/30">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Invoice breakdown</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center divide-x divide-border">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold text-muted-foreground uppercase">Total Amount</span>
+                                <span class="text-sm font-black text-foreground" x-text="'₹' + Number(totalAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                            </div>
+                            <div class="flex flex-col pl-2">
+                                <span class="text-[10px] font-bold text-muted-foreground uppercase">Already Paid</span>
+                                <span class="text-sm font-black text-emerald-500" x-text="'₹' + Number(paidAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                            </div>
+                            <div class="flex flex-col pl-2">
+                                <span class="text-[10px] font-bold text-muted-foreground uppercase">Pending Due</span>
+                                <span class="text-sm font-black text-orange-500" x-text="'₹' + Number(dueAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label for="amount" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Payment Amount (₹)</label>
+                            <input type="number" id="amount" name="amount" step="0.01" min="0.01" required placeholder="e.g. 500.00" class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="payment_method" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Payment Method</label>
+                            <select id="payment_method" name="payment_method" required class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 appearance-none cursor-pointer">
+                                <option value="UPI">UPI</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Card">Card / POS</option>
+                                <option value="COD">Cash On Delivery (COD)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label for="transaction_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Transaction ID / Ref (Optional)</label>
+                            <input type="text" id="transaction_id" name="transaction_id" placeholder="e.g. TXN123456789" class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="payment_date" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Payment Date</label>
+                            <input type="datetime-local" id="payment_date" name="payment_date" required value="{{ now()->format('Y-m-d\TH:i') }}" class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-xs font-bold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="status" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Settlement Status</label>
+                        <select id="status" name="status" required class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 appearance-none cursor-pointer">
+                            <option value="completed" selected>Completed</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+                            <option value="refunded">Refunded</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="notes" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Notes / Remarks</label>
+                        <textarea id="notes" name="notes" placeholder="Add any payment reference remarks..." class="w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20" rows="2"></textarea>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-border/40">
+                    <x-ui.button type="button" variant="outline" size="sm" @click="$dispatch('close-modal', { name: 'record-payment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10">
+                        Cancel
+                    </x-ui.button>
+                    <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
+                        <x-ui.icon name="credit-card" size="3" class="mr-2" /> Record Transaction
+                    </x-ui.button>
+                </div>
+            </form>
+        </div>
+    </x-ui.modal>
 </x-layouts.app>
