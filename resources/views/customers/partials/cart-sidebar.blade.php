@@ -109,10 +109,17 @@
                         {{-- Per-item discount --}}
                         <div class="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
                             <template x-if="item.discountValue > 0">
-                                <div class="flex items-center gap-1 h-7 px-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600">
-                                    <x-ui.icon name="tag" size="3" />
-                                    <span class="text-[10px] font-black"
-                                        x-text="(item.discountType === 'flat' ? '₹' : '') + Number(item.discountValue).toFixed(item.discountValue % 1 === 0 ? 0 : 2) + (item.discountType === 'flat' ? ' off' : '% off')">
+                                <div class="flex flex-col items-end gap-1">
+                                    <div class="flex items-center gap-1 h-7 px-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600">
+                                        <x-ui.icon name="tag" size="3" />
+                                        <span class="text-[10px] font-black"
+                                            x-text="(item.discountType === 'flat' ? '₹' : '') + Number(item.discountValue).toFixed(item.discountValue % 1 === 0 ? 0 : 2) + (item.discountType === 'flat' ? ' off' : '% off')">
+                                        </span>
+                                    </div>
+                                    <span class="text-[9px] text-muted-foreground font-semibold"
+                                        x-text="item.discountType === 'percent' 
+                                            ? '(Saved ₹' + Number(item.price * (item.discountValue / 100)).toFixed(2) + ' per unit × ' + item.quantity + ' = ₹' + Number(item.price * (item.discountValue / 100) * item.quantity).toFixed(2) + ')' 
+                                            : '(Saved ₹' + Number(item.discountValue).toFixed(2) + ' per unit × ' + item.quantity + ' = ₹' + Number(item.discountValue * item.quantity).toFixed(2) + ')'">
                                     </span>
                                 </div>
                             </template>
@@ -172,12 +179,19 @@
                     <span class="text-foreground font-bold" x-text="'₹' + Number(subtotal).toFixed(2)"></span>
                 </div>
                 <div class="flex justify-between text-xs font-medium text-emerald-600" x-show="orderDiscountAmount > 0" x-cloak>
-                    <span>Order Discount</span>
-                    <span x-text="'- ₹' + Number(orderDiscountAmount).toFixed(2)"></span>
+                    <div>
+                        <span>Order Discount</span>
+                        <span class="text-[10px] text-muted-foreground block" x-show="orderDiscountType === 'percent'" x-text="'(' + orderDiscountValue + '% of ₹' + Number(subtotal).toFixed(2) + ')'"></span>
+                        <span class="text-[10px] text-muted-foreground block" x-show="orderDiscountType === 'flat'" x-text="'(Flat ₹' + Number(orderDiscountValue).toFixed(2) + ')'"></span>
+                    </div>
+                    <span class="font-bold align-top" x-text="'- ₹' + Number(orderDiscountAmount).toFixed(2)"></span>
                 </div>
                 <div class="flex justify-between text-xs font-medium text-emerald-600" x-show="couponDiscount > 0" x-cloak>
-                    <span>Coupon Savings</span>
-                    <span x-text="'- ₹' + Number(couponDiscount).toFixed(2)"></span>
+                    <div>
+                        <span>Coupon Savings</span>
+                        <span class="text-[10px] text-muted-foreground block" x-text="'(Code: ' + couponCode + ')'"></span>
+                    </div>
+                    <span class="font-bold align-top" x-text="'- ₹' + Number(couponDiscount).toFixed(2)"></span>
                 </div>
                 <div class="flex justify-between text-xs font-medium text-muted-foreground">
                     <span>GST (<span x-text="taxRate"></span>%)</span>

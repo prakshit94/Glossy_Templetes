@@ -326,6 +326,18 @@
                                                     <div class="size-1 bg-border rounded-full"></div>
                                                     <span class="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Brand Ref: {{ $customer->brand ?? 'N/A' }}</span>
                                                 </div>
+                                                <template x-if="item.discountValue > 0">
+                                                    <div class="flex items-center gap-2 mt-2">
+                                                        <span class="text-[9px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20"
+                                                            x-text="(item.discountType === 'flat' ? '₹' : '') + Number(item.discountValue).toFixed(item.discountValue % 1 === 0 ? 0 : 2) + (item.discountType === 'flat' ? ' off' : '% off')">
+                                                        </span>
+                                                        <span class="text-[9px] text-muted-foreground font-semibold"
+                                                            x-text="item.discountType === 'percent' 
+                                                                ? '(Saved ₹' + Number(item.price * (item.discountValue / 100)).toFixed(2) + ' per unit × ' + item.quantity + ' = ₹' + Number(item.price * (item.discountValue / 100) * item.quantity).toFixed(2) + ')' 
+                                                                : '(Saved ₹' + Number(item.discountValue).toFixed(2) + ' per unit × ' + item.quantity + ' = ₹' + Number(item.discountValue * item.quantity).toFixed(2) + ')'">
+                                                        </span>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </div>
                                     </td>
@@ -363,9 +375,22 @@
                                 <span class="font-black text-foreground" x-text="'₹' + Number(subtotal).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
                             </div>
                             <template x-if="orderDiscountAmount > 0">
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="font-black text-emerald-600 uppercase tracking-widest">Order Adjustment</span>
-                                    <span class="font-black text-emerald-600" x-text="'- ₹' + Number(orderDiscountAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                                <div class="flex justify-between items-center text-xs text-emerald-600">
+                                    <div class="flex flex-col">
+                                        <span class="font-black uppercase tracking-widest">Order Adjustment</span>
+                                        <span class="text-[9px] text-muted-foreground font-semibold" x-show="orderDiscountType === 'percent'" x-text="'(' + orderDiscountValue + '% of ₹' + Number(subtotal).toFixed(2) + ')'"></span>
+                                        <span class="text-[9px] text-muted-foreground font-semibold" x-show="orderDiscountType === 'flat'" x-text="'(Flat ₹' + Number(orderDiscountValue).toFixed(2) + ')'"></span>
+                                    </div>
+                                    <span class="font-black" x-text="'- ₹' + Number(orderDiscountAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                                </div>
+                            </template>
+                            <template x-if="couponDiscount > 0">
+                                <div class="flex justify-between items-center text-xs text-emerald-600">
+                                    <div class="flex flex-col">
+                                        <span class="font-black uppercase tracking-widest">Coupon Savings</span>
+                                        <span class="text-[9px] text-muted-foreground font-semibold" x-text="'(Code: ' + couponCode + ')'"></span>
+                                    </div>
+                                    <span class="font-black" x-text="'- ₹' + Number(couponDiscount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
                                 </div>
                             </template>
                             <div class="flex justify-between items-center text-xs">
