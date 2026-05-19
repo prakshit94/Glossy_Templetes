@@ -123,6 +123,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('order-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index']);
     Route::get('order-tracking/{shipment}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'show']);
 
+    // Promo Codes / Coupons
+    Route::post('/coupons/validate', [App\Http\Controllers\Web\CouponController::class, 'validateApi'])->name('coupons.validate');
+    Route::resource('coupons', App\Http\Controllers\Web\CouponController::class);
+
     $sidebarScaffoldModules = [
         'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
         'reviews' => ['title' => 'Reviews & Ratings', 'icon' => 'star'],
@@ -147,7 +151,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'payroll' => ['title' => 'Payroll', 'icon' => 'finance'],
         'departments' => ['title' => 'Departments', 'icon' => 'building'],
         'campaigns' => ['title' => 'Campaigns', 'icon' => 'marketing'],
-        'coupons' => ['title' => 'Coupons', 'icon' => 'gift'],
         'email-marketing' => ['title' => 'Email Marketing', 'icon' => 'mail'],
     ];
 

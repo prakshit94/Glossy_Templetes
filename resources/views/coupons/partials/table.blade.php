@@ -28,37 +28,37 @@
                     <span class="text-sm font-mono font-black text-primary">{{ data_get($r, 'code', '—') }}</span>
                 </x-ui.table-cell>
                 <x-ui.table-cell>
-                    <span class="text-sm font-black">{{ data_get($r, 'discount_label') ?? data_get($r, 'discount', '—') }}</span>
+                    <span class="text-sm font-black">{{ data_get($r, 'type') === 'percentage' ? data_get($r, 'value').'%' : '₹'.data_get($r, 'value') }}</span>
                 </x-ui.table-cell>
                 <x-ui.table-cell class="text-center">
-                    <span class="text-sm font-black tabular-nums">{{ data_get($r, 'redemptions') ?? data_get($r, 'used_count', '0') } / {{ data_get($r, 'usage_limit') ?? '∞' }}</span>
+                    <span class="text-sm font-black tabular-nums">{{ data_get($r, 'used_count', '0') }} / {{ data_get($r, 'usage_limit') ?? '∞' }}</span>
                 </x-ui.table-cell>
                 <x-ui.table-cell>
-                    @php $vu = data_get($r, 'valid_until') ?? data_get($r, 'expires_at'); @endphp
-                    <span class="text-xs font-bold">{{ $vu ? \Illuminate\Support\Carbon::parse($vu)->format('M j, Y') : '—' }}</span>
+                    @php $vu = data_get($r, 'expiry_date'); @endphp
+                    <span class="text-xs font-bold">{{ $vu ? \Illuminate\Support\Carbon::parse($vu)->format('M j, Y') : 'Never' }}</span>
                 </x-ui.table-cell>
                 <x-ui.table-cell>
                     @php
-                        $st = strtolower((string) data_get($r, 'status', '—'));
-                        $badgeVariant = match ($st) {
-                            'active', 'paid', 'completed', 'sent', 'resolved', 'closed', 'approved', 'delivered', 'published', 'scheduled' => 'success',
-                            'inactive', 'cancelled', 'void', 'failed', 'rejected', 'overdue', 'expired' => 'destructive',
-                            'pending', 'draft', 'open', 'processing', 'partial', 'in_progress' => 'default',
-                            default => 'outline',
-                        };
+                        $isActive = data_get($r, 'is_active');
+                        $badgeVariant = $isActive ? 'success' : 'destructive';
+                        $statusText = $isActive ? 'ACTIVE' : 'INACTIVE';
                     @endphp
                     <x-ui.badge :variant="$badgeVariant" className="uppercase text-[9px] font-black tracking-[0.1em] px-2.5 py-1 rounded-lg shadow-sm">
-                        {{ str_replace('_', ' ', $st) }}
+                        {{ $statusText }}
                     </x-ui.badge>
                 </x-ui.table-cell>
                 <x-ui.table-cell class="text-right">
                     <div class="flex justify-end gap-1.5">
-                        <x-ui.button variant="ghost" size="icon" type="button" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all" onclick="alert('Wire details when the module backend is ready.')">
-                            <x-ui.icon name="eye" size="4" />
-                        </x-ui.button>
-                        <x-ui.button variant="ghost" size="icon" type="button" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all" onclick="alert('Wire edit when the module backend is ready.')">
+                        <a href="{{ route('coupons.edit', $r->id) }}" class="inline-flex items-center justify-center size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
                             <x-ui.icon name="edit-3" size="4" />
-                        </x-ui.button>
+                        </a>
+                        <form action="{{ route('coupons.destroy', $r->id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this coupon?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="inline-flex items-center justify-center size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl border border-transparent hover:border-destructive/20 transition-all">
+                                <x-ui.icon name="trash-2" size="4" />
+                            </button>
+                        </form>
                     </div>
                 </x-ui.table-cell>
             </x-ui.table-row>

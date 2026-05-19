@@ -280,23 +280,37 @@
     },
     applyCoupon() {
         const code = this.couponCode.toUpperCase().trim();
-        if (code === 'SAVE10') { 
-            this.couponDiscount = this.subtotal * 0.10; 
-            this.couponApplied = true;
-            this.notify('success', 'Coupon SAVE10 applied!');
-        } else if (code === 'FLAT50') { 
-            this.couponDiscount = 50; 
-            this.couponApplied = true;
-            this.notify('success', 'Coupon FLAT50 applied!');
-        } else if (code === 'FLAT100') { 
-            this.couponDiscount = 100; 
-            this.couponApplied = true;
-            this.notify('success', 'Coupon FLAT100 applied!');
-        } else { 
-            this.couponDiscount = 0; 
-            this.couponApplied = false; 
-            this.notify('error', 'Invalid coupon code');
-        }
+        if (!code) return;
+        
+        const csrfToken = document.querySelector('meta[name=csrf-token]').getAttribute('content');
+        fetch('{{ route('coupons.validate') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                code: code,
+                subtotal: this.subtotal
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.valid) {
+                this.couponDiscount = data.discount;
+                this.couponApplied = true;
+                this.notify('success', data.message);
+            } else {
+                this.couponDiscount = 0;
+                this.couponApplied = false;
+                this.notify('error', data.message || 'Invalid promo code');
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            this.notify('error', 'Failed to validate promo code');
+        });
     },
     removeCoupon() { 
         this.couponCode = ''; 

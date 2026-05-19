@@ -102,7 +102,7 @@ class OrderService
         $shippingAddr = PartyAddress::find($data['address_id']);
         $billingAddr  = PartyAddress::find($data['billing_address_id'] ?? $data['address_id']);
 
-        return $this->createOrder([
+        $order = $this->createOrder([
             'type'                => 'sale',
             'party_id'            => $customer->id,
             'warehouse_id'        => $data['warehouse_id'],
@@ -118,6 +118,12 @@ class OrderService
             'net_amount'          => $data['grand_total'],
             'items'               => $items,
         ]);
+
+        if (!empty($data['coupon_code'])) {
+            \App\Models\Coupon::where('code', strtoupper($data['coupon_code']))->increment('used_count');
+        }
+
+        return $order;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
