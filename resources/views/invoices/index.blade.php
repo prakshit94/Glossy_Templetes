@@ -107,8 +107,9 @@
                             <x-ui.icon name="check-circle" size="7" />
                         </div>
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Paid Invoices</p>
-                            <div class="text-3xl font-black tracking-tighter text-emerald-500" x-text="stats.paid"></div>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Total Received Amount</p>
+                            <div class="text-2xl font-black tracking-tighter text-emerald-500">₹<span x-text="Number(stats.paid_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span></div>
+                            <p class="text-[10px] font-bold text-muted-foreground mt-1"><span x-text="stats.paid"></span> fully paid</p>
                         </div>
                     </div>
                 </div>
@@ -121,8 +122,9 @@
                             <x-ui.icon name="alert-triangle" size="7" />
                         </div>
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Unpaid / Partially Paid</p>
-                            <div class="text-3xl font-black tracking-tighter text-orange-500" x-text="stats.unpaid + stats.partially_paid"></div>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Pending Due</p>
+                            <div class="text-2xl font-black tracking-tighter text-orange-500">₹<span x-text="Number(stats.unpaid_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span></div>
+                            <p class="text-[10px] font-bold text-muted-foreground mt-1"><span x-text="stats.unpaid + stats.partially_paid"></span> invoices pending</p>
                         </div>
                     </div>
                 </div>

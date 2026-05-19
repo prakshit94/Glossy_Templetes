@@ -453,6 +453,21 @@
                             <span class="text-2xl font-black text-primary">₹{{ number_format((float) $order->net_amount, 2) }}</span>
                         </div>
 
+                        @php
+                            $paidAmount = $order->payments->where('status', 'completed')->sum('amount');
+                            $dueAmount = max(0, $order->net_amount - $paidAmount);
+                        @endphp
+
+                        <div class="pt-4 mt-4 border-t border-border/40 grid grid-cols-2 gap-4">
+                            <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                                <span class="text-[9px] font-black uppercase tracking-widest text-emerald-600 block mb-1">Amount Paid</span>
+                                <span class="text-sm font-black text-emerald-500">₹{{ number_format($paidAmount, 2) }}</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-center">
+                                <span class="text-[9px] font-black uppercase tracking-widest text-orange-600 block mb-1">Pending Due</span>
+                                <span class="text-sm font-black text-orange-500">₹{{ number_format($dueAmount, 2) }}</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="p-6 bg-primary/5 border-t border-primary/10">
                         <p class="text-xs text-primary/80 font-semibold flex items-center gap-2 justify-center text-center">
@@ -460,6 +475,43 @@
                         </p>
                     </div>
                 </x-ui.card>
+
+                @if($order->payments->isNotEmpty())
+                    <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-3xl">
+                        <div class="p-5 border-b border-border/40 bg-muted/5">
+                            <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-1.5">
+                                <x-ui.icon name="list" size="3.5" /> Payment Ledger
+                            </h4>
+                        </div>
+                        <div class="divide-y divide-border/40">
+                            @foreach($order->payments as $payment)
+                                <div class="p-4 flex items-center justify-between hover:bg-muted/5 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        @php
+                                            $pColor = match($payment->status) {
+                                                'completed' => 'emerald',
+                                                'pending' => 'amber',
+                                                'failed', 'refunded' => 'red',
+                                                default => 'primary'
+                                            };
+                                        @endphp
+                                        <div class="size-9 rounded-xl bg-{{ $pColor }}-500/10 text-{{ $pColor }}-500 flex items-center justify-center">
+                                            <x-ui.icon name="{{ match($payment->status) { 'completed' => 'check-circle', 'pending' => 'clock', 'failed' => 'x-circle', 'refunded' => 'refresh-ccw', default => 'credit-card' } }}" size="4" />
+                                        </div>
+                                        <div>
+                                            <p class="text-xs font-bold text-foreground">{{ $payment->payment_no }}</p>
+                                            <p class="text-[10px] text-muted-foreground font-medium">{{ $payment->payment_date->format('M d, Y') }} • {{ $payment->payment_method }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-black text-foreground">₹{{ number_format($payment->amount, 2) }}</p>
+                                        <span class="text-[9px] font-black uppercase tracking-widest text-{{ $pColor }}-500 bg-{{ $pColor }}-500/10 px-1.5 py-0.5 rounded">{{ $payment->status }}</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </x-ui.card>
+                @endif
 
                 <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-3xl p-6 space-y-4">
                     <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-1.5">

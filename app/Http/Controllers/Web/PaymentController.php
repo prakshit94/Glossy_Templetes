@@ -70,14 +70,18 @@ class PaymentController extends Controller
         $payments = $query->latest('payment_date')->paginate($perPage)->withQueryString();
 
         // Calculate statistics
+        $totalInvoiceAmount = (float) Invoice::where('status', '!=', 'cancelled')->sum('net_amount');
+        $totalCollected = (float) Payment::where('status', 'completed')->sum('amount');
+        $outstandingAmount = max(0, $totalInvoiceAmount - $totalCollected);
+
         $stats = [
             'total_count' => Payment::count(),
             'completed_count' => Payment::where('status', 'completed')->count(),
             'pending_count' => Payment::where('status', 'pending')->count(),
             'failed_count' => Payment::where('status', 'failed')->count(),
             'refunded_count' => Payment::where('status', 'refunded')->count(),
-            'total_amount' => (float) Payment::where('status', 'completed')->sum('amount'),
-            'pending_amount' => (float) Payment::where('status', 'pending')->sum('amount'),
+            'total_amount' => $totalCollected,
+            'pending_amount' => $outstandingAmount,
             'refunded_amount' => (float) Payment::where('status', 'refunded')->sum('amount'),
         ];
 

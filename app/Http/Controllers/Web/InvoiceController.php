@@ -54,15 +54,19 @@ class InvoiceController extends Controller
         $invoices = $query->latest('invoice_date')->paginate($perPage)->withQueryString();
 
         // Calculate statistics
+        $totalAmount = (float) Invoice::where('status', '!=', 'cancelled')->sum('net_amount');
+        $paidAmount = (float) \App\Models\Payment::whereNotNull('invoice_id')->where('status', 'completed')->sum('amount');
+        $unpaidAmount = max(0, $totalAmount - $paidAmount);
+
         $stats = [
             'total' => Invoice::count(),
             'paid' => Invoice::where('status', 'paid')->count(),
             'partially_paid' => Invoice::where('status', 'partially_paid')->count(),
             'unpaid' => Invoice::where('status', 'unpaid')->count(),
             'cancelled' => Invoice::where('status', 'cancelled')->count(),
-            'total_amount' => (float) Invoice::sum('net_amount'),
-            'paid_amount' => (float) Invoice::where('status', 'paid')->sum('net_amount'),
-            'unpaid_amount' => (float) Invoice::whereIn('status', ['unpaid', 'partially_paid'])->sum('net_amount'),
+            'total_amount' => $totalAmount,
+            'paid_amount' => $paidAmount,
+            'unpaid_amount' => $unpaidAmount,
         ];
 
         $statusesList = [

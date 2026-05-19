@@ -231,6 +231,7 @@ class OrderController extends Controller
             'billingAddress.village',
             'shipments',
             'invoice',
+            'payments'
         ])->findOrFail($id);
 
         $services = \App\Models\Service::active()->get();

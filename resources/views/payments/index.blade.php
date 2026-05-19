@@ -123,7 +123,7 @@
                         <div>
                             <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Pending Collections</p>
                             <div class="text-2xl font-black tracking-tighter text-amber-500">₹<span x-text="Number(stats.pending_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span></div>
-                            <p class="text-[10px] font-bold text-muted-foreground mt-1"><span x-text="stats.pending_count"></span> pending transactions</p>
+                            <p class="text-[10px] font-bold text-muted-foreground mt-1"><span x-text="stats.pending_count"></span> pending payments in queue</p>
                         </div>
                     </div>
                 </div>
