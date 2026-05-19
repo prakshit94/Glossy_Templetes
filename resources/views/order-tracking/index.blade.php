@@ -2,9 +2,12 @@
 
     <div class="p-6 lg:p-10 max-w-[1920px] mx-auto" x-data="{ 
         search: '{{ request('search', '') }}',
-        status: '{{ request('status', '') }}',
+        statusFilter: '{{ request('status', '') }}' ? '{{ request('status') }}'.split(',') : [],
+        carrierFilter: '{{ request('carrier', '') }}' ? '{{ request('carrier') }}'.split(',') : [],
         perPage: '{{ request('perPage', 15) }}',
         stats: @js($stats),
+        availableCarriers: @js($availableCarriers ?? []),
+        statusesList: ['pending', 'shipped', 'in_transit', 'delivered', 'failed'],
         isLoading: false,
         selectedShipments: [],
         allSelected: false,
@@ -33,7 +36,8 @@
         async performSearch() {
             let params = new URLSearchParams({
                 search: this.search,
-                status: this.status,
+                status: this.statusFilter.join(','),
+                carrier: this.carrierFilter.join(','),
                 perPage: this.perPage
             });
             const url = `{{ route('order.tracking.index') }}?${params.toString()}`;
@@ -51,7 +55,8 @@
 
         clearFilters() {
             this.search = '';
-            this.status = '';
+            this.statusFilter = [];
+            this.carrierFilter = [];
             this.perPage = '15';
             this.performSearch();
         }
@@ -127,17 +132,55 @@
                                     <option value="100">100 Entries</option>
                                 </select>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <span class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</span>
-                                <select x-model="status" @change="performSearch()" 
-                                    class="h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-primary/20 transition-all outline-none">
-                                    <option value="">All Logistics</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="shipped">Shipped</option>
-                                    <option value="in_transit">In Transit</option>
-                                    <option value="delivered">Delivered</option>
-                                    <option value="failed">Failed</option>
-                                </select>
+                            <!-- Status Multi-Select -->
+                            <div class="relative" x-data="{ open: false, filter: '' }">
+                                <button @click="open = !open" class="h-11 px-4 flex items-center rounded-xl border border-border bg-background/50 text-[11px] font-bold hover:bg-background transition-all group shadow-sm">
+                                    <span class="text-muted-foreground/80 group-hover:text-primary transition-colors uppercase tracking-widest text-[10px] font-black">Status</span>
+                                    <span class="ml-2 px-1.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black text-[10px]">
+                                        <span x-text="statusFilter.length"></span>/<span x-text="statusesList.length"></span>
+                                    </span>
+                                    <x-ui.icon name="chevron-down" size="3" class="ml-2 text-muted-foreground/40" />
+                                </button>
+                                <div x-show="open" @click.away="open = false" x-cloak class="absolute left-0 mt-2 w-64 bg-popover border border-border rounded-xl shadow-2xl z-[100] p-1">
+                                    <div class="p-2 border-b border-border bg-muted/10 mb-1">
+                                        <input type="text" x-model="filter" placeholder="Search status..." class="w-full px-3 py-1.5 bg-background rounded-lg border border-border text-[11px] outline-none">
+                                    </div>
+                                    <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                                        <template x-for="item in statusesList.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
+                                            <label class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="statusFilter.includes(item) ? 'bg-primary/5' : ''">
+                                                <input type="checkbox" :value="item" x-model="statusFilter" @change="performSearch()" class="rounded border-border text-primary">
+                                                <span class="text-[11px] uppercase tracking-widest font-bold" x-text="item.replace('_', ' ')"></span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Carrier Multi-Select -->
+                            <div class="relative" x-data="{ open: false, filter: '' }">
+                                <button @click="open = !open" class="h-11 px-4 flex items-center rounded-xl border border-border bg-background/50 text-[11px] font-bold hover:bg-background transition-all group shadow-sm">
+                                    <span class="text-muted-foreground/80 group-hover:text-blue-500 transition-colors uppercase tracking-widest text-[10px] font-black">Carrier</span>
+                                    <span class="ml-2 px-1.5 py-0.5 rounded-lg bg-blue-500/10 text-blue-500 font-black text-[10px]">
+                                        <span x-text="carrierFilter.length"></span>/<span x-text="availableCarriers.length"></span>
+                                    </span>
+                                    <x-ui.icon name="chevron-down" size="3" class="ml-2 text-muted-foreground/40" />
+                                </button>
+                                <div x-show="open" @click.away="open = false" x-cloak class="absolute left-0 mt-2 w-64 bg-popover border border-border rounded-xl shadow-2xl z-[100] p-1">
+                                    <div class="p-2 border-b border-border bg-muted/10 mb-1">
+                                        <input type="text" x-model="filter" placeholder="Search carrier..." class="w-full px-3 py-1.5 bg-background rounded-lg border border-border text-[11px] outline-none">
+                                    </div>
+                                    <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                                        <template x-show="availableCarriers.length === 0">
+                                            <div class="px-3 py-3 text-center text-[10px] text-muted-foreground font-bold">No carriers recorded</div>
+                                        </template>
+                                        <template x-for="item in availableCarriers.filter(i => i.toLowerCase().includes(filter.toLowerCase()))" :key="item">
+                                            <label class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="carrierFilter.includes(item) ? 'bg-blue-500/5' : ''">
+                                                <input type="checkbox" :value="item" x-model="carrierFilter" @change="performSearch()" class="rounded border-border text-blue-500">
+                                                <span class="text-[11px] font-bold" x-text="item"></span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </div>
                             </div>
                             <button @click="clearFilters()" class="h-11 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors flex items-center gap-2 group">
                                 <x-ui.icon name="rotate-ccw" size="3" class="group-hover:rotate-[-45deg] transition-transform" />

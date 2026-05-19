@@ -39,7 +39,7 @@
                     }
                 @endphp
                 <x-ui.table-row
-                    x-bind:class="selectedItems.includes({{ $order->id }}) ? 'bg-primary/[0.06] ring-1 ring-inset ring-primary/15' : 'hover:bg-primary/[0.03]'"
+                    x-bind:class="selectedItems.includes({{ $order->id }}) ? 'bg-primary/[0.06] ring-1 ring-inset ring-primary/15 relative z-40' : 'hover:bg-primary/[0.03] hover:z-50 relative'"
                     class="border-b border-border/40 group/row transition-colors duration-200 {{ $hasOutOfStock ? 'border-l-4 border-l-red-500 bg-red-500/[0.04] hover:bg-red-500/[0.06]' : '' }}">
                     
                     <x-ui.table-cell class="pl-5 align-middle">
@@ -215,43 +215,62 @@
                     </x-ui.table-cell>
 
                     <x-ui.table-cell class="align-middle py-3">
-                        <div class="flex flex-wrap gap-1.5 max-w-xs sm:max-w-md">
-                            @foreach($order->items as $item)
-                                @php
-                                    $prod = $item->product;
-                                    $isItemOOS = false;
-                                    if ($order->status === 'pending' && $prod) {
-                                        if ($item->quantity > $prod->available_stock) {
-                                            $isItemOOS = true;
-                                        }
-                                    }
-                                    $fullName = $prod ? $prod->name : 'Item #'.$item->product_id;
-                                    $qtyStr = (int) $item->quantity;
-                                    $tooltipText = $fullName . ' (Qty: ' . $qtyStr . ')' . ($isItemOOS ? ' [OUT OF STOCK - Available: ' . ($prod ? $prod->available_stock : 0) . ']' : '');
-                                @endphp
-                                <div class="group/item relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-medium border transition-all cursor-default {{ $isItemOOS ? 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/40 ring-1 ring-red-500/30' : 'bg-background/80 text-foreground/80 border-border/60 shadow-2xs hover:border-primary/40' }}"
-                                     title="{{ $tooltipText }}">
-                                    <span class="truncate max-w-[120px] font-bold">{{ $fullName }}</span>
-                                    <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black tabular-nums {{ $isItemOOS ? 'bg-red-500/20 text-red-700 dark:text-red-300' : 'bg-muted text-muted-foreground' }}">{{ $qtyStr }}</span>
-                                    @if($isItemOOS)
-                                        <x-ui.icon name="alert-triangle" size="3" class="text-red-500 animate-pulse shrink-0" />
-                                    @endif
+                        <div x-data="{ show: false, mouseX: 0, mouseY: 0 }"
+                             @mouseenter="show = true; mouseX = $event.clientX; mouseY = $event.clientY;"
+                             @mousemove="mouseX = $event.clientX; mouseY = $event.clientY;"
+                             @mouseleave="show = false"
+                             class="relative inline-flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:scale-105 transition-all cursor-help shadow-sm ring-1 ring-black/5">
+                            
+                            <x-ui.icon name="shopping-bag" size="4.5" />
+                            <span class="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground px-1 ring-2 ring-background shadow-sm">
+                                {{ $order->items->count() }}
+                            </span>
+                            
+                            <!-- Teleported Tooltip for ALL items -->
+                            <template x-teleport="body">
+                                <div x-show="show" x-cloak
+                                     x-transition:enter="transition ease-out duration-200"
+                                     x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+                                     x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                     x-transition:leave="transition ease-in duration-100"
+                                     x-transition:leave-start="opacity-100"
+                                     x-transition:leave-end="opacity-0"
+                                     :style="'left: ' + (mouseX - 160 > 10 ? mouseX - 160 : 10) + 'px; top: ' + (mouseY + 20) + 'px;'"
+                                     class="fixed z-[99999] w-max max-w-xs sm:max-w-sm bg-popover/95 backdrop-blur-xl text-popover-foreground py-3 px-4 rounded-2xl border border-border/70 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] ring-1 ring-black/5 pointer-events-none">
                                     
-                                    <!-- Gorgeous CSS hover popup -->
-                                    <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover/item:opacity-100 group-hover/item:translate-y-0 translate-y-1 transition-all duration-200 z-50 w-max max-w-xs bg-popover text-popover-foreground text-[11px] font-bold py-2 px-3 rounded-xl border border-border shadow-2xl flex flex-col gap-1 ring-1 ring-black/5">
-                                        <div class="flex items-center justify-between gap-4 border-b border-border/40 pb-1">
-                                            <span class="text-primary tracking-wide font-black uppercase text-[9px]">Item Details</span>
-                                            <span class="text-[10px] font-black tabular-nums px-1.5 py-0.2 rounded bg-muted text-muted-foreground">Qty: {{ $qtyStr }}</span>
-                                        </div>
-                                        <span class="whitespace-normal leading-relaxed text-foreground font-semibold text-left">{{ $fullName }}</span>
-                                        @if($isItemOOS)
-                                            <span class="text-red-500 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 mt-0.5 bg-red-500/10 px-2 py-1 rounded-lg w-fit border border-red-500/20">
-                                                <x-ui.icon name="alert-triangle" size="3" /> Out of Stock (Available: {{ $prod ? $prod->available_stock : 0 }})
-                                            </span>
-                                        @endif
+                                    <div class="flex items-center justify-between gap-6 border-b border-border/50 pb-2 mb-2">
+                                        <span class="text-primary tracking-widest font-black uppercase text-[10px]">Ordered Items</span>
+                                        <span class="text-[9px] font-black tabular-nums px-2 py-0.5 rounded-md bg-muted text-muted-foreground">{{ $order->items->count() }} Types</span>
+                                    </div>
+                                    <div class="flex flex-col gap-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
+                                        @foreach($order->items as $item)
+                                            @php
+                                                $prod = $item->product;
+                                                $isItemOOS = false;
+                                                if ($order->status === 'pending' && $prod && $item->quantity > $prod->available_stock) {
+                                                    $isItemOOS = true;
+                                                }
+                                                $fullName = $prod ? $prod->name : 'Item #'.$item->product_id;
+                                                $qtyStr = (int) $item->quantity;
+                                            @endphp
+                                            <div class="flex items-start justify-between gap-4 p-2 rounded-lg {{ $isItemOOS ? 'bg-red-500/10 border border-red-500/20' : 'bg-muted/30' }}">
+                                                <div class="flex flex-col min-w-0 text-left">
+                                                    <span class="text-[11px] font-bold text-foreground leading-tight break-words">{{ $fullName }}</span>
+                                                    @if($isItemOOS)
+                                                        <span class="text-red-500 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 mt-1">
+                                                            <x-ui.icon name="alert-triangle" size="2.5" /> Out of Stock (Available: {{ $prod ? $prod->available_stock : 0 }})
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                <div class="shrink-0 flex items-center gap-1">
+                                                    <span class="text-muted-foreground text-[9px] font-bold uppercase">Qty</span>
+                                                    <span class="text-[11px] font-black tabular-nums text-foreground bg-background border border-border/50 px-1.5 py-0.5 rounded-md">{{ $qtyStr }}</span>
+                                                </div>
+                                            </div>
+                                        @endforeach
                                     </div>
                                 </div>
-                            @endforeach
+                            </template>
                         </div>
                     </x-ui.table-cell>
 

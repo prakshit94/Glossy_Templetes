@@ -7,6 +7,7 @@
                         class="rounded border-border/60 bg-background/50 text-primary focus:ring-primary/20">
                 </th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Shipment Identity</th>
+                <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Carrier details</th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Customer & Order</th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Current Status</th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Last Milestone</th>
@@ -31,19 +32,27 @@
                                     <x-ui.icon name="copy" size="3.5" class="opacity-0 group-hover/copy:opacity-100 transition-opacity text-primary" />
                                     <span x-show="copied" x-cloak class="absolute -top-6 left-0 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none">Copied!</span>
                                 </p>
-                                <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
-                                    <x-ui.icon name="truck" size="2.5" />
-                                    {{ $shipment->carrier_name ?? 'Logistics Pending' }}
-                                    @if($shipment->tracking_no)
-                                        <span class="size-1 rounded-full bg-muted-foreground/30"></span>
-                                        <span x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $shipment->tracking_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer hover:text-primary transition-colors flex items-center gap-1 relative group/copy">
-                                            {{ $shipment->tracking_no }}
-                                            <x-ui.icon name="copy" size="2.5" class="opacity-0 group-hover/copy:opacity-100 text-primary" />
-                                            <span x-show="copied" x-cloak class="absolute -top-6 left-0 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg normal-case tracking-normal">Copied!</span>
-                                        </span>
-                                    @endif
+                                <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
+                                    {{ $shipment->created_at->format('M d, Y') }}
                                 </p>
                             </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-6">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-2">
+                                <div class="size-6 rounded bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 border border-blue-500/20">
+                                    <x-ui.icon name="truck" size="3" />
+                                </div>
+                                <span class="text-xs font-bold text-foreground truncate max-w-[150px]">{{ $shipment->carrier_name ?? 'Logistics Pending' }}</span>
+                            </div>
+                            @if($shipment->tracking_no)
+                                <div x-data="{ copied: false }" @click.prevent.stop="navigator.clipboard.writeText('{{ $shipment->tracking_no }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer group/copy relative inline-flex items-center gap-1.5 px-2 py-1 bg-muted/40 hover:bg-muted/80 border border-border/50 rounded-md w-fit transition-colors ml-8">
+                                    <span class="text-[10px] font-black text-muted-foreground uppercase tracking-widest group-hover/copy:text-primary transition-colors">{{ $shipment->tracking_no }}</span>
+                                    <x-ui.icon name="copy" size="3" class="opacity-0 group-hover/copy:opacity-100 text-primary transition-opacity" />
+                                    <span x-show="copied" x-cloak class="absolute -top-6 left-1/2 -translate-x-1/2 bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded shadow-lg normal-case tracking-normal">Copied!</span>
+                                </div>
+                            @endif
                         </div>
                     </td>
                     <td class="px-6 py-6">

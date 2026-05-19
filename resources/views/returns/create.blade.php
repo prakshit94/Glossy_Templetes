@@ -79,7 +79,7 @@
                             </div>
 
                             <div class="space-y-4" x-data="{
-                                items: @js($order->items->map(function($i) { return ['id' => $i->id, 'name' => $i->product->name, 'sku' => $i->product->sku, 'price' => $i->unit_price, 'max' => $i->quantity, 'qty' => 0]; })),
+                                items: @js($order->items->map(function($i) { return ['id' => $i->id, 'name' => $i->product->name, 'sku' => $i->product->sku, 'price' => $i->unit_price, 'max' => $i->quantity, 'qty' => $i->quantity]; })),
                                 get totalRefund() {
                                     return this.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
                                 }

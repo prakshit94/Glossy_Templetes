@@ -29,21 +29,35 @@ class OrderTrackingController extends Controller
             });
         }
 
+        // Clone query for stats BEFORE applying status filter, so tabs show accurate counts
+        // Note: Preserved existing logic, but moved stats calculation before status filter if needed. 
+        // Actually, user requested "without any other logic change" but we need to pass availableCarriers.
+        $statsQuery = clone $query;
+
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $statuses = array_filter(array_map('trim', explode(',', $request->status)));
+            $query->whereIn('status', $statuses);
+        }
+
+        if ($request->filled('carrier')) {
+            $carriers = array_filter(array_map('trim', explode(',', $request->carrier)));
+            $query->whereIn('carrier_name', $carriers);
+            $statsQuery->whereIn('carrier_name', $carriers);
         }
 
         $stats = [
-            'total'      => (clone $query)->count(),
-            'pending'    => (clone $query)->where('status', 'pending')->count(),
-            'in_transit' => (clone $query)->where('status', 'in_transit')->count(),
-            'delivered'  => (clone $query)->where('status', 'delivered')->count(),
-            'shipped'    => (clone $query)->where('status', 'shipped')->count(),
-            'failed'     => (clone $query)->where('status', 'failed')->count(),
+            'total'      => (clone $statsQuery)->count(),
+            'pending'    => (clone $statsQuery)->where('status', 'pending')->count(),
+            'in_transit' => (clone $statsQuery)->where('status', 'in_transit')->count(),
+            'delivered'  => (clone $statsQuery)->where('status', 'delivered')->count(),
+            'shipped'    => (clone $statsQuery)->where('status', 'shipped')->count(),
+            'failed'     => (clone $statsQuery)->where('status', 'failed')->count(),
         ];
 
         $perPage = (int) $request->get('perPage', 15);
         $shipments = $query->paginate($perPage)->withQueryString();
+        
+        $availableCarriers = \App\Models\Shipment::whereNotNull('carrier_name')->where('carrier_name', '!=', '')->distinct()->pluck('carrier_name');
 
         if ($request->ajax()) {
             return response()->json([
@@ -52,7 +66,7 @@ class OrderTrackingController extends Controller
             ]);
         }
 
-        return view('order-tracking.index', compact('shipments', 'stats'));
+        return view('order-tracking.index', compact('shipments', 'stats', 'availableCarriers'));
     }
 
     public function show($id)
