@@ -221,14 +221,19 @@
                                             <x-ui.icon name="plus" size="3" />
                                         </button>
                                     </div>
+                                    {{-- Discount: read-only, auto-applied from product default --}}
                                     <div class="flex items-center gap-1">
-                                        <select x-model="product._discType"
-                                            class="h-8 w-12 px-1 rounded-lg border border-border bg-background text-[10px] font-bold outline-none focus:ring-2 focus:ring-primary/20">
-                                            <option value="percent">%</option>
-                                            <option value="flat">₹</option>
-                                        </select>
-                                        <input type="number" x-model="product._disc" min="0" placeholder="0"
-                                            class="h-8 w-14 px-2 rounded-lg border border-border bg-background text-xs font-bold text-right outline-none focus:ring-2 focus:ring-primary/20">
+                                        <template x-if="product.default_discount > 0">
+                                            <div class="flex items-center gap-1 h-8 px-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600">
+                                                <x-ui.icon name="tag" size="3" />
+                                                <span class="text-[10px] font-black"
+                                                    x-text="(product.default_discount_type === 'flat' ? '₹' : '') + Number(product.default_discount).toFixed(product.default_discount % 1 === 0 ? 0 : 2) + (product.default_discount_type === 'flat' ? ' off' : '% off')">
+                                                </span>
+                                            </div>
+                                        </template>
+                                        <template x-if="!product.default_discount || product.default_discount <= 0">
+                                            <span class="text-[10px] text-muted-foreground/50 font-bold italic">No disc</span>
+                                        </template>
                                     </div>
                                 </div>
                             </td>

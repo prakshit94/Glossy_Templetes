@@ -39,6 +39,8 @@ class Product extends Model
         'image_path',
         'weight',
         'is_sku_enabled',
+        'default_discount',
+        'default_discount_type',
     ];
 
     protected $casts = [
@@ -52,6 +54,8 @@ class Product extends Model
         'mrp' => 'decimal:2',
         'selling_price' => 'decimal:2',
         'overselling_qty' => 'integer',
+        'default_discount' => 'decimal:2',
+        'default_discount_type' => 'string',
     ];
 
     public function category(): BelongsTo

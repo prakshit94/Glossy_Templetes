@@ -156,12 +156,12 @@
             if (!res.ok) throw new Error('Network error');
             const json = await res.json();
             
-            // Initialize temp inputs for each product
+            // Initialize temp inputs: _disc & _discType come from the product's pre-set defaults
             this.productSearchResults = (json.data || []).map(p => ({
                 ...p,
                 _qty: 1,
-                _disc: 0,
-                _discType: 'percent'
+                _disc: parseFloat(p.default_discount) || 0,
+                _discType: p.default_discount_type || 'percent'  // locked to product default type
             }));
             
             this.productTotal     = json.total || 0;
@@ -257,7 +257,7 @@
         if (!item.discountValue || parseFloat(item.discountValue) <= 0) return base;
         const disc = item.discountType === 'percent'
             ? base * (parseFloat(item.discountValue) / 100)
-            : Math.min(parseFloat(item.discountValue), base);
+            : Math.min(parseFloat(item.discountValue) * item.quantity, base);
         return Math.max(0, base - disc);
     },
     get subtotal() {

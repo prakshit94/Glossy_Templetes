@@ -303,6 +303,31 @@
                                                     class="w-full h-11 pl-8 pr-4 rounded-xl border border-border bg-background/50 focus:bg-background text-sm font-black text-primary outline-none">
                                             </div>
                                         </div>
+                                        <div class="space-y-2" x-data="{ discType: '{{ old('default_discount_type', 'percent') }}' }">
+                                            <label for="default_discount" class="text-[10px] font-black uppercase tracking-widest text-emerald-600 ml-1">Default Discount</label>
+                                            <div class="flex gap-2">
+                                                {{-- Type toggle --}}
+                                                <div class="flex rounded-xl border border-emerald-500/30 overflow-hidden shrink-0">
+                                                    <label class="flex items-center justify-center px-3 h-11 cursor-pointer text-[10px] font-black uppercase tracking-wider transition-all"
+                                                        :class="discType === 'percent' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/5 text-emerald-600 hover:bg-emerald-500/10'">
+                                                        <input type="radio" name="default_discount_type" value="percent" x-model="discType" class="sr-only"> %
+                                                    </label>
+                                                    <label class="flex items-center justify-center px-3 h-11 cursor-pointer text-[10px] font-black uppercase tracking-wider transition-all border-l border-emerald-500/30"
+                                                        :class="discType === 'flat' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/5 text-emerald-600 hover:bg-emerald-500/10'">
+                                                        <input type="radio" name="default_discount_type" value="flat" x-model="discType" class="sr-only"> ₹
+                                                    </label>
+                                                </div>
+                                                {{-- Value input --}}
+                                                <div class="relative flex-1">
+                                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600" x-text="discType === 'percent' ? '%' : '₹'"></span>
+                                                    <input type="number" step="0.01" name="default_discount" id="default_discount" min="0"
+                                                        :max="discType === 'percent' ? 100 : 999999"
+                                                        value="{{ old('default_discount', 0) }}"
+                                                        class="w-full h-11 pl-8 pr-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 focus:bg-emerald-500/10 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-black text-emerald-600 outline-none">
+                                                </div>
+                                            </div>
+                                            <p class="text-[9px] text-muted-foreground ml-1 font-bold italic">Auto-applied when adding to an order. Cannot be changed at order time.</p>
+                                        </div>
                                     </div>
 
                                     <div class="space-y-2">

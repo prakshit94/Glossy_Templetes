@@ -107,17 +107,15 @@
                             </button>
                         </div>
                         {{-- Per-item discount --}}
-                        <div class="flex items-center gap-1.5 flex-1 min-w-0">
-                            <span class="text-[10px] font-black text-muted-foreground uppercase tracking-widest shrink-0">Disc</span>
-                            <select x-model="item.discountType"
-                                class="h-8 w-16 px-1.5 rounded-lg border border-border bg-background text-[10px] font-bold outline-none focus:ring-2 focus:ring-primary/20 shrink-0">
-                                <option value="percent">%</option>
-                                <option value="flat">₹</option>
-                            </select>
-                            <input type="number" x-model="item.discountValue" min="0"
-                                :max="item.discountType === 'percent' ? 100 : item.price * item.quantity"
-                                placeholder="0"
-                                class="h-8 flex-1 min-w-0 px-2 rounded-lg border border-border bg-background text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 text-right">
+                        <div class="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
+                            <template x-if="item.discountValue > 0">
+                                <div class="flex items-center gap-1 h-7 px-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600">
+                                    <x-ui.icon name="tag" size="3" />
+                                    <span class="text-[10px] font-black"
+                                        x-text="(item.discountType === 'flat' ? '₹' : '') + Number(item.discountValue).toFixed(item.discountValue % 1 === 0 ? 0 : 2) + (item.discountType === 'flat' ? ' off' : '% off')">
+                                    </span>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </div>

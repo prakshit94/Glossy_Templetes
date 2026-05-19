@@ -190,6 +190,8 @@ class ProductController extends Controller
                 'min_stock_level'  => $p->min_stock_level ?? 0,
                 'weight'           => $p->weight,
                 'is_sku_enabled'   => (bool) $p->is_sku_enabled,
+                'default_discount' => (float) ($p->default_discount ?? 0), // pre-set product discount %
+                'default_discount_type' => $p->default_discount_type ?? 'percent', // 'percent' or 'flat'
             ];
         });
 
@@ -245,6 +247,8 @@ class ProductController extends Controller
             'overselling_qty' => 'required_if:allow_overselling,1|nullable|integer|min:0',
             'weight' => 'nullable|string|max:255',
             'is_sku_enabled' => 'nullable|boolean',
+            'default_discount' => 'nullable|numeric|min:0|max:100',
+            'default_discount_type' => 'nullable|in:percent,flat',
         ]);
 
         $data['slug'] = Str::slug($data['name']);
@@ -317,6 +321,8 @@ class ProductController extends Controller
             'overselling_qty' => 'required_if:allow_overselling,1|nullable|integer|min:0',
             'weight' => 'nullable|string|max:255',
             'is_sku_enabled' => 'nullable|boolean',
+            'default_discount' => 'nullable|numeric|min:0|max:100',
+            'default_discount_type' => 'nullable|in:percent,flat',
         ]);
 
         $data['slug'] = Str::slug($data['name']);
