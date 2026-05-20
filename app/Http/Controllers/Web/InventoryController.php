@@ -8,6 +8,7 @@ use App\Models\Stock;
 use App\Models\Warehouse;
 use App\Services\InventoryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InventoryController extends Controller
@@ -166,58 +167,67 @@ class InventoryController extends Controller
             return null;
         };
 
-        if (!$hasHeader) {
-            $sku = trim((string) ($firstRow[0] ?? ''));
-            $warehouseCode = trim((string) ($firstRow[1] ?? ''));
-            $quantity = trim((string) ($firstRow[2] ?? ''));
+        DB::beginTransaction();
+        try {
+            if (!$hasHeader) {
+                $sku = trim((string) ($firstRow[0] ?? ''));
+                $warehouseCode = trim((string) ($firstRow[1] ?? ''));
+                $quantity = trim((string) ($firstRow[2] ?? ''));
 
-            if ($sku === '' || $warehouseCode === '' || !is_numeric($quantity) || (float) $quantity < 0) {
-                $skipped++;
-            } else {
+                if ($sku === '' || $warehouseCode === '' || !is_numeric($quantity) || (float) $quantity < 0) {
+                    $skipped++;
+                } else {
+                    $product = Product::where('sku', $sku)->first();
+                    $warehouse = Warehouse::where('code', $warehouseCode)->first();
+
+                    if (!$product || !$warehouse) {
+                        $skipped++;
+                    } else {
+                        $inventoryService->setStock($product->id, $warehouse->id, (float) $quantity);
+                        $updated++;
+                    }
+                }
+            }
+
+            while (($row = fgetcsv($handle)) !== false) {
+                $lineNo++;
+
+                if ($hasHeader) {
+                    $sku = $extractByHeader($row, $normalized, ['product_sku', 'sku']);
+                    $warehouseCode = $extractByHeader($row, $normalized, ['warehouse_code', 'warehouse']);
+                    $quantity = $extractByHeader($row, $normalized, ['quantity', 'qty']);
+                } else {
+                    $sku = trim((string) ($row[0] ?? ''));
+                    $warehouseCode = trim((string) ($row[1] ?? ''));
+                    $quantity = trim((string) ($row[2] ?? ''));
+                }
+
+                if ($sku === '' && $warehouseCode === '' && $quantity === '') {
+                    continue;
+                }
+
+                if ($sku === '' || $warehouseCode === '' || !is_numeric($quantity) || (float) $quantity < 0) {
+                    $skipped++;
+                    continue;
+                }
+
                 $product = Product::where('sku', $sku)->first();
                 $warehouse = Warehouse::where('code', $warehouseCode)->first();
 
                 if (!$product || !$warehouse) {
                     $skipped++;
-                } else {
-                    $inventoryService->setStock($product->id, $warehouse->id, (float) $quantity);
-                    $updated++;
+                    continue;
                 }
-            }
-        }
 
-        while (($row = fgetcsv($handle)) !== false) {
-            $lineNo++;
-
-            if ($hasHeader) {
-                $sku = $extractByHeader($row, $normalized, ['product_sku', 'sku']);
-                $warehouseCode = $extractByHeader($row, $normalized, ['warehouse_code', 'warehouse']);
-                $quantity = $extractByHeader($row, $normalized, ['quantity', 'qty']);
-            } else {
-                $sku = trim((string) ($row[0] ?? ''));
-                $warehouseCode = trim((string) ($row[1] ?? ''));
-                $quantity = trim((string) ($row[2] ?? ''));
+                $inventoryService->setStock($product->id, $warehouse->id, (float) $quantity);
+                $updated++;
             }
 
-            if ($sku === '' && $warehouseCode === '' && $quantity === '') {
-                continue;
-            }
-
-            if ($sku === '' || $warehouseCode === '' || !is_numeric($quantity) || (float) $quantity < 0) {
-                $skipped++;
-                continue;
-            }
-
-            $product = Product::where('sku', $sku)->first();
-            $warehouse = Warehouse::where('code', $warehouseCode)->first();
-
-            if (!$product || !$warehouse) {
-                $skipped++;
-                continue;
-            }
-
-            $inventoryService->setStock($product->id, $warehouse->id, (float) $quantity);
-            $updated++;
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            fclose($handle);
+            return back()->with('error', 'Error processing CSV: ' . $e->getMessage());
         }
 
         fclose($handle);

@@ -209,6 +209,19 @@ class PaymentController extends Controller
                 }
 
                 if (!empty($updateData)) {
+                    $validator = \Illuminate\Support\Facades\Validator::make($updateData, [
+                        'amount' => 'nullable|numeric|min:0.01',
+                        'payment_method' => 'nullable|string|max:255',
+                        'payment_date' => 'nullable|date',
+                        'status' => 'nullable|in:pending,completed,failed,refunded',
+                        'transaction_id' => 'nullable|string|max:255',
+                    ]);
+
+                    if ($validator->fails()) {
+                        $errors[] = "Row " . ($rowIndex + 2) . ": " . implode(', ', $validator->errors()->all());
+                        continue;
+                    }
+
                     $payment->update($updateData);
                     $updatedCount++;
                 }
@@ -257,28 +270,6 @@ class PaymentController extends Controller
                 'payment_date' => $request->payment_date,
                 'status' => $request->status,
             ]);
-
-            // If completed, update accounting ledgers if available
-            if ($payment->status === 'completed') {
-                $cashLedger = DB::table('ledgers')->where('code', 'CASH-001')->first();
-                $salesLedger = DB::table('ledgers')->where('code', 'SALES-001')->first();
-
-                if ($cashLedger && $salesLedger) {
-                    $txnId = DB::table('accounting_transactions')->insertGetId([
-                        'transaction_no' => 'ACC-' . strtoupper(Str::random(8)),
-                        'reference_no' => $payment->id,
-                        'transaction_date' => now(),
-                        'description' => "Payment received for Order #{$order->order_no}",
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-
-                    DB::table('accounting_entries')->insert([
-                        ['transaction_id' => $txnId, 'ledger_id' => $cashLedger->id, 'debit' => $payment->amount, 'credit' => 0, 'created_at' => now(), 'updated_at' => now()],
-                        ['transaction_id' => $txnId, 'ledger_id' => $salesLedger->id, 'debit' => 0, 'credit' => $payment->amount, 'created_at' => now(), 'updated_at' => now()],
-                    ]);
-                }
-            }
 
             DB::commit();
             return redirect()->route('payments.index')->with('success', "Payment #{$payment->payment_no} successfully recorded.");

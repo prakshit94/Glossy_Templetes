@@ -42,8 +42,50 @@ class Payment extends Model
             }
         };
 
+        $syncAccounting = function ($payment) {
+            $existingTxn = \Illuminate\Support\Facades\DB::table('accounting_transactions')->where('reference_no', $payment->id)->first();
+            if ($existingTxn) {
+                \Illuminate\Support\Facades\DB::table('accounting_entries')->where('transaction_id', $existingTxn->id)->delete();
+                \Illuminate\Support\Facades\DB::table('accounting_transactions')->where('id', $existingTxn->id)->delete();
+            }
+
+            if ($payment->status === 'completed') {
+                $cashLedger = \Illuminate\Support\Facades\DB::table('ledgers')->where('code', 'CASH-001')->first();
+                $salesLedger = \Illuminate\Support\Facades\DB::table('ledgers')->where('code', 'SALES-001')->first();
+
+                if ($cashLedger && $salesLedger) {
+                    $order = $payment->order;
+                    $orderNo = $order ? $order->order_no : 'Unknown';
+
+                    $txnId = \Illuminate\Support\Facades\DB::table('accounting_transactions')->insertGetId([
+                        'transaction_no' => 'ACC-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                        'reference_no' => $payment->id,
+                        'transaction_date' => now(),
+                        'description' => "Payment received for Order #{$orderNo}",
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    \Illuminate\Support\Facades\DB::table('accounting_entries')->insert([
+                        ['transaction_id' => $txnId, 'ledger_id' => $cashLedger->id, 'debit' => $payment->amount, 'credit' => 0, 'created_at' => now(), 'updated_at' => now()],
+                        ['transaction_id' => $txnId, 'ledger_id' => $salesLedger->id, 'debit' => 0, 'credit' => $payment->amount, 'created_at' => now(), 'updated_at' => now()],
+                    ]);
+                }
+            }
+        };
+
+        $deleteAccounting = function ($payment) {
+            $existingTxn = \Illuminate\Support\Facades\DB::table('accounting_transactions')->where('reference_no', $payment->id)->first();
+            if ($existingTxn) {
+                \Illuminate\Support\Facades\DB::table('accounting_entries')->where('transaction_id', $existingTxn->id)->delete();
+                \Illuminate\Support\Facades\DB::table('accounting_transactions')->where('id', $existingTxn->id)->delete();
+            }
+        };
+
         static::saved($syncInvoice);
+        static::saved($syncAccounting);
         static::deleted($syncInvoice);
+        static::deleted($deleteAccounting);
     }
 
     public function invoice(): BelongsTo

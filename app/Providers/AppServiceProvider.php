@@ -45,12 +45,23 @@ class AppServiceProvider extends ServiceProvider
 
         // Share customer-form data globally so the Add Customer modal in the
         // app layout has the data it needs on every authenticated page.
+        // BUG-20 FIX: Wrapped in Cache::remember() (10 min TTL) so these three
+        // reference-list queries are not fired on every authenticated page load.
         \Illuminate\Support\Facades\View::composer('components.layout.header', function ($view) {
             if (\Illuminate\Support\Facades\Auth::check()) {
                 $view->with([
-                    'globalCrops'           => \App\Models\Crop::where('status', 'active')->orderBy('name')->get(),
-                    'globalIrrigationTypes' => \App\Models\IrrigationType::where('status', 'active')->orderBy('name')->get(),
-                    'globalLandUnits'       => \App\Models\LandUnit::where('status', 'active')->orderBy('name')->get(),
+                    'globalCrops' => \Illuminate\Support\Facades\Cache::remember(
+                        'global_crops_active', 600,
+                        fn () => \App\Models\Crop::where('status', 'active')->orderBy('name')->get()
+                    ),
+                    'globalIrrigationTypes' => \Illuminate\Support\Facades\Cache::remember(
+                        'global_irrigation_types_active', 600,
+                        fn () => \App\Models\IrrigationType::where('status', 'active')->orderBy('name')->get()
+                    ),
+                    'globalLandUnits' => \Illuminate\Support\Facades\Cache::remember(
+                        'global_land_units_active', 600,
+                        fn () => \App\Models\LandUnit::where('status', 'active')->orderBy('name')->get()
+                    ),
                 ]);
             } else {
                 $view->with([

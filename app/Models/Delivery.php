@@ -38,7 +38,7 @@ class Delivery extends Model
             $order = $this->shipment->order;
             if ($order->shippingAddress) {
                 $addr = $order->shippingAddress;
-                return $addr->address_line1 . ', ' . $addr->city . ' ' . $addr->pincode;
+                return $addr->address_line_1 . ', ' . $addr->city . ' ' . $addr->pincode;
             }
             return $order->shipping_address ?? 'Customer Address';
         }

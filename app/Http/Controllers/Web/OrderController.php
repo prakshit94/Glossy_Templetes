@@ -60,7 +60,7 @@ class OrderController extends Controller
             if ($request->fulfillment === 'unfulfillable') {
                 $query->where('status', 'pending')
                       ->whereHas('items', function ($q) {
-                          $q->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id), 0))');
+                          $q->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id AND stocks.deleted_at IS NULL), 0))');
                       });
             } elseif ($request->fulfillment === 'fulfillable') {
                 $query->where(function ($query) {
@@ -68,7 +68,7 @@ class OrderController extends Controller
                           ->orWhere(function ($q) {
                               $q->where('status', 'pending')
                                 ->whereDoesntHave('items', function ($iq) {
-                                    $iq->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id), 0))');
+                                    $iq->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id AND stocks.deleted_at IS NULL), 0))');
                                 });
                           });
                 });
@@ -234,7 +234,7 @@ class OrderController extends Controller
             'updater',
             'shippingAddress.village',
             'billingAddress.village',
-            'shipments',
+            'shipments.events',
             'invoice',
             'payments'
         ])->findOrFail($id);
@@ -254,13 +254,6 @@ class OrderController extends Controller
 
         if ($order->status !== 'pending') {
             return back()->with('error', 'Only pending orders can be confirmed.');
-        }
-
-        foreach ($order->items as $item) {
-            $available = $inventoryService->getAvailableQty($item->product_id, $order->warehouse_id);
-            if ($item->quantity > $available) {
-                return back()->with('error', 'Insufficient on-hand stock to confirm this order.');
-            }
         }
 
         try {
@@ -420,67 +413,59 @@ class OrderController extends Controller
         $errors       = [];
 
         try {
-            \DB::transaction(function () use ($ids, $targetStatus, $inventoryService, $orderService, &$count, &$errors) {
-                $orders = Order::with(['items', 'shipments'])->whereIn('id', $ids)->get();
+            $orders = Order::with(['items', 'shipments'])->whereIn('id', $ids)->get();
 
-                foreach ($orders as $order) {
-                    if ($order->status === $targetStatus) {
-                        continue;
-                    }
-
-                    try {
-                        // ─── FORWARD TRANSITIONS ───────────────────────────
-                        if ($targetStatus === 'confirmed' && $order->status === 'pending') {
-                            foreach ($order->items as $item) {
-                                $available = $inventoryService->getAvailableQty($item->product_id, $order->warehouse_id);
-                                if ($item->quantity > $available) {
-                                    throw ValidationException::withMessages(['error' => 'Insufficient on-hand stock to confirm this order.']);
-                                }
-                            }
-                            $inventoryService->confirmOrder($order);
-                            $count++;
-                        } elseif ($targetStatus === 'processing' && $order->status === 'confirmed') {
-                            $orderService->updateStatus($order, 'processing');
-                            $count++;
-                        } elseif ($targetStatus === 'ready_to_ship' && in_array($order->status, ['confirmed', 'processing'])) {
-                            $inventoryService->readyToShipOrder($order, null, null);
-                            $count++;
-                        } elseif ($targetStatus === 'dispatched' && $order->status === 'ready_to_ship') {
-                            $inventoryService->dispatchOrder($order);
-                            $count++;
-                        } elseif ($targetStatus === 'delivered' && in_array($order->status, Order::inTransitStatuses(), true)) {
-                            $inventoryService->deliverOrder($order);
-                            $count++;
-                        } elseif ($targetStatus === 'cancelled' && !in_array($order->status, ['delivered', 'cancelled', 'returned'])) {
-                            $inventoryService->cancelOrder($order);
-                            $count++;
-
-                        // ─── REVERT TRANSITIONS (via InventoryService SSOT) ─
-                        } elseif ($targetStatus === 'pending' && in_array($order->status, ['confirmed', 'processing', 'cancelled', 'ready_to_ship'])) {
-                            $inventoryService->revertOrderToPending($order);
-                            $count++;
-                        } elseif ($targetStatus === 'confirmed' && $order->status === 'processing') {
-                            // Processing → Confirmed: no stock change, just status
-                            $order->update(['status' => 'confirmed', 'updated_by' => auth()->id()]);
-                            $count++;
-                        } elseif ($targetStatus === 'ready_to_ship' && $order->status === 'dispatched') {
-                            $inventoryService->revertOrderToProcessing($order);
-                            $count++;
-                        } elseif ($targetStatus === 'processing' && $order->status === 'ready_to_ship') {
-                            $inventoryService->revertOrderToProcessing($order);
-                            $count++;
-                        } elseif ($targetStatus === 'ready_to_ship' && $order->status === 'delivered') {
-                            $order->update(['status' => 'ready_to_ship', 'updated_by' => auth()->id()]);
-                            $count++;
-                        } elseif ($targetStatus === 'dispatched' && $order->status === 'delivered') {
-                            $inventoryService->revertDeliveredToDispatched($order);
-                            $count++;
-                        }
-                    } catch (ValidationException $e) {
-                        $errors[] = "Order #{$order->order_no}: " . collect($e->errors())->flatten()->first();
-                    }
+            foreach ($orders as $order) {
+                if ($order->status === $targetStatus) {
+                    continue;
                 }
-            });
+
+                try {
+                    // ─── FORWARD TRANSITIONS ───────────────────────────
+                    if ($targetStatus === 'confirmed' && $order->status === 'pending') {
+                        $inventoryService->confirmOrder($order);
+                        $count++;
+                    } elseif ($targetStatus === 'processing' && $order->status === 'confirmed') {
+                        $orderService->updateStatus($order, 'processing');
+                        $count++;
+                    } elseif ($targetStatus === 'ready_to_ship' && in_array($order->status, ['confirmed', 'processing'])) {
+                        $inventoryService->readyToShipOrder($order, null, null);
+                        $count++;
+                    } elseif ($targetStatus === 'dispatched' && $order->status === 'ready_to_ship') {
+                        $inventoryService->dispatchOrder($order);
+                        $count++;
+                    } elseif ($targetStatus === 'delivered' && in_array($order->status, Order::inTransitStatuses(), true)) {
+                        $inventoryService->deliverOrder($order);
+                        $count++;
+                    } elseif ($targetStatus === 'cancelled' && !in_array($order->status, ['delivered', 'cancelled', 'returned'])) {
+                        $inventoryService->cancelOrder($order);
+                        $count++;
+
+                    // ─── REVERT TRANSITIONS (via InventoryService SSOT) ─
+                    } elseif ($targetStatus === 'pending' && in_array($order->status, ['confirmed', 'processing', 'cancelled', 'ready_to_ship'])) {
+                        $inventoryService->revertOrderToPending($order);
+                        $count++;
+                    } elseif ($targetStatus === 'confirmed' && $order->status === 'processing') {
+                        // Processing → Confirmed: no stock change, just status
+                        $order->update(['status' => 'confirmed', 'updated_by' => auth()->id()]);
+                        $count++;
+                    } elseif ($targetStatus === 'ready_to_ship' && $order->status === 'dispatched') {
+                        $inventoryService->revertOrderToProcessing($order);
+                        $count++;
+                    } elseif ($targetStatus === 'processing' && $order->status === 'ready_to_ship') {
+                        $inventoryService->revertOrderToProcessing($order);
+                        $count++;
+                    } elseif ($targetStatus === 'ready_to_ship' && $order->status === 'delivered') {
+                        $order->update(['status' => 'ready_to_ship', 'updated_by' => auth()->id()]);
+                        $count++;
+                    } elseif ($targetStatus === 'dispatched' && $order->status === 'delivered') {
+                        $inventoryService->revertDeliveredToDispatched($order);
+                        $count++;
+                    }
+                } catch (ValidationException $e) {
+                    $errors[] = "Order #{$order->order_no}: " . collect($e->errors())->flatten()->first();
+                }
+            }
         } catch (\Exception $e) {
             return back()->with('error', 'Error processing status update: ' . $e->getMessage());
         }

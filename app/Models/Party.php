@@ -60,7 +60,6 @@ class Party extends Model
         // Engagement
         'first_purchase_at',
         'last_purchase_at',
-        'orders_count',
 
         // Status & Control
         'status',
@@ -75,6 +74,9 @@ class Party extends Model
         // Audit
         'created_by',
         'updated_by',
+
+        // Counter cache
+        'orders_count',
     ];
 
     protected $casts = [

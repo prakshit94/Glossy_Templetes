@@ -24,9 +24,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
     public function findByEmailOrUsername(string $login): ?User
     {
-        return $this->model->where('email', $login)
-            ->orWhere('username', $login)
-            ->first();
+        return $this->model->where(function ($query) use ($login) {
+            $query->where('email', $login)
+                  ->orWhere('username', $login);
+        })->first();
     }
 
     public function updateLastLogin(User $user, string $ip): void

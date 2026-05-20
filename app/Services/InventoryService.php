@@ -393,11 +393,12 @@ class InventoryService
         // Lock both rows in deterministic order to prevent deadlocks
         $ids = [$fromWarehouseId, $toWarehouseId];
         sort($ids);
+        $lockedStocks = [];
         foreach ($ids as $wid) {
-            $this->getStockForUpdate($productId, $wid);
+            $lockedStocks[$wid] = $this->getStockForUpdate($productId, $wid);
         }
 
-        $from = $this->getStockForUpdate($productId, $fromWarehouseId);
+        $from = $lockedStocks[$fromWarehouseId];
         if ((float) $from->quantity < $quantity) {
             throw ValidationException::withMessages([
                 'quantity' => 'Insufficient stock to transfer.',
@@ -459,38 +460,10 @@ class InventoryService
 
             if ($order->type === 'sale') {
                 foreach ($order->items as $item) {
-                    // Reserve stock – uses its own internal lock, same transaction
-                    $stock        = $this->getStockForUpdate((int) $item->product_id, (int) $order->warehouse_id);
-                    $product      = Product::find((int) $item->product_id);
-                    $rawAvailable = (float) $stock->quantity - (float) $stock->reserved_qty;
-                    $maxReservable = $rawAvailable;
-                    if ($product?->allow_overselling) {
-                        $maxReservable += (float) ($product->overselling_qty ?: 999);
-                    }
-
-                    if ($maxReservable < (float) $item->quantity) {
-                        throw ValidationException::withMessages([
-                            'quantity' => "Insufficient stock (including oversell allowance) for product ID {$item->product_id}. Available: {$maxReservable}.",
-                        ]);
-                    }
-
-                    $stock->reserved_qty = (float) $stock->reserved_qty + (float) $item->quantity;
-                    $stock->save();
-
-                    StockReservation::create([
-                        'product_id'   => $item->product_id,
-                        'warehouse_id' => $order->warehouse_id,
-                        'order_id'     => $order->id,
-                        'quantity'     => $item->quantity,
-                        'status'       => 'active',
-                    ]);
-
-                    $this->logMovement(
+                    $this->reserveStock(
                         (int) $item->product_id,
                         (int) $order->warehouse_id,
                         (float) $item->quantity,
-                        'reserve',
-                        Order::class,
                         $order->id
                     );
                 }

@@ -143,7 +143,7 @@ class OrderReturnController extends Controller
 
         return DB::transaction(function () use ($order, $reason, $items) {
             $orderReturn = OrderReturn::create([
-                'return_no' => 'RET-' . strtoupper(uniqid()),
+                'return_no' => 'RET-' . strtoupper(\Illuminate\Support\Str::random(10)),
                 'order_id' => $order->id,
                 'reason' => $reason,
                 'status' => 'requested',
@@ -161,9 +161,15 @@ class OrderReturnController extends Controller
                     ]);
                 }
 
-                if ($itemData['quantity'] > $orderItem->quantity) {
+                $alreadyReturned = \Illuminate\Support\Facades\DB::table('order_return_items')
+                    ->join('order_returns', 'order_return_items.return_id', '=', 'order_returns.id')
+                    ->where('order_return_items.order_item_id', $orderItem->id)
+                    ->where('order_returns.status', '!=', 'rejected')
+                    ->sum('order_return_items.quantity');
+
+                if ($itemData['quantity'] + $alreadyReturned > $orderItem->quantity) {
                     throw ValidationException::withMessages([
-                        'items' => "Return quantity cannot exceed order quantity for item {$orderItem->product_id}.",
+                        'items' => "Return quantity plus previously returned quantity cannot exceed order quantity for item {$orderItem->product_id}.",
                     ]);
                 }
 
@@ -177,7 +183,6 @@ class OrderReturnController extends Controller
             }
 
             $orderReturn->update(['refund_amount' => $totalRefund]);
-            $order->update(['status' => 'returned']);
 
             return $orderReturn->fresh(['items']);
         });
@@ -202,12 +207,13 @@ class OrderReturnController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($request, $return, $inventoryService) {
+            DB::transaction(function () use ($return, $request, $inventoryService) {
                 $newStatus = $request->status;
 
                 // When goods are received/completed, we should put them back into inventory if applicable.
                 // Assuming completed means stock is returned.
                 if ($newStatus === 'completed' && $return->status !== 'completed') {
+                    $return->order->update(['status' => 'returned']);
                     foreach ($return->items as $returnItem) {
                         $orderItem = $returnItem->orderItem;
                         // Add stock back to the warehouse using the single source of truth InventoryService

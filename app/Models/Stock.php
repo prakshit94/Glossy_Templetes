@@ -69,12 +69,12 @@ class Stock extends Model
     public function reservations(): HasMany
     {
         return $this->hasMany(StockReservation::class, 'product_id', 'product_id')
-                    ->where('warehouse_id', $this->warehouse_id);
+            ->where('warehouse_id', $this->warehouse_id ?? -1);
     }
 
     public function movements(): HasMany
     {
         return $this->hasMany(StockMovement::class, 'product_id', 'product_id')
-                    ->where('warehouse_id', $this->warehouse_id);
+            ->where('warehouse_id', $this->warehouse_id ?? -1);
     }
 }

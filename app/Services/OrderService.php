@@ -92,12 +92,82 @@ class OrderService
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Place a new customer order from the cart payload.
+     * Recalculate order totals and validate coupon code.
+     * Must be called inside a database transaction if a coupon is being updated.
      */
-    public function placeCustomerOrder(Customer $customer, array $data): Order
+    private function recalculateAndValidate(array $data, ?string $lastCouponCode = null): array
     {
-        $cart  = json_decode($data['cart'], true);
-        $items = $this->buildItemsFromCart($cart);
+        $cart = json_decode($data['cart'], true);
+        if (empty($cart)) {
+            throw ValidationException::withMessages([
+                'cart' => 'Cart is empty or contains invalid items.',
+            ]);
+        }
+
+        // Load products to verify prices
+        $productIds = array_filter(array_column($cart, 'id'));
+        $products = \App\Models\Product::whereIn('id', $productIds)
+            ->with('taxRate')
+            ->get()
+            ->keyBy('id');
+
+        $items = [];
+        $subtotal = 0.0;
+        $taxAmount = 0.0;
+        $totalItemDiscount = 0.0;
+
+        foreach ($cart as $item) {
+            if (empty($item['id']) || !isset($item['quantity']) || (float)$item['quantity'] <= 0) {
+                continue;
+            }
+
+            $product = $products->get($item['id']);
+            if (!$product) {
+                throw ValidationException::withMessages([
+                    'cart' => "Product with ID {$item['id']} is invalid or does not exist.",
+                ]);
+            }
+
+            if ($product->status !== 'active' || !$product->is_active) {
+                throw ValidationException::withMessages([
+                    'cart' => "Product '{$product->name}' is currently unavailable.",
+                ]);
+            }
+
+            $qty = (float) $item['quantity'];
+            $unitPrice = (float) $product->selling_price;
+            $itemBase = $unitPrice * $qty;
+
+            // Product-level discount (use product default discount to prevent tampering)
+            $discountValue = (float) ($product->default_discount ?? 0);
+            $discountType = $product->default_discount_type ?? 'percent';
+            $itemDisc = 0.0;
+
+            if ($discountValue > 0) {
+                $itemDisc = $discountType === 'percent'
+                    ? $itemBase * ($discountValue / 100)
+                    : min($discountValue, $itemBase);
+            }
+
+            $itemTotal = $itemBase - $itemDisc;
+            
+            // Recalculate tax
+            $taxRateVal = (float) ($product->taxRate?->rate ?? 0);
+            $itemTax = $itemTotal * ($taxRateVal / 100);
+
+            $subtotal += $itemTotal;
+            $totalItemDiscount += $itemDisc;
+            $taxAmount += $itemTax;
+
+            $items[] = [
+                'product_id'      => $product->id,
+                'quantity'        => $qty,
+                'unit_price'      => $unitPrice,
+                'discount_amount' => $itemDisc,
+                'tax_amount'      => $itemTax,
+                'total_amount'    => $itemTotal,
+            ];
+        }
 
         if (empty($items)) {
             throw ValidationException::withMessages([
@@ -105,6 +175,89 @@ class OrderService
             ]);
         }
 
+        // Validate coupon code
+        $couponDiscount = 0.0;
+        $couponCode = null;
+        if (!empty($data['coupon_code'])) {
+            $code = strtoupper(trim($data['coupon_code']));
+            // Lock coupon row to prevent race conditions on usage_limit
+            $coupon = \App\Models\Coupon::where('code', $code)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$coupon) {
+                throw ValidationException::withMessages([
+                    'coupon_code' => 'Invalid promo code.',
+                ]);
+            }
+
+            if (!$coupon->is_active) {
+                throw ValidationException::withMessages([
+                    'coupon_code' => 'This promo code is inactive.',
+                ]);
+            }
+
+            if ($coupon->expiry_date && $coupon->expiry_date < now()->startOfDay()) {
+                throw ValidationException::withMessages([
+                    'coupon_code' => 'This promo code has expired.',
+                ]);
+            }
+
+            $alreadyUsedThisCoupon = $lastCouponCode !== null 
+                && strcasecmp($lastCouponCode, $code) === 0;
+
+            $currentUsedCount = (int) $coupon->used_count;
+            if ($coupon->usage_limit && $currentUsedCount >= $coupon->usage_limit && !$alreadyUsedThisCoupon) {
+                throw ValidationException::withMessages([
+                    'coupon_code' => 'This promo code usage limit has been reached.',
+                ]);
+            }
+
+            if ($coupon->min_spend > 0 && $subtotal < $coupon->min_spend) {
+                throw ValidationException::withMessages([
+                    'coupon_code' => 'Minimum spend of ₹' . number_format($coupon->min_spend, 2) . ' required.',
+                ]);
+            }
+
+            if ($coupon->type === 'percentage') {
+                $couponDiscount = $subtotal * ($coupon->value / 100);
+                if ($coupon->max_discount > 0 && $couponDiscount > $coupon->max_discount) {
+                    $couponDiscount = (float) $coupon->max_discount;
+                }
+            } else {
+                $couponDiscount = (float) $coupon->value;
+            }
+
+            $couponDiscount = min($couponDiscount, $subtotal);
+            $couponCode = $coupon->code;
+        }
+
+        $orderDiscount = max(0.0, (float) ($data['order_discount_amount'] ?? 0));
+        $totalDiscount = $orderDiscount + $couponDiscount;
+
+        if ($totalDiscount > $subtotal) {
+            $totalDiscount = $subtotal;
+        }
+
+        $grandTotal = max(0.0, $subtotal - $totalDiscount + $taxAmount);
+
+        return [
+            'items'                 => $items,
+            'subtotal'              => $subtotal,
+            'tax_amount'            => $taxAmount,
+            'order_discount_amount' => $orderDiscount,
+            'coupon_discount'       => $couponDiscount,
+            'total_discount'        => $totalDiscount,
+            'grand_total'           => $grandTotal,
+            'coupon_code'           => $couponCode,
+        ];
+    }
+
+    /**
+     * Place a new customer order from the cart payload.
+     */
+    public function placeCustomerOrder(Customer $customer, array $data): Order
+    {
         if (empty($data['warehouse_id'])) {
             throw ValidationException::withMessages([
                 'warehouse_id' => 'A warehouse must be selected to place an order.',
@@ -114,28 +267,37 @@ class OrderService
         $shippingAddr = PartyAddress::find($data['address_id']);
         $billingAddr  = PartyAddress::find($data['billing_address_id'] ?? $data['address_id']);
 
-        $order = $this->createOrder([
-            'type'                => 'sale',
-            'party_id'            => $customer->id,
-            'warehouse_id'        => $data['warehouse_id'],
-            'shipping_address_id' => $data['address_id'] ?? null,
-            'billing_address_id'  => $data['billing_address_id'] ?? $data['address_id'] ?? null,
-            'shipping_address'    => $this->formatAddress($shippingAddr),
-            'billing_address'     => $this->formatAddress($billingAddr),
-            'order_date'          => now(),
-            'total_amount'        => $data['subtotal'],
-            'tax_amount'          => $data['tax_amount'],
-            'discount_amount'     => (float) ($data['order_discount_amount'] ?? 0)
-                                    + (float) ($data['coupon_discount'] ?? 0),
-            'net_amount'          => $data['grand_total'],
-            'items'               => $items,
-        ]);
+        return DB::transaction(function () use ($customer, $data, $shippingAddr, $billingAddr) {
+            $calc = $this->recalculateAndValidate($data);
 
-        if (!empty($data['coupon_code'])) {
-            \App\Models\Coupon::where('code', strtoupper($data['coupon_code']))->increment('used_count');
-        }
+            $order = $this->createOrder([
+                'type'                => 'sale',
+                'party_id'            => $customer->id,
+                'warehouse_id'        => $data['warehouse_id'],
+                'shipping_address_id' => $data['address_id'] ?? null,
+                'billing_address_id'  => $data['billing_address_id'] ?? $data['address_id'] ?? null,
+                'shipping_address'    => $this->formatAddress($shippingAddr),
+                'billing_address'     => $this->formatAddress($billingAddr),
+                'order_date'          => now(),
+                'total_amount'        => $calc['subtotal'],
+                'tax_amount'          => $calc['tax_amount'],
+                'discount_amount'     => $calc['total_discount'],
+                'net_amount'          => $calc['grand_total'],
+                'items'               => $calc['items'],
+            ]);
 
-        return $order;
+            if ($calc['coupon_code']) {
+                \App\Models\Coupon::where('code', $calc['coupon_code'])->increment('used_count');
+            }
+
+            // Log coupon application in activity log properties to track it
+            activity('orders')
+                ->performedOn($order)
+                ->withProperties(['coupon_code' => $calc['coupon_code']])
+                ->log("Coupon applied to Order #{$order->order_no}");
+
+            return $order;
+        });
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -151,19 +313,10 @@ class OrderService
      */
     public function updateCustomerOrder(Order $order, array $data): Order
     {
-        $cart  = json_decode($data['cart'], true);
-        $items = $this->buildItemsFromCart($cart);
-
-        if (empty($items)) {
-            throw ValidationException::withMessages([
-                'cart' => 'Cart is empty or contains invalid items.',
-            ]);
-        }
-
         $shippingAddr = PartyAddress::find($data['address_id']);
         $billingAddr  = PartyAddress::find($data['billing_address_id'] ?? $data['address_id']);
 
-        return DB::transaction(function () use ($order, $data, $items, $shippingAddr, $billingAddr) {
+        return DB::transaction(function () use ($order, $data, $shippingAddr, $billingAddr) {
             // Reload with lock
             $order = Order::with('items')->lockForUpdate()->findOrFail($order->id);
 
@@ -172,6 +325,19 @@ class OrderService
                     'status' => 'Only pending or confirmed orders can be updated.',
                 ]);
             }
+
+            // Find last used coupon code from activity logs to avoid double-counting or check if it changed
+            $lastCouponCode = null;
+            $lastLog = \Spatie\Activitylog\Models\Activity::where('subject_type', Order::class)
+                ->where('subject_id', $order->id)
+                ->where('properties', 'like', '%coupon_code%')
+                ->latest()
+                ->first();
+            if ($lastLog && $lastLog->properties && isset($lastLog->properties['coupon_code'])) {
+                $lastCouponCode = $lastLog->properties['coupon_code'];
+            }
+
+            $calc = $this->recalculateAndValidate($data, $lastCouponCode);
 
             // If already confirmed, release all reservations before recalculating
             if ($order->status === 'confirmed' && $order->type === 'sale' && $order->warehouse_id) {
@@ -192,17 +358,16 @@ class OrderService
                 'billing_address_id'  => $data['billing_address_id'] ?? $data['address_id'] ?? null,
                 'shipping_address'    => $this->formatAddress($shippingAddr),
                 'billing_address'     => $this->formatAddress($billingAddr),
-                'total_amount'        => $data['subtotal'],
-                'tax_amount'          => $data['tax_amount'],
-                'discount_amount'     => (float) ($data['order_discount_amount'] ?? 0)
-                                        + (float) ($data['coupon_discount'] ?? 0),
-                'net_amount'          => $data['grand_total'],
+                'total_amount'        => $calc['subtotal'],
+                'tax_amount'          => $calc['tax_amount'],
+                'discount_amount'     => $calc['total_discount'],
+                'net_amount'          => $calc['grand_total'],
                 'updated_by'          => auth()->id(),
             ]);
 
             // Replace items
             $order->items()->delete();
-            foreach ($items as $item) {
+            foreach ($calc['items'] as $item) {
                 $order->items()->create($item);
             }
 
@@ -219,8 +384,20 @@ class OrderService
                 }
             }
 
+            // If the coupon changed, update the used_count of both coupons
+            $newCouponCode = $calc['coupon_code'];
+            if ($newCouponCode !== $lastCouponCode) {
+                if ($lastCouponCode) {
+                    \App\Models\Coupon::where('code', $lastCouponCode)->decrement('used_count');
+                }
+                if ($newCouponCode) {
+                    \App\Models\Coupon::where('code', $newCouponCode)->increment('used_count');
+                }
+            }
+
             activity('orders')
                 ->performedOn($order)
+                ->withProperties(['coupon_code' => $newCouponCode])
                 ->log("Order #{$order->order_no} updated via cart");
 
             return $order->refresh();
@@ -268,7 +445,7 @@ class OrderService
         $items = [];
 
         foreach ($cart as $item) {
-            if (empty($item['id']) || empty($item['quantity']) || empty($item['price'])) {
+            if (empty($item['id']) || !isset($item['quantity']) || (float)$item['quantity'] <= 0 || !isset($item['price'])) {
                 continue;
             }
 

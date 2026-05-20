@@ -183,43 +183,51 @@ class DeliveryController extends Controller
             'transport_id' => 'required|exists:transports,id',
         ]);
 
-        $driver = Driver::findOrFail($request->driver_id);
-        $transport = Transport::findOrFail($request->transport_id);
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($request, $inventoryService) {
+            $driver = Driver::findOrFail($request->driver_id);
+            $transport = Transport::findOrFail($request->transport_id);
 
-        foreach ($request->shipment_ids as $shipmentId) {
-            $shipment = Shipment::findOrFail($shipmentId);
+            foreach ($request->shipment_ids as $shipmentId) {
+                $shipment = Shipment::findOrFail($shipmentId);
 
-            // If the order is currently ready_to_ship, dispatch it to trigger stock mutations
-            if ($shipment->order && $shipment->order->status === 'ready_to_ship') {
-                $inventoryService->dispatchOrder($shipment->order);
+                if ($shipment->order) {
+                    if (!in_array($shipment->order->status, ['ready_to_ship', 'dispatched'])) {
+                        throw ValidationException::withMessages([
+                            'shipment' => 'Only ready to ship or dispatched orders can be assigned for delivery.',
+                        ]);
+                    }
+                    if ($shipment->order->status === 'ready_to_ship') {
+                        $inventoryService->dispatchOrder($shipment->order);
+                    }
+                }
+
+                // Create Delivery Record
+                Delivery::create([
+                    'shipment_id' => $shipment->id,
+                    'driver_id' => $driver->id,
+                    'transport_id' => $transport->id,
+                    'status' => 'out_for_delivery',
+                ]);
+
+                // Update Shipment status
+                $shipment->update(['status' => 'in_transit']);
+
+                // Create tracking event
+                ShipmentTrackingEvent::create([
+                    'shipment_id' => $shipment->id,
+                    'event_name' => 'Dispatched / Out for Delivery',
+                    'location' => $shipment->order && $shipment->order->warehouse ? $shipment->order->warehouse->name : 'Warehouse',
+                    'description' => "Assigned to driver {$driver->name} using transport vehicle {$transport->name} ({$transport->vehicle_number}).",
+                    'occurred_at' => now(),
+                ]);
             }
 
-            // Create Delivery Record
-            Delivery::create([
-                'shipment_id' => $shipment->id,
-                'driver_id' => $driver->id,
-                'transport_id' => $transport->id,
-                'status' => 'out_for_delivery',
-            ]);
+            // Update Driver and Transport status
+            $driver->update(['status' => 'busy']);
+            $transport->update(['status' => 'on_delivery']);
 
-            // Update Shipment status
-            $shipment->update(['status' => 'in_transit']);
-
-            // Create tracking event
-            ShipmentTrackingEvent::create([
-                'shipment_id' => $shipment->id,
-                'event_name' => 'Dispatched / Out for Delivery',
-                'location' => $shipment->order && $shipment->order->warehouse ? $shipment->order->warehouse->name : 'Warehouse',
-                'description' => "Assigned to driver {$driver->name} using transport vehicle {$transport->name} ({$transport->vehicle_number}).",
-                'occurred_at' => now(),
-            ]);
-        }
-
-        // Update Driver and Transport status
-        $driver->update(['status' => 'busy']);
-        $transport->update(['status' => 'on_delivery']);
-
-        return back()->with('success', 'Order shipments successfully assigned to transport and driver. Out for delivery!');
+            return back()->with('success', 'Order shipments successfully assigned to transport and driver. Out for delivery!');
+        });
     }
 
     public function markDelivered(Request $request, $id, InventoryService $inventoryService)
@@ -236,36 +244,36 @@ class DeliveryController extends Controller
             return back()->with('error', 'Order record not found for this shipment.');
         }
 
-        // Complete delivery
-        $delivery->update([
-            'status' => 'delivered',
-            'delivered_at' => now(),
-        ]);
-
-        // Release driver and transport
-        if ($delivery->driver) {
-            $delivery->driver->update(['status' => 'available']);
-        }
-        if ($delivery->transport) {
-            $delivery->transport->update(['status' => 'available']);
-        }
-
-        // Add tracking event
-        ShipmentTrackingEvent::create([
-            'shipment_id' => $shipment->id,
-            'event_name' => 'Delivered',
-            'location' => $delivery->destination,
-            'description' => "Order delivered successfully by driver {$delivery->driver_name}.",
-            'occurred_at' => now(),
-        ]);
-
-        // Transition Order and Shipment to delivered status
         try {
-            $inventoryService->deliverOrder($order);
+            \Illuminate\Support\Facades\DB::transaction(function () use ($delivery, $shipment, $order, $inventoryService) {
+                // Complete delivery
+                $delivery->update([
+                    'status' => 'delivered',
+                    'delivered_at' => now(),
+                ]);
+
+                // Release driver and transport
+                if ($delivery->driver) {
+                    $delivery->driver->update(['status' => 'available']);
+                }
+                if ($delivery->transport) {
+                    $delivery->transport->update(['status' => 'available']);
+                }
+
+                // Add tracking event
+                ShipmentTrackingEvent::create([
+                    'shipment_id' => $shipment->id,
+                    'event_name' => 'Delivered',
+                    'location' => $delivery->destination,
+                    'description' => "Order delivered successfully by driver {$delivery->driver_name}.",
+                    'occurred_at' => now(),
+                ]);
+
+                // Transition Order and Shipment to delivered status
+                $inventoryService->deliverOrder($order);
+            });
         } catch (\Exception $e) {
-            // Fallback in case of inventory service restrictions
-            $shipment->update(['status' => 'delivered', 'delivered_at' => now()]);
-            $order->update(['status' => 'delivered']);
+            return back()->with('error', 'Error marking delivery as completed: ' . $e->getMessage());
         }
 
         return back()->with('success', 'Order shipment successfully delivered and completed!');

@@ -37,11 +37,12 @@ class MfaService implements MfaServiceInterface
 
     public function enableMfa(User $user, string $token): void
     {
-        if ($this->verifyToken($user, $token)) {
-            $user->update([
-                'two_factor_confirmed_at' => now(),
-            ]);
+        if (!$this->verifyToken($user, $token)) {
+            throw new \InvalidArgumentException('Invalid MFA token.');
         }
+        $user->update([
+            'two_factor_confirmed_at' => now(),
+        ]);
     }
 
     public function disableMfa(User $user): void

@@ -93,7 +93,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('orders/{order}/invoice-pdf', [OrderController::class, 'downloadInvoice'])->name('orders.invoice-pdf');
     Route::post('orders/{order}/generate-invoice', [OrderController::class, 'generateInvoice'])->name('orders.generate-invoice');
     Route::get('orders/{order}/cod-pdf', [OrderController::class, 'downloadReceipt'])->name('orders.cod-pdf');
-    Route::resource('orders', OrderController::class);
+    // BUG-25 FIX: Custom action routes declared BEFORE Route::resource() per Laravel convention.
     Route::post('orders/{order}/confirm', [OrderController::class, 'confirm'])->name('orders.confirm');
     Route::post('orders/{order}/ship', [OrderController::class, 'ship'])->name('orders.ship');
     Route::post('orders/{order}/dispatch', [OrderController::class, 'dispatch'])->name('orders.dispatch');
@@ -101,6 +101,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('orders/{order}/deliver', [OrderController::class, 'markDelivered'])->name('orders.deliver');
     Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
+    Route::resource('orders', OrderController::class);
 
     Route::resource('returns', OrderReturnController::class);
     Route::post('returns/{return}/status', [OrderReturnController::class, 'updateStatus'])->name('returns.status');

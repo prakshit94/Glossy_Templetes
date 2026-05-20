@@ -53,8 +53,8 @@ class ProductController extends Controller
         $stats = [
             'total' => Product::count(),
             'active' => Product::where('status', 'active')->count(),
-            'out_of_stock' => Product::whereRaw('IFNULL((select sum(quantity - reserved_qty) from stocks where product_id = products.id), 0) <= 0')->count(),
-            'low_stock' => Product::whereRaw('IFNULL((select sum(quantity - reserved_qty) from stocks where product_id = products.id), 0) <= min_stock_level')->whereRaw('IFNULL((select sum(quantity - reserved_qty) from stocks where product_id = products.id), 0) > 0')->count(),
+            'out_of_stock' => Product::whereRaw('IFNULL((select sum(quantity - reserved_qty) from stocks where product_id = products.id and stocks.deleted_at is null), 0) <= 0')->count(),
+            'low_stock' => Product::whereRaw('IFNULL((select sum(quantity - reserved_qty) from stocks where product_id = products.id and stocks.deleted_at is null), 0) <= min_stock_level')->whereRaw('IFNULL((select sum(quantity - reserved_qty) from stocks where product_id = products.id and stocks.deleted_at is null), 0) > 0')->count(),
         ];
 
         // dynamic lists
@@ -129,12 +129,12 @@ class ProductController extends Controller
 
         if ($stockFilter === 'available') {
             $query->where(function ($q) use ($excludeSql) {
-                $q->whereRaw('(IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = products.id), 0) - IFNULL((SELECT SUM(quantity) FROM order_items JOIN orders ON orders.id = order_items.order_id WHERE order_items.product_id = products.id AND orders.status = \'pending\' AND orders.deleted_at IS NULL' . $excludeSql . '), 0)) > 0')
+                $q->whereRaw('(IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = products.id AND stocks.deleted_at IS NULL), 0) - IFNULL((SELECT SUM(quantity) FROM order_items JOIN orders ON orders.id = order_items.order_id WHERE order_items.product_id = products.id AND orders.status = \'pending\' AND orders.deleted_at IS NULL' . $excludeSql . '), 0)) > 0')
                   ->orWhere('allow_overselling', true);
             });
         } elseif ($stockFilter === 'out_of_stock') {
             $query->where(function ($q) use ($excludeSql) {
-                $q->whereRaw('(IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = products.id), 0) - IFNULL((SELECT SUM(quantity) FROM order_items JOIN orders ON orders.id = order_items.order_id WHERE order_items.product_id = products.id AND orders.status = \'pending\' AND orders.deleted_at IS NULL' . $excludeSql . '), 0)) <= 0')
+                $q->whereRaw('(IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = products.id AND stocks.deleted_at IS NULL), 0) - IFNULL((SELECT SUM(quantity) FROM order_items JOIN orders ON orders.id = order_items.order_id WHERE order_items.product_id = products.id AND orders.status = \'pending\' AND orders.deleted_at IS NULL' . $excludeSql . '), 0)) <= 0')
                   ->where('allow_overselling', false);
             });
         }

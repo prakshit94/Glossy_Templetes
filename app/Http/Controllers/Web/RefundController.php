@@ -89,17 +89,22 @@ class RefundController extends Controller
             'reason'     => 'nullable|string',
         ]);
 
-        $payment = Payment::findOrFail($request->payment_id);
-        $existingRefunds = $payment->refunds()->whereIn('status', ['pending', 'processed'])->sum('amount');
-        
-        $maxRefundable = $payment->amount - $existingRefunds;
-
-        if ($request->amount > $maxRefundable) {
-            return back()->withInput()->with('error', "Refund amount cannot exceed the maximum refundable amount of ₹" . number_format($maxRefundable, 2));
-        }
-
         try {
-            DB::transaction(function () use ($request, $payment) {
+            DB::transaction(function () use ($request) {
+                // Lock payment record for update to prevent concurrent refund creation
+                $payment = Payment::lockForUpdate()->findOrFail($request->payment_id);
+
+                $existingRefunds = $payment->refunds()
+                    ->whereIn('status', ['pending', 'processed'])
+                    ->lockForUpdate()
+                    ->sum('amount');
+                
+                $maxRefundable = $payment->amount - $existingRefunds;
+
+                if ($request->amount > $maxRefundable) {
+                    throw new \Exception("Refund amount cannot exceed the maximum refundable amount of ₹" . number_format($maxRefundable, 2));
+                }
+
                 Refund::create([
                     'payment_id' => $payment->id,
                     'amount'     => $request->amount,
@@ -126,25 +131,32 @@ class RefundController extends Controller
             'status' => 'required|in:pending,processed,failed',
         ]);
 
-        $refund = Refund::with('payment')->findOrFail($id);
-        
-        if ($refund->status === 'processed' || $refund->status === 'failed') {
-            return back()->with('error', 'Cannot update status of a finalized refund.');
-        }
-
         try {
-            DB::transaction(function () use ($request, $refund) {
-                $newStatus = $request->status;
+            DB::transaction(function () use ($request, $id) {
+                // Lock refund record for update
+                $refund = Refund::lockForUpdate()->findOrFail($id);
+                
+                if ($refund->status === 'processed' || $refund->status === 'failed') {
+                    throw new \Exception('Cannot update status of a finalized refund.');
+                }
 
+                // Lock the associated payment record for update
+                $payment = Payment::lockForUpdate()->findOrFail($refund->payment_id);
+
+                $newStatus = $request->status;
                 $updateData = ['status' => $newStatus];
+
                 if ($newStatus === 'processed') {
                     $updateData['processed_at'] = now();
                     
-                    // Note: Depending on business rules, we might want to update the payment status 
-                    // to 'refunded' if it is fully refunded.
-                    $existingRefunds = $refund->payment->refunds()->where('status', 'processed')->where('id', '!=', $refund->id)->sum('amount');
-                    if (($existingRefunds + $refund->amount) >= $refund->payment->amount) {
-                        $refund->payment->update(['status' => 'refunded']);
+                    $existingRefunds = $payment->refunds()
+                        ->where('status', 'processed')
+                        ->where('id', '!=', $refund->id)
+                        ->lockForUpdate()
+                        ->sum('amount');
+
+                    if (($existingRefunds + $refund->amount) >= $payment->amount) {
+                        $payment->update(['status' => 'refunded']);
                     }
                 }
 

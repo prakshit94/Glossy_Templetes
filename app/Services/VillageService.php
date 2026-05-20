@@ -69,7 +69,7 @@ class VillageService
 
         Village::byPincode($pincode)->chunkById(1000, function ($villages) use ($service, $status) {
             $mappings = $villages->map(fn($v) => [
-                'village_id' => $v.id,
+                'village_id' => $v->id,
                 'service_id' => $service->id,
                 'is_available' => $status,
                 'updated_at' => now(),

@@ -93,9 +93,11 @@ class StockAdjustmentController extends Controller
             ]);
 
             foreach ($request->items as $item) {
-                // Read current qty without opening a write-transaction
+                // Lock the stock row so concurrent adjustments cannot change qty
+                // between our read and the adjustment record being written.
                 $currentQty = (float) (Stock::where('product_id', $item['product_id'])
                     ->where('warehouse_id', $warehouseId)
+                    ->lockForUpdate()
                     ->value('quantity') ?? 0);
 
                 $adjustment->items()->create([
@@ -175,8 +177,11 @@ class StockAdjustmentController extends Controller
             $adjustment->items()->delete();
 
             foreach ($request->items as $item) {
+                // Lock the stock row so concurrent adjustments cannot change qty
+                // between our read and the adjustment record being written.
                 $currentQty = (float) (Stock::where('product_id', $item['product_id'])
                     ->where('warehouse_id', $warehouseId)
+                    ->lockForUpdate()
                     ->value('quantity') ?? 0);
 
                 $adjustment->items()->create([

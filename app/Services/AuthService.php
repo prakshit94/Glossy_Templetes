@@ -40,7 +40,12 @@ class AuthService implements AuthServiceInterface
         }
 
         if ($data->mfa_token) {
-            // Verification logic here (usually handled via Fortify or custom)
+            $mfaService = app(\App\Services\MfaService::class);
+            if (!$mfaService->verifyToken($user, $data->mfa_token)) {
+                throw ValidationException::withMessages([
+                    'mfa_token' => ['Invalid MFA token.'],
+                ]);
+            }
         }
 
         Auth::login($user, $data->remember);
@@ -111,7 +116,7 @@ class AuthService implements AuthServiceInterface
 
     public function impersonate(User $admin, User $target): void
     {
-        session(['impersonate' => $target->id]);
+        session(['impersonate' => $admin->id]);
         Auth::login($target);
     }
 
