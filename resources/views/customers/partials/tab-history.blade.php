@@ -21,7 +21,8 @@
                                     @php
                                         $statusColor = match($order->status) {
                                             'delivered', 'completed' => 'emerald',
-                                            'shipped' => 'blue',
+                                            'dispatched', 'shipped' => 'blue',
+                                            'ready_to_ship' => 'indigo',
                                             'processing' => 'amber',
                                             'confirmed' => 'indigo',
                                             'cancelled', 'returned' => 'red',
@@ -29,7 +30,7 @@
                                             default => 'primary'
                                         };
                                     @endphp
-                                    <x-ui.badge variant="{{ match($order->status) { 'shipped', 'delivered', 'completed' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', default => 'default' } }}" class="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
+                                    <x-ui.badge variant="{{ match($order->status) { 'shipped', 'dispatched', 'delivered', 'completed' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'warning', default => 'default' } }}" class="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
                                         {{ str_replace('_', ' ', $order->status) }}
                                     </x-ui.badge>
                                 </div>
@@ -170,8 +171,9 @@
                                     ['key' => 'pending',    'label' => 'Pending',    'icon' => 'clock'],
                                     ['key' => 'confirmed',  'label' => 'Confirmed',  'icon' => 'check-circle'],
                                     ['key' => 'processing', 'label' => 'Processing', 'icon' => 'loader'],
-                                    ['key' => 'shipped',    'label' => 'Shipped',    'icon' => 'truck'],
-                                    ['key' => 'delivered',  'label' => 'Delivered',  'icon' => 'package-check'],
+                                    ['key' => 'ready_to_ship', 'label' => 'Ready to Ship', 'icon' => 'package'],
+                                    ['key' => $order->status === 'shipped' ? 'shipped' : 'dispatched', 'label' => $order->status === 'shipped' ? 'Shipped' : 'Dispatched', 'icon' => 'truck'],
+                                    ['key' => 'delivered',  'label' => 'Delivered',  'icon' => 'check-circle'],
                                 ];
                                 $stepKeys = array_column($steps, 'key');
                                 $currentIndex = array_search($order->status, $stepKeys);

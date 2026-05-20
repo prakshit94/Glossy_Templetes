@@ -871,13 +871,15 @@ class InventoryService
     public function revertOrderToProcessing(Order $order): void
     {
         DB::transaction(function () use ($order) {
-            $order = Order::with('items')->lockForUpdate()->findOrFail($order->id);
+            $order = Order::with(['items', 'shipments'])->lockForUpdate()->findOrFail($order->id);
 
-            if ($order->status !== 'shipped') {
+            if (!in_array($order->status, ['shipped', 'dispatched', 'ready_to_ship'])) {
                 throw ValidationException::withMessages([
-                    'status' => 'Only shipped orders can be reverted to processing.',
+                    'status' => 'Only shipped, dispatched, or ready to ship orders can be reverted to processing.',
                 ]);
             }
+
+            $statusWasPhysical = in_array($order->status, ['shipped', 'dispatched']);
 
             // Remove shipment records
             foreach ($order->shipments as $shp) {
@@ -885,42 +887,243 @@ class InventoryService
                 $shp->delete();
             }
 
-            if ($order->type === 'sale' && $order->warehouse_id) {
+            if ($statusWasPhysical) {
+                if ($order->type === 'sale' && $order->warehouse_id) {
+                    foreach ($order->items as $item) {
+                        $productId   = (int) $item->product_id;
+                        $warehouseId = (int) $order->warehouse_id;
+                        $qty         = (float) $item->quantity;
+
+                        $stock = $this->getStockForUpdate($productId, $warehouseId);
+                        $stock->quantity       = (float) $stock->quantity + $qty;
+                        $stock->reserved_qty   = (float) $stock->reserved_qty + $qty;
+                        $stock->dispatched_qty = max(0.0, (float) $stock->dispatched_qty - $qty);
+                        $stock->save();
+
+                        StockReservation::where('order_id', $order->id)
+                            ->where('product_id', $productId)
+                            ->where('warehouse_id', $warehouseId)
+                            ->update(['status' => 'active']);
+
+                        $this->logMovement($productId, $warehouseId, $qty, 'in', Order::class, $order->id);
+                        $this->syncProductStatus($productId);
+                    }
+                } elseif ($order->type === 'purchase' && $order->warehouse_id) {
+                    foreach ($order->items as $item) {
+                        $productId   = (int) $item->product_id;
+                        $warehouseId = (int) $order->warehouse_id;
+                        $qty         = (float) $item->quantity;
+
+                        $stock           = $this->getStockForUpdate($productId, $warehouseId);
+                        $stock->quantity  = max(0.0, (float) $stock->quantity - $qty);
+                        $stock->save();
+
+                        $this->logMovement($productId, $warehouseId, $qty, 'out', Order::class, $order->id);
+                        $this->syncProductStatus($productId);
+                    }
+                }
+            }
+
+            $order->update(['status' => 'processing', 'updated_by' => auth()->id()]);
+        });
+    }
+
+    /**
+     * Mark order as ready to ship → creates Shipment in 'pending' status with carrier/tracking info.
+     */
+    public function readyToShipOrder(Order $order, ?string $carrierName = null, ?string $trackingNo = null): void
+    {
+        DB::transaction(function () use ($order, $carrierName, $trackingNo) {
+            /** @var Order $order */
+            $order = Order::lockForUpdate()->findOrFail($order->id);
+
+            if (!in_array($order->status, ['confirmed', 'processing'])) {
+                throw ValidationException::withMessages([
+                    'status' => 'Only confirmed or processing orders can be marked as ready to ship.',
+                ]);
+            }
+
+            // Create Shipment record in pending status
+            $shipment = \App\Models\Shipment::create([
+                'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                'order_id'     => $order->id,
+                'status'       => 'pending',
+                'carrier_name' => $carrierName,
+                'tracking_no'  => $trackingNo,
+            ]);
+
+            // Log initial tracking event
+            \App\Models\ShipmentTrackingEvent::create([
+                'shipment_id' => $shipment->id,
+                'event_name'  => 'Ready to Ship',
+                'location'    => $order->warehouse?->name ?? 'Warehouse',
+                'description' => 'The order is packed and ready to ship.',
+                'occurred_at' => now(),
+            ]);
+
+            $order->update(['status' => 'ready_to_ship', 'updated_by' => auth()->id()]);
+
+            activity('orders')
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->withProperties(array_filter([
+                    'order_no'     => $order->order_no,
+                    'shipment_no'  => $shipment->shipment_no,
+                    'carrier_name' => $carrierName,
+                    'tracking_no'  => $trackingNo,
+                ]))
+                ->log("Order #{$order->order_no} marked as ready to ship, shipment #{$shipment->shipment_no} created");
+        });
+    }
+
+    /**
+     * Dispatch the order → release reservation + deduct actual stock.
+     */
+    public function dispatchOrder(Order $order): void
+    {
+        DB::transaction(function () use ($order) {
+            /** @var Order $order */
+            $order = Order::with(['items', 'shipments'])->lockForUpdate()->findOrFail($order->id);
+
+            if ($order->status !== 'ready_to_ship') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only orders in ready to ship status can be dispatched.',
+                ]);
+            }
+
+            if (!$order->warehouse_id) {
+                throw ValidationException::withMessages([
+                    'warehouse_id' => 'Order must have a warehouse assigned.',
+                ]);
+            }
+
+            foreach ($order->items as $item) {
+                $productId   = (int) $item->product_id;
+                $warehouseId = (int) $order->warehouse_id;
+                $qty         = (float) $item->quantity;
+
+                if ($order->type === 'sale') {
+                    // 1. Acquire write-lock on stock row
+                    $stock = $this->getStockForUpdate($productId, $warehouseId);
+
+                    if ((float) $stock->reserved_qty < $qty) {
+                        throw ValidationException::withMessages([
+                            'quantity' => "Reserved stock mismatch for product ID {$productId}.",
+                        ]);
+                    }
+
+                    $product = Product::find($productId);
+                    if (!$product?->allow_overselling && (float) $stock->quantity < $qty) {
+                        throw ValidationException::withMessages([
+                            'quantity' => "Insufficient physical stock for product ID {$productId}.",
+                        ]);
+                    }
+
+                    // 2. Decrement reserved + on-hand; increment dispatched (permanent audit counter)
+                    $stock->reserved_qty   = (float) $stock->reserved_qty - $qty;
+                    $stock->quantity       = (float) $stock->quantity      - $qty;
+                    $stock->dispatched_qty = (float) $stock->dispatched_qty + $qty;
+                    $stock->save();
+
+                    // 3. Mark the linked StockReservation as 'used'
+                    StockReservation::where('order_id', $order->id)
+                        ->where('product_id', $productId)
+                        ->where('warehouse_id', $warehouseId)
+                        ->where('status', 'active')
+                        ->orderBy('id')
+                        ->first()
+                        ?->update(['status' => 'used']);
+
+                    $this->logMovement($productId, $warehouseId, $qty, 'out', Order::class, $order->id);
+
+                } else {
+                    // Purchase order → receive stock into warehouse
+                    $stock = $this->getStockForUpdate($productId, $warehouseId);
+                    $stock->quantity = (float) $stock->quantity + $qty;
+                    $stock->save();
+
+                    $this->logMovement($productId, $warehouseId, $qty, 'in', Order::class, $order->id);
+                }
+            }
+
+            // Find existing shipment or create one
+            $shipment = $order->shipments->first();
+            if (!$shipment) {
+                $shipment = \App\Models\Shipment::create([
+                    'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                    'order_id'     => $order->id,
+                    'status'       => 'shipped',
+                    'shipped_at'   => now(),
+                ]);
+            } else {
+                $shipment->update([
+                    'status'     => 'shipped',
+                    'shipped_at' => now(),
+                ]);
+            }
+
+            // Log tracking event
+            \App\Models\ShipmentTrackingEvent::create([
+                'shipment_id' => $shipment->id,
+                'event_name'  => 'Dispatched',
+                'location'    => $order->warehouse?->name ?? 'Warehouse',
+                'description' => 'The order has been dispatched from the warehouse.',
+                'occurred_at' => now(),
+            ]);
+
+            $order->update(['status' => 'dispatched', 'updated_by' => auth()->id()]);
+
+            // Sync status for all items in the order
+            foreach ($order->items as $item) {
+                $this->syncProductStatus((int) $item->product_id);
+            }
+
+            activity('orders')
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'order_no'     => $order->order_no,
+                    'shipment_no'  => $shipment->shipment_no,
+                ])
+                ->log("Order #{$order->order_no} dispatched — inventory deducted");
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Deliver Order
+    //  Decrements dispatched_qty for each item (sale orders in dispatched /
+    //  shipped state), then updates order + shipment status to 'delivered'.
+    //  Does NOT touch on-hand quantity or reservations (already settled at
+    //  dispatch/ship time).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function deliverOrder(Order $order): void
+    {
+        \DB::transaction(function () use ($order) {
+
+            // Only decrement dispatched_qty for sale orders that went through
+            // the physical fulfilment step (dispatched or shipped).
+            $wasPhysical = $order->type === 'sale'
+                && in_array($order->status, ['dispatched', 'shipped']);
+
+            if ($wasPhysical) {
+                $order->loadMissing('items');
+
                 foreach ($order->items as $item) {
                     $productId   = (int) $item->product_id;
                     $warehouseId = (int) $order->warehouse_id;
                     $qty         = (float) $item->quantity;
 
                     $stock = $this->getStockForUpdate($productId, $warehouseId);
-                    $stock->quantity       = (float) $stock->quantity + $qty;
-                    $stock->reserved_qty   = (float) $stock->reserved_qty + $qty;
+
+                    // Reduce dispatched_qty — floor at 0 to avoid negatives
                     $stock->dispatched_qty = max(0.0, (float) $stock->dispatched_qty - $qty);
                     $stock->save();
-
-                    StockReservation::where('order_id', $order->id)
-                        ->where('product_id', $productId)
-                        ->where('warehouse_id', $warehouseId)
-                        ->update(['status' => 'active']);
-
-                    $this->logMovement($productId, $warehouseId, $qty, 'in', Order::class, $order->id);
-                    $this->syncProductStatus($productId);
-                }
-            } elseif ($order->type === 'purchase' && $order->warehouse_id) {
-                foreach ($order->items as $item) {
-                    $productId   = (int) $item->product_id;
-                    $warehouseId = (int) $order->warehouse_id;
-                    $qty         = (float) $item->quantity;
-
-                    $stock           = $this->getStockForUpdate($productId, $warehouseId);
-                    $stock->quantity  = max(0.0, (float) $stock->quantity - $qty);
-                    $stock->save();
-
-                    $this->logMovement($productId, $warehouseId, $qty, 'out', Order::class, $order->id);
-                    $this->syncProductStatus($productId);
                 }
             }
 
-            $order->update(['status' => 'processing', 'updated_by' => auth()->id()]);
+            // Delegate status + shipment update to OrderService (single source of truth)
+            app(\App\Services\OrderService::class)->updateStatus($order, 'delivered');
         });
     }
 }

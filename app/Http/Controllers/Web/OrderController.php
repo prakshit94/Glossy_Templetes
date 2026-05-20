@@ -90,16 +90,18 @@ class OrderController extends Controller
         }
 
         $stats = [
-            'total'      => (clone $query)->count(),
-            'pending'    => (clone $query)->where('status', 'pending')->count(),
-            'processing' => (clone $query)->where('status', 'processing')->count(),
-            'shipped'    => (clone $query)->where('status', 'shipped')->count(),
+            'total'         => (clone $query)->count(),
+            'pending'       => (clone $query)->where('status', 'pending')->count(),
+            'processing'    => (clone $query)->where('status', 'processing')->count(),
+            'ready_to_ship' => (clone $query)->where('status', 'ready_to_ship')->count(),
+            'dispatched'    => (clone $query)->where('status', 'dispatched')->count(),
+            'shipped'       => (clone $query)->whereIn('status', ['shipped', 'dispatched'])->count(),
         ];
 
         $perPage = (int) $request->get('perPage', 10);
         $orders  = $query->latest()->paginate($perPage)->withQueryString();
 
-        $statusesList = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'];
+        $statusesList = ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'shipped', 'delivered', 'cancelled', 'returned'];
 
         $productsList = Product::where('status', 'active')->orderBy('name')->get(['id', 'name', 'sku']);
 
@@ -277,7 +279,7 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
 
         if (!in_array($order->status, ['confirmed', 'processing'])) {
-            return back()->with('error', 'Only confirmed or processing orders can be shipped.');
+            return back()->with('error', 'Only confirmed or processing orders can be marked as ready to ship.');
         }
 
         $request->validate([
@@ -286,18 +288,40 @@ class OrderController extends Controller
         ]);
 
         try {
-            $inventoryService->shipOrder($order, $request->carrier_name, $request->tracking_no);
+            $inventoryService->readyToShipOrder($order, $request->carrier_name, $request->tracking_no);
         } catch (ValidationException $e) {
-            return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to ship order.');
+            return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to mark order as ready to ship.');
         }
 
         activity('orders')
             ->performedOn($order->fresh())
             ->causedBy(auth()->user())
             ->withProperties(array_filter(['carrier' => $request->carrier_name, 'tracking' => $request->tracking_no]))
-            ->log("Order #{$order->order_no} shipped — inventory deducted");
+            ->log("Order #{$order->order_no} marked as ready to ship");
 
-        return back()->with('success', 'Order shipped and inventory updated.');
+        return back()->with('success', 'Order marked as ready to ship.');
+    }
+
+    public function dispatch(string $id, InventoryService $inventoryService)
+    {
+        $order = Order::findOrFail($id);
+
+        if ($order->status !== 'ready_to_ship') {
+            return back()->with('error', 'Only orders in ready to ship status can be dispatched.');
+        }
+
+        try {
+            $inventoryService->dispatchOrder($order);
+        } catch (ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to dispatch order.');
+        }
+
+        activity('orders')
+            ->performedOn($order->fresh())
+            ->causedBy(auth()->user())
+            ->log("Order #{$order->order_no} dispatched — inventory deducted");
+
+        return back()->with('success', 'Order dispatched and inventory updated.');
     }
 
     public function markProcessing(string $id, OrderService $orderService)
@@ -318,15 +342,19 @@ class OrderController extends Controller
         return back()->with('success', 'Order moved to processing.');
     }
 
-    public function markDelivered(string $id, OrderService $orderService)
+    public function markDelivered(string $id, InventoryService $inventoryService)
     {
         $order = Order::findOrFail($id);
 
-        if (!in_array($order->status, ['shipped', 'processing'])) {
-            return back()->with('error', 'Only shipped or processing orders can be marked as delivered.');
+        if (!in_array($order->status, ['shipped', 'dispatched', 'processing'])) {
+            return back()->with('error', 'Only shipped, dispatched, or processing orders can be marked as delivered.');
         }
 
-        $orderService->updateStatus($order, 'delivered');
+        try {
+            $inventoryService->deliverOrder($order);
+        } catch (ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to mark order as delivered.');
+        }
 
         activity('orders')
             ->performedOn($order->fresh())
@@ -370,7 +398,7 @@ class OrderController extends Controller
     {
         $request->validate([
             'ids'    => 'required|json',
-            'status' => 'required|string|in:pending,confirmed,processing,shipped,delivered,cancelled,returned',
+            'status' => 'required|string|in:pending,confirmed,processing,ready_to_ship,dispatched,shipped,delivered,cancelled,returned',
         ]);
 
         $rawIds = json_decode($request->ids, true);
@@ -411,26 +439,36 @@ class OrderController extends Controller
                         } elseif ($targetStatus === 'processing' && $order->status === 'confirmed') {
                             $orderService->updateStatus($order, 'processing');
                             $count++;
+                        } elseif ($targetStatus === 'ready_to_ship' && in_array($order->status, ['confirmed', 'processing'])) {
+                            $inventoryService->readyToShipOrder($order, null, null);
+                            $count++;
+                        } elseif ($targetStatus === 'dispatched' && $order->status === 'ready_to_ship') {
+                            $inventoryService->dispatchOrder($order);
+                            $count++;
                         } elseif ($targetStatus === 'shipped' && in_array($order->status, ['confirmed', 'processing'])) {
                             $inventoryService->shipOrder($order, null, null);
                             $count++;
-                        } elseif ($targetStatus === 'delivered' && in_array($order->status, ['shipped', 'processing'])) {
-                            $orderService->updateStatus($order, 'delivered');
+                        } elseif ($targetStatus === 'delivered' && in_array($order->status, ['shipped', 'dispatched', 'processing'])) {
+                            $inventoryService->deliverOrder($order);
                             $count++;
                         } elseif ($targetStatus === 'cancelled' && !in_array($order->status, ['delivered', 'cancelled', 'returned'])) {
                             $inventoryService->cancelOrder($order);
                             $count++;
 
                         // ─── REVERT TRANSITIONS (via InventoryService SSOT) ─
-                        } elseif ($targetStatus === 'pending' && in_array($order->status, ['confirmed', 'processing', 'cancelled'])) {
+                        } elseif ($targetStatus === 'pending' && in_array($order->status, ['confirmed', 'processing', 'cancelled', 'ready_to_ship'])) {
                             $inventoryService->revertOrderToPending($order);
                             $count++;
                         } elseif ($targetStatus === 'confirmed' && $order->status === 'processing') {
                             // Processing → Confirmed: no stock change, just status
                             $order->update(['status' => 'confirmed', 'updated_by' => auth()->id()]);
                             $count++;
-                        } elseif ($targetStatus === 'processing' && $order->status === 'shipped') {
+                        } elseif ($targetStatus === 'processing' && in_array($order->status, ['shipped', 'dispatched', 'ready_to_ship'])) {
                             $inventoryService->revertOrderToProcessing($order);
+                            $count++;
+                        } elseif ($targetStatus === 'dispatched' && $order->status === 'delivered') {
+                            // Delivered → Dispatched: metadata-only revert
+                            $order->update(['status' => 'dispatched', 'updated_by' => auth()->id()]);
                             $count++;
                         } elseif ($targetStatus === 'shipped' && $order->status === 'delivered') {
                             // Delivered → Shipped: metadata-only revert

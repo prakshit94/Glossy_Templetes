@@ -110,27 +110,31 @@
                                 $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
                             } elseif ($order->status === 'confirmed') {
                                 $transitions[] = ['status' => 'processing', 'label' => 'Mark Processing', 'type' => 'upcoming', 'icon' => 'loader', 'color' => 'amber'];
-                                $transitions[] = ['status' => 'shipped', 'label' => 'Ship Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
+                                $transitions[] = ['status' => 'ready_to_ship', 'label' => 'Mark Ready to Ship', 'type' => 'upcoming', 'icon' => 'package', 'color' => 'indigo'];
                                 $transitions[] = ['status' => 'pending', 'label' => 'Revert to Pending', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                                 $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
                             } elseif ($order->status === 'processing') {
-                                $transitions[] = ['status' => 'shipped', 'label' => 'Ship Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
+                                $transitions[] = ['status' => 'ready_to_ship', 'label' => 'Mark Ready to Ship', 'type' => 'upcoming', 'icon' => 'package', 'color' => 'indigo'];
                                 $transitions[] = ['status' => 'confirmed', 'label' => 'Revert to Confirmed', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                                 $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
-                            } elseif ($order->status === 'shipped') {
+                            } elseif ($order->status === 'ready_to_ship') {
+                                $transitions[] = ['status' => 'dispatched', 'label' => 'Dispatch Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
+                                $transitions[] = ['status' => 'processing', 'label' => 'Revert to Processing', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                            } elseif ($order->status === 'dispatched' || $order->status === 'shipped') {
                                 $transitions[] = ['status' => 'delivered', 'label' => 'Deliver Order', 'type' => 'upcoming', 'icon' => 'check', 'color' => 'emerald'];
                                 $transitions[] = ['status' => 'processing', 'label' => 'Revert to Processing', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                             } elseif ($order->status === 'delivered') {
-                                $transitions[] = ['status' => 'shipped', 'label' => 'Revert to Shipped', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                                $transitions[] = ['status' => $order->shipments->isNotEmpty() ? 'ready_to_ship' : 'processing', 'label' => 'Revert to Shipped', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                             } elseif ($order->status === 'cancelled') {
                                 $transitions[] = ['status' => 'pending', 'label' => 'Revert to Pending', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                             }
 
                             $statusVariant = match($order->status) {
-                                'shipped', 'delivered', 'completed' => 'success',
+                                'shipped', 'dispatched', 'delivered', 'completed' => 'success',
                                 'cancelled', 'returned' => 'destructive',
                                 'pending' => 'warning',
                                 'processing', 'in_transit' => 'default',
+                                'ready_to_ship' => 'warning',
                                 default => 'outline'
                             };
                         @endphp
@@ -168,7 +172,7 @@
                                         <div class="py-1">
                                             <div class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 text-left">Fulfillment</div>
                                             @foreach($upcomming as $t)
-                                                @if($t['status'] === 'shipped')
+                                                @if($t['status'] === 'ready_to_ship')
                                                     <button type="button" @click.prevent="openShipModal({{ $order->id }}, '{{ $order->order_no }}')"
                                                         class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
                                                         <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>

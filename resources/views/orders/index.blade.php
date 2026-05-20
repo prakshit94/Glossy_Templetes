@@ -66,9 +66,11 @@
             return selectedValues.some(current => {
                 if (status === 'confirmed') return current === 'pending';
                 if (status === 'processing') return current === 'confirmed';
+                if (status === 'ready_to_ship') return current === 'confirmed' || current === 'processing';
+                if (status === 'dispatched') return current === 'ready_to_ship';
                 if (status === 'shipped') return current === 'confirmed' || current === 'processing';
-                if (status === 'delivered') return current === 'shipped';
-                if (status === 'cancelled') return ['pending', 'confirmed', 'processing'].includes(current);
+                if (status === 'delivered') return current === 'shipped' || current === 'dispatched';
+                if (status === 'cancelled') return ['pending', 'confirmed', 'processing', 'ready_to_ship'].includes(current);
                 return false;
             });
         },
@@ -77,20 +79,21 @@
             const selectedValues = Object.values(this.selectedStatuses);
             if (selectedValues.length === 0) return false;
             return selectedValues.some(current => {
-                if (status === 'pending') return ['confirmed', 'processing', 'cancelled'].includes(current);
+                if (status === 'pending') return ['confirmed', 'processing', 'cancelled', 'ready_to_ship'].includes(current);
                 if (status === 'confirmed') return current === 'processing';
-                if (status === 'processing') return current === 'shipped';
+                if (status === 'processing') return ['shipped', 'dispatched', 'ready_to_ship'].includes(current);
+                if (status === 'dispatched') return current === 'delivered';
                 if (status === 'shipped') return current === 'delivered';
                 return false;
             });
         },
 
         hasBulkFulfillOptions() {
-            return ['confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].some(s => this.canBulkFulfill(s));
+            return ['confirmed', 'processing', 'ready_to_ship', 'dispatched', 'shipped', 'delivered', 'cancelled'].some(s => this.canBulkFulfill(s));
         },
 
         hasBulkRevertOptions() {
-            return ['pending', 'confirmed', 'processing', 'shipped'].some(s => this.canBulkRevert(s));
+            return ['pending', 'confirmed', 'processing', 'dispatched', 'shipped'].some(s => this.canBulkRevert(s));
         },
 
         async performSearch() {
@@ -353,12 +356,12 @@
             </x-ui.card>
         </div>
 
-    <!-- Create Shipment Modal -->
+    <!-- Ready to Ship Modal -->
     <x-ui.modal id="create-shipment-modal" maxWidth="md">
         <form :action="shipActionUrl" method="POST" class="p-6 space-y-4">
             @csrf
             <div>
-                <h3 class="text-lg font-black text-foreground mb-1">Create Shipment</h3>
+                <h3 class="text-lg font-black text-foreground mb-1">Ready to Ship Details</h3>
                 <p class="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Order <span x-text="shipOrderNo"></span></p>
             </div>
             
@@ -385,8 +388,8 @@
                 <x-ui.button type="button" variant="outline" size="sm" @click="$dispatch('close-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10">
                     Cancel
                 </x-ui.button>
-                <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-                    <x-ui.icon name="truck" size="3" class="mr-2" /> Confirm & Ship
+                <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+                    <x-ui.icon name="package" size="3" class="mr-2" /> Mark Ready to Ship
                 </x-ui.button>
             </div>
         </form>

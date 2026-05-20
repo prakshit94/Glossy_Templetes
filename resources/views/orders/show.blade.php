@@ -8,7 +8,8 @@
                 @php
                     $statusColor = match($order->status) {
                         'delivered', 'completed' => 'emerald',
-                        'shipped' => 'blue',
+                        'dispatched', 'shipped' => 'blue',
+                        'ready_to_ship' => 'indigo',
                         'processing' => 'amber',
                         'confirmed' => 'indigo',
                         'cancelled', 'returned' => 'red',
@@ -20,12 +21,12 @@
                 
                 <div class="flex items-center gap-5 relative z-10">
                     <div class="size-16 rounded-2xl bg-{{ $statusColor }}-500/10 border border-{{ $statusColor }}-500/20 text-{{ $statusColor }}-500 flex items-center justify-center shadow-inner">
-                        <x-ui.icon name="{{ match($order->status) { 'delivered' => 'check-circle', 'shipped' => 'truck', 'cancelled' => 'x-circle', default => 'package' } }}" size="8" />
+                        <x-ui.icon name="{{ match($order->status) { 'delivered' => 'check-circle', 'dispatched', 'shipped' => 'truck', 'cancelled' => 'x-circle', default => 'package' } }}" size="8" />
                     </div>
                     <div>
                         <div class="flex items-center gap-3 mb-1">
                             <h3 class="text-2xl font-black text-foreground tracking-tight">{{ $order->order_no }}</h3>
-                            <x-ui.badge variant="{{ match($order->status) { 'shipped', 'delivered', 'completed' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', default => 'default' } }}" class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
+                            <x-ui.badge variant="{{ match($order->status) { 'shipped', 'dispatched', 'delivered', 'completed' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'indigo', default => 'default' } }}" class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
                                 {{ str_replace('_', ' ', $order->status) }}
                             </x-ui.badge>
                         </div>
@@ -91,20 +92,30 @@
                                 <x-ui.icon name="loader" size="3" class="mr-2" /> Mark Processing
                             </x-ui.button>
                         </form>
-                        <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-                            <x-ui.icon name="truck" size="3" class="mr-2" /> Ship Now
+                        <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+                            <x-ui.icon name="package" size="3" class="mr-2" /> Mark Ready to Ship
                         </x-ui.button>
                     @endif
 
-                    {{-- Ship (processing → shipped) --}}
+                    {{-- Mark Ready to Ship (processing → ready_to_ship) --}}
                     @if($order->status === 'processing')
-                        <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-                            <x-ui.icon name="truck" size="3" class="mr-2" /> Ship Order
+                        <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+                            <x-ui.icon name="package" size="3" class="mr-2" /> Mark Ready to Ship
                         </x-ui.button>
                     @endif
 
-                    {{-- Deliver (shipped → delivered) --}}
-                    @if($order->status === 'shipped')
+                    {{-- Dispatch Order (ready_to_ship → dispatched) --}}
+                    @if($order->status === 'ready_to_ship')
+                        <form action="{{ route('orders.dispatch', $order) }}" method="POST">
+                            @csrf
+                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
+                                <x-ui.icon name="truck" size="3" class="mr-2" /> Dispatch Order
+                            </x-ui.button>
+                        </form>
+                    @endif
+
+                    {{-- Deliver (dispatched/shipped → delivered) --}}
+                    @if(in_array($order->status, ['dispatched', 'shipped']))
                         <form action="{{ route('orders.deliver', $order) }}" method="POST">
                             @csrf
                             <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
@@ -132,8 +143,9 @@
                 ['key' => 'pending',    'label' => 'Pending',    'icon' => 'clock'],
                 ['key' => 'confirmed',  'label' => 'Confirmed',  'icon' => 'check-circle'],
                 ['key' => 'processing', 'label' => 'Processing', 'icon' => 'loader'],
-                ['key' => 'shipped',    'label' => 'Shipped',    'icon' => 'truck'],
-                ['key' => 'delivered',  'label' => 'Delivered',  'icon' => 'package-check'],
+                ['key' => 'ready_to_ship', 'label' => 'Ready to Ship', 'icon' => 'package'],
+                ['key' => $order->status === 'shipped' ? 'shipped' : 'dispatched', 'label' => $order->status === 'shipped' ? 'Shipped' : 'Dispatched', 'icon' => 'truck'],
+                ['key' => 'delivered',  'label' => 'Delivered',  'icon' => 'check-circle'],
             ];
             $stepKeys = array_column($steps, 'key');
             $currentIndex = array_search($order->status, $stepKeys);
@@ -545,7 +557,7 @@
         <form action="{{ route('orders.ship', $order) }}" method="POST" class="p-6 space-y-4">
             @csrf
             <div>
-                <h3 class="text-lg font-black text-foreground mb-1">Create Shipment</h3>
+                <h3 class="text-lg font-black text-foreground mb-1">Ready to Ship Details</h3>
                 <p class="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Order {{ $order->order_no }}</p>
             </div>
             
@@ -572,8 +584,8 @@
                 <x-ui.button type="button" variant="outline" size="sm" @click="$dispatch('close-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10">
                     Cancel
                 </x-ui.button>
-                <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-                    <x-ui.icon name="truck" size="3" class="mr-2" /> Confirm & Ship
+                <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+                    <x-ui.icon name="package" size="3" class="mr-2" /> Mark Ready to Ship
                 </x-ui.button>
             </div>
         </form>
