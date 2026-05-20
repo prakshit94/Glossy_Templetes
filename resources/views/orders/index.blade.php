@@ -41,6 +41,23 @@
             this.shipActionUrl = `{{ route('orders.ship', ':id') }}`.replace(':id', orderId);
             this.$dispatch('open-modal', { name: 'create-shipment-modal' });
         },
+        openAssignModal(preShipments) {
+            if (preShipments && preShipments.length > 0) {
+                window._orderAssignShipments = preShipments.filter(s => s.id);
+            } else {
+                const checkboxes = document.querySelectorAll('input[name=\'order_ids[]\']:checked');
+                const shipments = [];
+                checkboxes.forEach(cb => {
+                    const shipId = cb.getAttribute('data-shipment-id');
+                    const orderNo = cb.getAttribute('data-order-no');
+                    if (shipId && shipId !== '' && shipId !== 'null') {
+                        shipments.push({ id: parseInt(shipId), no: orderNo, order: orderNo, party: '' });
+                    }
+                });
+                window._orderAssignShipments = shipments;
+            }
+            this.$dispatch('open-modal', { name: 'assign-modal' });
+        },
         openReturnModal(payload) {
             this.returnOrderId = payload.id;
             this.returnOrderNo = payload.orderNo;
@@ -298,6 +315,13 @@
                                                             {{ $label }}
                                                         </button>
                                                     </form>
+                                                    @if($status === 'dispatched')
+                                                        <button type="button" @click="openAssignModal(null)" x-show="canBulkFulfill('dispatched')"
+                                                            class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
+                                                            <span class="size-2 rounded-full bg-blue-500 mr-2"></span>
+                                                            Assign Shipment
+                                                        </button>
+                                                    @endif
                                                 @endforeach
                                             </div>
                                             <div class="py-1" x-show="hasBulkRevertOptions()">
@@ -495,6 +519,152 @@
                 </x-ui.button>
             </div>
         </form>
+    </x-ui.modal>
+
+    <!-- Assign Shipment Modal -->
+    <x-ui.modal id="assign-modal" maxWidth="md">
+        <div class="p-8" x-data="{
+            open: false,
+            search: '',
+            selectedShipments: [],
+            shipments: [],
+            get filteredShipments() {
+                if (!this.search) return this.shipments;
+                return this.shipments.filter(s =>
+                    s.no.toLowerCase().includes(this.search.toLowerCase()) ||
+                    s.order.toLowerCase().includes(this.search.toLowerCase()) ||
+                    s.party.toLowerCase().includes(this.search.toLowerCase())
+                );
+            },
+            toggleShipment(shp) {
+                if (this.selectedShipments.some(s => s.id === shp.id)) {
+                    this.selectedShipments = this.selectedShipments.filter(s => s.id !== shp.id);
+                } else {
+                    this.selectedShipments.push(shp);
+                }
+            },
+            isSelected(id) {
+                return this.selectedShipments.some(s => s.id === id);
+            },
+            init() {
+                this.$watch('$el', () => {});
+                window.addEventListener('open-modal', (e) => {
+                    if (e.detail && e.detail.name === 'assign-modal') {
+                        this.shipments = window._orderAssignShipments || [];
+                        this.selectedShipments = [...this.shipments];
+                        this.search = '';
+                    }
+                });
+            }
+        }">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
+                        <x-ui.icon name="truck-2" size="5" />
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-foreground uppercase tracking-widest">Assign Shipment</h3>
+                        <p class="text-[10px] text-muted-foreground font-bold tracking-tight">Configure delivery dispatch parameters</p>
+                    </div>
+                </div>
+                <button type="button" @click="$dispatch('close-modal', { name: 'assign-modal' })" class="size-8 rounded-lg hover:bg-muted flex items-center justify-center transition-colors">
+                    <x-ui.icon name="x" size="4" />
+                </button>
+            </div>
+
+            <form action="{{ route('delivery.assign') }}" method="POST" class="space-y-5">
+                @csrf
+
+                <!-- Hidden inputs for each selected shipment -->
+                <template x-for="s in selectedShipments" :key="s.id">
+                    <input type="hidden" name="shipment_ids[]" :value="s.id">
+                </template>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Select Shipment(s)</label>
+
+                    <!-- Custom Searchable Multi-Select Trigger -->
+                    <div class="relative" @click.outside="open = false">
+                        <button type="button" @click="open = !open"
+                            class="w-full min-h-11 px-4 py-2 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 text-left text-xs font-semibold flex items-center justify-between outline-none transition-all">
+                            <div class="flex flex-wrap gap-1 max-w-[90%]">
+                                <template x-if="selectedShipments.length === 0">
+                                    <span class="text-muted-foreground">Select Shipment(s)...</span>
+                                </template>
+                                <template x-for="s in selectedShipments" :key="s.id">
+                                    <span class="px-2 py-0.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold flex items-center gap-1">
+                                        <span x-text="s.no"></span>
+                                        <span class="cursor-pointer font-black text-[9px] hover:text-primary/75" @click.stop="toggleShipment(s)">×</span>
+                                    </span>
+                                </template>
+                            </div>
+                            <x-ui.icon name="chevron-down" size="3.5" class="text-muted-foreground transition-transform shrink-0" ::class="open ? 'rotate-180' : ''" />
+                        </button>
+
+                        <!-- Dropdown Box -->
+                        <div x-show="open" x-cloak
+                            class="absolute left-0 right-0 mt-2 p-3 bg-card/95 border border-border/80 backdrop-blur-2xl rounded-2xl shadow-2xl z-[100] max-h-60 overflow-y-auto space-y-2">
+
+                            <!-- Search -->
+                            <div class="relative group">
+                                <x-ui.icon name="search" size="3" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <input type="text" x-model="search" placeholder="Type shipment no, order no..." @click.stop
+                                    class="pl-8 pr-3 py-1.5 rounded-lg border border-border bg-background/30 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-[11px] outline-none h-8">
+                            </div>
+
+                            <!-- Checkbox Options -->
+                            <div class="space-y-1 max-h-40 overflow-y-auto">
+                                <template x-for="s in filteredShipments" :key="s.id">
+                                    <button type="button" @click="toggleShipment(s)"
+                                        class="w-full text-left px-3 py-2 rounded-xl text-[11px] font-semibold flex items-center justify-between hover:bg-primary/10 hover:text-primary transition-all border border-transparent"
+                                        :class="isSelected(s.id) ? 'bg-primary/5 text-primary border-primary/20' : 'text-foreground/80'">
+                                        <div class="flex flex-col">
+                                            <span x-text="s.no"></span>
+                                            <span class="text-[9px] text-muted-foreground font-medium" x-text="`Order #${s.order}${s.party ? ' — ' + s.party : ''}`"></span>
+                                        </div>
+                                        <input type="checkbox" :checked="isSelected(s.id)" class="rounded border-border text-primary focus:ring-primary/20 pointer-events-none">
+                                    </button>
+                                </template>
+                                <div x-show="filteredShipments.length === 0" class="text-center py-4 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+                                    No shipments found
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label for="assign_driver_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Select Driver</label>
+                        <select id="assign_driver_id" name="driver_id" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                            <option value="" disabled selected>Select a Driver</option>
+                            @forelse($drivers as $drv)
+                                <option value="{{ $drv->id }}">{{ $drv->name }}</option>
+                            @empty
+                                <option value="" disabled>No drivers available</option>
+                            @endforelse
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="assign_transport_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Select Vehicle</label>
+                        <select id="assign_transport_id" name="transport_id" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                            <option value="" disabled selected>Select a Vehicle</option>
+                            @forelse($transports as $tr)
+                                <option value="{{ $tr->id }}">{{ $tr->name }} ({{ $tr->vehicle_number }})</option>
+                            @empty
+                                <option value="" disabled>No vehicles available</option>
+                            @endforelse
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-end gap-3 border-t border-border/30 pt-6">
+                    <x-ui.button type="button" variant="outline" @click="$dispatch('close-modal', { name: 'assign-modal' })" class="rounded-xl font-black uppercase tracking-widest text-[10px]">Cancel</x-ui.button>
+                    <x-ui.button type="submit" class="rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/25">Dispatch Order</x-ui.button>
+                </div>
+            </form>
+        </div>
     </x-ui.modal>
     </div>
 

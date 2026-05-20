@@ -81,7 +81,7 @@ class DeliveryController extends Controller
         ]);
     }
 
-    public function assign(Request $request)
+    public function assign(Request $request, InventoryService $inventoryService)
     {
         $request->validate([
             'shipment_ids' => 'required|array',
@@ -95,6 +95,11 @@ class DeliveryController extends Controller
 
         foreach ($request->shipment_ids as $shipmentId) {
             $shipment = Shipment::findOrFail($shipmentId);
+
+            // If the order is currently ready_to_ship, dispatch it to trigger stock mutations
+            if ($shipment->order && $shipment->order->status === 'ready_to_ship') {
+                $inventoryService->dispatchOrder($shipment->order);
+            }
 
             // Create Delivery Record
             Delivery::create([

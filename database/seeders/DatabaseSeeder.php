@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
             ServiceSeeder::class,
             MasterDataSeeder::class,
             AgricultureLookupSeeder::class,
-            //ProductDataSeeder::class,
+            ProductDataSeeder::class,
             //PartyDataSeeder::class,
             InventoryDataSeeder::class,
             OrderDataSeeder::class,

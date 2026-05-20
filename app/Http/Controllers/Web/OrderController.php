@@ -18,7 +18,7 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::with(['party', 'warehouse', 'invoice', 'items.product'])->withCount('items');
+        $query = Order::with(['party', 'warehouse', 'invoice', 'items.product', 'shipments'])->withCount('items');
 
         if ($request->filled('search')) {
 
@@ -121,6 +121,8 @@ class OrderController extends Controller
         });
 
         $services = \App\Models\Service::active()->get();
+        $drivers = \App\Models\Driver::where('status', 'available')->get();
+        $transports = \App\Models\Transport::where('status', 'available')->get();
 
         if ($request->ajax()) {
             return response()->json([
@@ -139,7 +141,9 @@ class OrderController extends Controller
             'statesList',
             'districtsList',
             'talukasList',
-            'services'
+            'services',
+            'drivers',
+            'transports'
         ));
     }
 

@@ -236,7 +236,7 @@
                         isSelected(id) {
                             return this.selectedShipments.some(s => s.id === id);
                         }
-                    }" @click.outside="open = false">
+                    }">
                         <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Select Ready Shipment(s)</label>
                         
                         <!-- Hidden inputs for each selected shipment id -->
@@ -245,7 +245,7 @@
                         </template>
 
                         <!-- Custom Searchable Multi-Select Trigger -->
-                        <div class="relative">
+                        <div class="relative" @click.outside="open = false">
                             <button type="button" @click="open = !open" 
                                 class="w-full min-h-11 px-4 py-2 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 text-left text-xs font-semibold flex items-center justify-between outline-none transition-all">
                                 <div class="flex flex-wrap gap-1 max-w-[90%]">
