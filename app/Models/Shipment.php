@@ -30,4 +30,9 @@ class Shipment extends Model
     {
         return $this->hasMany(ShipmentTrackingEvent::class);
     }
+
+    public function deliveries()
+    {
+        return $this->hasMany(Delivery::class);
+    }
 }

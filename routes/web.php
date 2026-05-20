@@ -128,6 +128,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/coupons/validate', [App\Http\Controllers\Web\CouponController::class, 'validateApi'])->name('coupons.validate');
     Route::resource('coupons', App\Http\Controllers\Web\CouponController::class);
 
+    // Transport Management
+    Route::post('/transport/bulk-delete', [\App\Http\Controllers\Web\TransportController::class, 'bulkDelete'])->name('transport.bulk-delete');
+    Route::post('/transport/store', [\App\Http\Controllers\Web\TransportController::class, 'store'])->name('transport.store');
+    Route::resource('transport', \App\Http\Controllers\Web\TransportController::class)->except(['create', 'edit', 'store']);
+
+    // Drivers Management
+    Route::post('/drivers/bulk-delete', [\App\Http\Controllers\Web\DriverController::class, 'bulkDelete'])->name('drivers.bulk-delete');
+    Route::post('/drivers/store', [\App\Http\Controllers\Web\DriverController::class, 'store'])->name('drivers.store');
+    Route::resource('drivers', \App\Http\Controllers\Web\DriverController::class)->except(['create', 'edit', 'store']);
+
+    // Delivery Management
+    Route::post('/delivery/bulk-delete', [\App\Http\Controllers\Web\DeliveryController::class, 'bulkDelete'])->name('delivery.bulk-delete');
+    Route::post('/delivery/assign', [\App\Http\Controllers\Web\DeliveryController::class, 'assign'])->name('delivery.assign');
+    Route::post('/delivery/{delivery}/deliver', [\App\Http\Controllers\Web\DeliveryController::class, 'markDelivered'])->name('delivery.deliver');
+    Route::resource('delivery', \App\Http\Controllers\Web\DeliveryController::class)->except(['create', 'edit']);
+
     $sidebarScaffoldModules = [
         'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
         'reviews' => ['title' => 'Reviews & Ratings', 'icon' => 'star'],
@@ -136,9 +152,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'purchase-orders' => ['title' => 'Purchase Orders', 'icon' => 'purchase'],
         'suppliers' => ['title' => 'Suppliers', 'icon' => 'building'],
         'vendors' => ['title' => 'Vendors', 'icon' => 'building'],
-        'transport' => ['title' => 'Transport', 'icon' => 'truck'],
-        'delivery' => ['title' => 'Delivery', 'icon' => 'truck-2'],
-        'drivers' => ['title' => 'Drivers', 'icon' => 'users-2'],
         'accounts' => ['title' => 'Accounts', 'icon' => 'finance'],
         'expenses' => ['title' => 'Expenses', 'icon' => 'activity'],
         'transactions' => ['title' => 'Transactions', 'icon' => 'credit-card'],

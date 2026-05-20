@@ -3,88 +3,99 @@
     $rows = $records instanceof \Illuminate\Pagination\AbstractPaginator ? $records->getCollection() : $records;
 @endphp
 
-@if($records instanceof \Illuminate\Pagination\AbstractPaginator && $records->hasPages())
-    <div class="p-4 border-b border-border/40 flex justify-end items-center">
-        {{ $records->links() }}
-    </div>
-@endif
-
-<x-ui.table>
-    <x-ui.table-header class="bg-muted/20">
-        <x-ui.table-row class="border-b border-border/60">
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Driver</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Phone</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Vehicle</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">License exp.</x-ui.table-head>
-            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Status</x-ui.table-head>
-            <x-ui.table-head class="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Actions</x-ui.table-head>
-        </x-ui.table-row>
-    </x-ui.table-header>
-    <x-ui.table-body>
-        @forelse($rows as $record)
-            @php $r = is_array($record) ? (object) $record : $record; @endphp
-            <x-ui.table-row class="border-b border-border/40 group hover:bg-primary/[0.02] transition-colors">
-                <x-ui.table-cell>
-                    <div class="flex items-center gap-3">
-                        <div class="size-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center text-primary shadow-inner shrink-0">
-                            <x-ui.icon name="users-2" size="4" />
+<div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+        <thead>
+            <tr class="bg-muted/5 border-b border-border/40">
+                <th class="p-5 w-10">
+                    <input type="checkbox" x-model="allSelected" @change="toggleAll" 
+                        class="rounded border-border bg-background text-primary focus:ring-primary/20">
+                </th>
+                <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Driver Name</th>
+                <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">License Number</th>
+                <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Phone</th>
+                <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Assigned Vehicle</th>
+                <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Status</th>
+                <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($rows as $record)
+                @php $r = is_array($record) ? (object) $record : $record; @endphp
+                <tr x-bind:class="selectedRecords.includes({{ $r->id }}) ? 'bg-primary/5' : 'hover:bg-primary/[0.02] transition-colors'" class="border-b border-border/40 group">
+                    <td class="p-5">
+                        <input type="checkbox" name="ids[]" value="{{ $r->id }}" :checked="selectedRecords.includes({{ $r->id }})" @change="toggleRecord({{ $r->id }})"
+                            class="rounded border-border bg-background text-primary focus:ring-primary/20">
+                    </td>
+                    <td class="p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="size-10 rounded-xl bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/10 text-primary flex items-center justify-center shadow-inner shrink-0">
+                                <x-ui.icon name="users-2" size="4" />
+                            </div>
+                            <div>
+                                <div class="text-sm font-black text-foreground">{{ $r->name }}</div>
+                                <div class="text-[10px] font-bold text-muted-foreground tracking-tight uppercase">ID: DRV-{{ str_pad($r->id, 4, '0', STR_PAD_LEFT) }}</div>
+                            </div>
                         </div>
-                        <span class="text-sm font-black">{{ data_get($r, 'name', '—') }}</span>
-                    </div>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    <span class="text-xs font-mono">{{ data_get($r, 'phone') ?? data_get($r, 'mobile', '—') }}</span>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    <span class="text-xs font-bold">{{ data_get($r, 'vehicle') ?? data_get($r, 'vehicle_plate', '—') }}</span>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    @php $le = data_get($r, 'license_expires_at') ?? data_get($r, 'license_expiry'); @endphp
-                    <span class="text-xs font-bold">{{ $le ? \Illuminate\Support\Carbon::parse($le)->format('M j, Y') : '—' }}</span>
-                </x-ui.table-cell>
-                <x-ui.table-cell>
-                    @php
-                        $st = strtolower((string) data_get($r, 'status', '—'));
-                        $badgeVariant = match ($st) {
-                            'active', 'paid', 'completed', 'sent', 'resolved', 'closed', 'approved', 'delivered', 'published', 'scheduled' => 'success',
-                            'inactive', 'cancelled', 'void', 'failed', 'rejected', 'overdue', 'expired' => 'destructive',
-                            'pending', 'draft', 'open', 'processing', 'partial', 'in_progress' => 'default',
-                            default => 'outline',
-                        };
-                    @endphp
-                    <x-ui.badge :variant="$badgeVariant" className="uppercase text-[9px] font-black tracking-[0.1em] px-2.5 py-1 rounded-lg shadow-sm">
-                        {{ str_replace('_', ' ', $st) }}
-                    </x-ui.badge>
-                </x-ui.table-cell>
-                <x-ui.table-cell class="text-right">
-                    <div class="flex justify-end gap-1.5">
-                        <x-ui.button variant="ghost" size="icon" type="button" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all" onclick="alert('Wire details when the module backend is ready.')">
-                            <x-ui.icon name="eye" size="4" />
-                        </x-ui.button>
-                        <x-ui.button variant="ghost" size="icon" type="button" className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all" onclick="alert('Wire edit when the module backend is ready.')">
-                            <x-ui.icon name="edit-3" size="4" />
-                        </x-ui.button>
-                    </div>
-                </x-ui.table-cell>
-            </x-ui.table-row>
+                    </td>
+                    <td class="p-5">
+                        <span class="text-xs font-mono font-bold bg-muted/30 px-2 py-1 rounded-lg text-foreground border border-border/20">{{ $r->license_number }}</span>
+                    </td>
+                    <td class="p-5">
+                        <span class="text-xs font-semibold text-muted-foreground">{{ $r->phone ?? '—' }}</span>
+                    </td>
+                    <td class="p-5">
+                        <span class="text-xs font-bold text-foreground">{{ $r->vehicle }}</span>
+                    </td>
+                    <td class="p-5">
+                        @php
+                            $st = strtolower((string) $r->status);
+                            $badgeClass = match ($st) {
+                                'available' => 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500',
+                                'busy' => 'bg-blue-500/10 border-blue-500/20 text-blue-500',
+                                'on_leave' => 'bg-amber-500/10 border-amber-500/20 text-amber-500',
+                                default => 'bg-red-500/10 border-red-500/20 text-red-500',
+                            };
+                        @endphp
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest {{ $badgeClass }} shadow-sm">
+                            <span class="size-1.5 rounded-full bg-current @if($st === 'available' || $st === 'busy') animate-pulse @endif"></span>
+                            {{ str_replace('_', ' ', $st) }}
+                        </span>
+                    </td>
+                    <td class="p-5 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <button @click.stop="openEditModal({{ json_encode($r) }})" class="size-9 rounded-xl bg-background/50 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-all shadow-sm hover:scale-105 active:scale-95">
+                                <x-ui.icon name="edit-3" size="4" />
+                            </button>
+                            <form action="{{ route('drivers.destroy', $r) }}" method="POST" onsubmit="return confirm('Permanently delete this driver?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="size-9 rounded-xl bg-background/50 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-all shadow-sm hover:scale-105 active:scale-95">
+                                    <x-ui.icon name="trash-2" size="4" />
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="7" class="p-20 text-center">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="size-16 rounded-3xl bg-muted/10 flex items-center justify-center text-muted-foreground/20">
+                                <x-ui.icon name="users-2" size="8" />
+                            </div>
+                            <div class="text-sm font-black text-muted-foreground uppercase tracking-widest">No drivers registered</div>
+                            <p class="text-xs text-muted-foreground/60 max-w-[200px]">Register users as drivers to build your delivery fleet.</p>
+                        </div>
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
 
-        @empty
-            <x-ui.table-row>
-                <x-ui.table-cell colspan="6" class="h-60 text-center">
-                    <div class="flex flex-col items-center justify-center gap-3 opacity-40">
-                        <x-ui.icon :name="$moduleIcon ?? 'package'" size="12" />
-                        <p class="text-sm font-black uppercase tracking-[0.2em]">No drivers found</p>
-                        <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest max-w-md px-6">
-                            Pass <span class="font-mono text-foreground/60">$records</span> from the controller (models, arrays, or paginator).
-                        </p>
-                    </div>
-                </x-ui.table-cell>
-            </x-ui.table-row>
-        @endforelse
-    </x-ui.table-body>
-</x-ui.table>
 @if($records instanceof \Illuminate\Pagination\AbstractPaginator && $records->hasPages())
-    <div class="p-4 border-t border-border/40 bg-muted/5 flex justify-end items-center rounded-b-3xl">
+    <div class="p-6 border-t border-border/40 bg-muted/5">
         {{ $records->links() }}
     </div>
 @endif
