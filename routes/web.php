@@ -142,6 +142,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/delivery/bulk-delete', [\App\Http\Controllers\Web\DeliveryController::class, 'bulkDelete'])->name('delivery.bulk-delete');
     Route::post('/delivery/assign', [\App\Http\Controllers\Web\DeliveryController::class, 'assign'])->name('delivery.assign');
     Route::post('/delivery/{delivery}/deliver', [\App\Http\Controllers\Web\DeliveryController::class, 'markDelivered'])->name('delivery.deliver');
+    Route::post('/delivery/{delivery}/verification', [\App\Http\Controllers\Web\DeliveryController::class, 'storeVerification'])->name('delivery.verification.store');
     Route::resource('delivery', \App\Http\Controllers\Web\DeliveryController::class)->except(['create', 'edit']);
 
     $sidebarScaffoldModules = [

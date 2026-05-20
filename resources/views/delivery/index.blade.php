@@ -1,12 +1,61 @@
 <x-layouts.app pageTitle="Logistics & Delivery Operations">
 
+    @php $deliveryBaseUrl = url('delivery'); @endphp
+
     <div class="p-6 lg:p-10" x-data="{ 
         search: '{{ request('search', '') }}',
         perPage: '{{ request('perPage', 10) }}',
         stats: @js($stats),
+        verificationData: @js($verificationPayloads ?? []),
+        verificationFormUrl: '',
+        deliveryId: null,
+        deliveryNo: '',
+        shipmentNo: '',
+        orderNo: '',
+        deliveryStatus: '',
+        driverName: '',
+        vehicle: '',
+        partyName: '',
+        phones: [],
+        emails: [],
+        orderAmount: '',
+        orderDate: '',
+        shipping: {},
+        billing: {},
+        legacyShipping: '',
+        history: [],
+        outcome: '',
+        remark: '',
+        followUpAt: '',
         isLoading: false,
         selectedRecords: [],
         allSelected: false,
+
+        openDeliveryVerification(id) {
+            const d = this.verificationData[id];
+            if (!d) return;
+            this.deliveryId = d.id;
+            this.verificationFormUrl = `{{ $deliveryBaseUrl }}/${id}/verification`;
+            this.deliveryNo = d.delivery_no;
+            this.shipmentNo = d.shipment_no;
+            this.orderNo = d.order_no;
+            this.deliveryStatus = d.status;
+            this.driverName = d.driver_name;
+            this.vehicle = d.vehicle;
+            this.partyName = d.party_name;
+            this.phones = d.phones || [];
+            this.emails = d.emails || [];
+            this.orderAmount = d.order_amount;
+            this.orderDate = d.order_date;
+            this.shipping = d.shipping || {};
+            this.billing = d.billing || {};
+            this.legacyShipping = d.legacy_shipping || '';
+            this.history = d.history || [];
+            this.outcome = '';
+            this.remark = '';
+            this.followUpAt = '';
+            this.$dispatch('open-modal', { name: 'delivery-verification-modal' });
+        },
 
         toggleAll() {
             const checkboxes = document.querySelectorAll('input[name=\'ids[]\']');
@@ -34,8 +83,15 @@
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 });
                 const data = await res.json();
-                document.getElementById('table-container').innerHTML = data.table;
+                const tableRoot = document.getElementById('table-container');
+                tableRoot.innerHTML = data.table;
+                if (window.Alpine?.initTree) {
+                    window.Alpine.initTree(tableRoot);
+                }
                 this.stats = data.stats;
+                if (data.verificationPayloads) {
+                    this.verificationData = data.verificationPayloads;
+                }
                 this.selectedRecords = [];
                 this.allSelected = false;
             } catch (error) {
@@ -64,6 +120,17 @@
             $dispatch('open-modal', { name: 'assign-modal' });
         }
     }">
+
+        @if(session('success'))
+            <div class="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold uppercase tracking-widest">
+                {{ session('success') }}
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 text-xs font-bold uppercase tracking-widest">
+                {{ session('error') }}
+            </div>
+        @endif
 
         <!-- Stats Widgets -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -329,5 +396,14 @@
             </div>
         </x-ui.modal>
 
+        @include('delivery.partials.verification-modal')
+
     </div>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(var(--border), 0.1); border-radius: 10px; }
+    </style>
 </x-layouts.app>

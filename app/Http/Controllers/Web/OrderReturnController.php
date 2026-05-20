@@ -91,45 +91,15 @@ class OrderReturnController extends Controller
 
         $order = Order::with('items')->findOrFail($request->order_id);
 
+        $items = collect($request->items)
+            ->filter(fn ($row) => ($row['quantity'] ?? 0) > 0)
+            ->values()
+            ->all();
+
         try {
-            DB::transaction(function () use ($request, $order) {
-                $returnNo = 'RET-' . strtoupper(uniqid());
-                
-                $orderReturn = OrderReturn::create([
-                    'return_no' => $returnNo,
-                    'order_id'  => $order->id,
-                    'reason'    => $request->reason,
-                    'status'    => 'requested',
-                    'refund_amount' => 0,
-                ]);
-
-                $totalRefund = 0;
-
-                foreach ($request->items as $itemData) {
-                    $orderItem = $order->items->firstWhere('id', $itemData['order_item_id']);
-                    
-                    if (!$orderItem) {
-                        throw ValidationException::withMessages(['items' => "Invalid order item selected."]);
-                    }
-
-                    if ($itemData['quantity'] > $orderItem->quantity) {
-                        throw ValidationException::withMessages(['items' => "Return quantity cannot exceed order quantity for item {$orderItem->product_id}."]);
-                    }
-
-                    OrderReturnItem::create([
-                        'return_id'     => $orderReturn->id,
-                        'order_item_id' => $orderItem->id,
-                        'quantity'      => $itemData['quantity'],
-                    ]);
-
-                    $totalRefund += $itemData['quantity'] * $orderItem->unit_price;
-                }
-
-                $orderReturn->update(['refund_amount' => $totalRefund]);
-                
-                // Set order status to returned
-                $order->update(['status' => 'returned']);
-            });
+            $this->createRequestedReturn($order, $request->reason, $items);
+        } catch (ValidationException $e) {
+            return back()->withInput()->withErrors($e->errors());
         } catch (\Exception $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
@@ -139,6 +109,78 @@ class OrderReturnController extends Controller
         }
 
         return redirect()->route('returns.index')->with('success', 'Return request created successfully.');
+    }
+
+    /**
+     * Create a return request (status: requested) — same flow as returns.store.
+     *
+     * @param  array<int, array{order_item_id: int, quantity: float}>|null  $items  null = all order lines at full qty
+     */
+    public function createRequestedReturn(Order $order, ?string $reason = null, ?array $items = null): OrderReturn
+    {
+        if (!in_array($order->status, array_merge(Order::inTransitStatuses(), ['delivered', 'processing']), true)) {
+            throw ValidationException::withMessages([
+                'order' => 'Only dispatched, delivered, or processing orders can be returned.',
+            ]);
+        }
+
+        $order->loadMissing('items');
+
+        if ($items === null) {
+            $items = $order->items->map(fn ($orderItem) => [
+                'order_item_id' => $orderItem->id,
+                'quantity' => $orderItem->quantity,
+            ])->all();
+        }
+
+        $items = array_values(array_filter($items, fn ($row) => ($row['quantity'] ?? 0) > 0));
+
+        if (empty($items)) {
+            throw ValidationException::withMessages([
+                'items' => 'At least one item with quantity is required.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($order, $reason, $items) {
+            $orderReturn = OrderReturn::create([
+                'return_no' => 'RET-' . strtoupper(uniqid()),
+                'order_id' => $order->id,
+                'reason' => $reason,
+                'status' => 'requested',
+                'refund_amount' => 0,
+            ]);
+
+            $totalRefund = 0;
+
+            foreach ($items as $itemData) {
+                $orderItem = $order->items->firstWhere('id', $itemData['order_item_id']);
+
+                if (!$orderItem) {
+                    throw ValidationException::withMessages([
+                        'items' => 'Invalid order item selected.',
+                    ]);
+                }
+
+                if ($itemData['quantity'] > $orderItem->quantity) {
+                    throw ValidationException::withMessages([
+                        'items' => "Return quantity cannot exceed order quantity for item {$orderItem->product_id}.",
+                    ]);
+                }
+
+                OrderReturnItem::create([
+                    'return_id' => $orderReturn->id,
+                    'order_item_id' => $orderItem->id,
+                    'quantity' => $itemData['quantity'],
+                ]);
+
+                $totalRefund += $itemData['quantity'] * $orderItem->unit_price;
+            }
+
+            $orderReturn->update(['refund_amount' => $totalRefund]);
+            $order->update(['status' => 'returned']);
+
+            return $orderReturn->fresh(['items']);
+        });
     }
 
     public function show($id)

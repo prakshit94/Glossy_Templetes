@@ -17,6 +17,7 @@
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Driver</th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Vehicle</th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Status</th>
+                <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Calls</th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 text-right">Actions</th>
             </tr>
         </thead>
@@ -66,8 +67,25 @@
                             {{ str_replace('_', ' ', $st) }}
                         </span>
                     </td>
+                    <td class="p-5">
+                        @php
+                            $callCount = $r->verificationLogs?->count() ?? 0;
+                            $lastCall = $r->verificationLogs?->first();
+                        @endphp
+                        <div class="flex flex-col gap-1">
+                            <span class="text-[10px] font-black text-foreground">{{ $callCount }} logged</span>
+                            @if($lastCall)
+                                <span class="text-[9px] font-bold text-muted-foreground line-clamp-1 max-w-[140px]" title="{{ $lastCall->outcome_label }}">{{ $lastCall->outcome_label }}</span>
+                            @endif
+                        </div>
+                    </td>
                     <td class="p-5 text-right">
                         <div class="flex items-center justify-end gap-2">
+                            <button type="button"
+                                @click="openDeliveryVerification({{ $r->id }})"
+                                class="rounded-xl font-bold uppercase tracking-widest text-[9px] h-8 px-3 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all inline-flex items-center">
+                                <x-ui.icon name="phone" size="3" class="mr-1" /> Verify
+                            </button>
                             @if($st === 'out_for_delivery')
                                 <form action="{{ route('delivery.deliver', $r->id) }}" method="POST">
                                     @csrf
@@ -91,7 +109,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="p-20 text-center">
+                    <td colspan="9" class="p-20 text-center">
                         <div class="flex flex-col items-center gap-3">
                             <div class="size-16 rounded-3xl bg-muted/10 flex items-center justify-center text-muted-foreground/20">
                                 <x-ui.icon name="truck-2" size="8" />

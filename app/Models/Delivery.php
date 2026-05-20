@@ -79,4 +79,9 @@ class Delivery extends Model
     {
         return $this->belongsTo(Transport::class);
     }
+
+    public function verificationLogs()
+    {
+        return $this->hasMany(DeliveryVerificationLog::class)->latest();
+    }
 }
