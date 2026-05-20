@@ -124,6 +124,9 @@
                                     </div>
                                 </div>
                             </div>
+
+                            {{-- ── Services available at this village ── --}}
+                            @include('customers.partials._service-badges', ['addrModel' => $addr])
                             
                             {{-- Edit Action --}}
                             <button type="button" @click.stop.prevent="openEditModal({{ $addr->toJson() }})" 
@@ -200,6 +203,9 @@
                                     </div>
                                 </div>
                             </div>
+
+                            {{-- ── Services available at this village ── --}}
+                            @include('customers.partials._service-badges', ['addrModel' => $addr])
                             
                             {{-- Edit Action --}}
                             <button type="button" @click.stop.prevent="openEditModal({{ $addr->toJson() }})" 

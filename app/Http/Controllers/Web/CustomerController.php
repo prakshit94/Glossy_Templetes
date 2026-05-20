@@ -166,7 +166,7 @@ class CustomerController extends Controller
 
     public function show(Customer $customer)
     {
-        $customer->load(['addresses.village', 'orders' => function($q) {
+        $customer->load(['addresses.village.services', 'orders' => function($q) {
             $q->latest()->limit(5);
         }]);
 

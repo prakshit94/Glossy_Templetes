@@ -54,6 +54,9 @@
                             <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Pincode</span>
                             <span class="text-xs font-bold font-mono text-foreground">{{ $address->village?->pincode ?? $address->pincode ?? '—' }}</span>
                         </div>
+
+                        {{-- ── Services available at this village ── --}}
+                        @include('customers.partials._service-badges', ['addrModel' => $address])
                     </div>
 
                     {{-- Floating Actions on Hover --}}
