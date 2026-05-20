@@ -286,7 +286,31 @@
                     </x-ui.table-cell>
 
                     <x-ui.table-cell class="text-right align-middle pr-5">
+                        @php
+                            $canReturnFromLedger = $order->status !== 'returned'
+                                && in_array($order->status, array_merge(\App\Models\Order::inTransitStatuses(), ['delivered', 'processing']), true);
+                        @endphp
                         <div class="flex justify-end gap-1">
+                            @if($canReturnFromLedger)
+                                <button type="button"
+                                    title="Create Return"
+                                    class="inline-flex items-center justify-center size-9 rounded-xl border border-transparent text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10 transition-all"
+                                    @click="openReturnModal({
+                                        id: {{ $order->id }},
+                                        orderNo: @js($order->order_no),
+                                        items: @js($order->items->map(function ($i) {
+                                            return [
+                                                'id' => $i->id,
+                                                'name' => $i->product?->name ?? 'Item #'.$i->product_id,
+                                                'sku' => $i->product?->sku ?? '—',
+                                                'price' => (float) $i->unit_price,
+                                                'max' => (float) $i->quantity,
+                                            ];
+                                        }))
+                                    })">
+                                    <x-ui.icon name="corner-down-left" size="4" />
+                                </button>
+                            @endif
                             <a href="{{ route('orders.show', $order) }}" title="Visual Dossier">
                                 <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
                                     <x-ui.icon name="eye" size="4" />

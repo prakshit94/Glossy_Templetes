@@ -29,11 +29,30 @@
         shipOrderNo: '',
         shipOrderId: '',
         shipActionUrl: '',
+        returnOrderId: null,
+        returnOrderNo: '',
+        returnItems: [],
+        get returnRefundTotal() {
+            return this.returnItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.price)), 0);
+        },
         openShipModal(orderId, orderNo) {
             this.shipOrderId = orderId;
             this.shipOrderNo = orderNo;
             this.shipActionUrl = `{{ route('orders.ship', ':id') }}`.replace(':id', orderId);
             this.$dispatch('open-modal', { name: 'create-shipment-modal' });
+        },
+        openReturnModal(payload) {
+            this.returnOrderId = payload.id;
+            this.returnOrderNo = payload.orderNo;
+            this.returnItems = (payload.items || []).map((i) => ({
+                id: i.id,
+                name: i.name,
+                sku: i.sku,
+                price: i.price,
+                max: i.max,
+                qty: i.max,
+            }));
+            this.$dispatch('open-modal', { name: 'create-return-modal' });
         },
 
         toggleAll() {
@@ -121,6 +140,10 @@
             const data = await res.json();
             
             document.getElementById('table-container').innerHTML = data.table;
+            const tableRoot = document.getElementById('table-container');
+            if (window.Alpine?.initTree && tableRoot) {
+                window.Alpine.initTree(tableRoot);
+            }
             this.districtsList = data.districts;
             this.talukasList = data.talukas;
             this.stats = data.stats;
@@ -148,6 +171,16 @@
     }">
 
         <div class="max-w-[100rem] mx-auto space-y-8">
+            @if(session('success'))
+                <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                    {{ session('success') }}
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
+                    {{ session('error') }}
+                </div>
+            @endif
             <!-- Stats Widgets -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-primary/5 transition-all duration-500 overflow-hidden shadow-2xl">
@@ -389,6 +422,76 @@
                 </x-ui.button>
                 <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
                     <x-ui.icon name="package" size="3" class="mr-2" /> Mark Ready to Ship
+                </x-ui.button>
+            </div>
+        </form>
+    </x-ui.modal>
+
+    <!-- Create Return (same payload/rules as /returns/create) -->
+    <x-ui.modal id="create-return-modal" maxWidth="2xl">
+        <form action="{{ route('returns.store') }}" method="POST" class="p-6 space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+            @csrf
+            <input type="hidden" name="return_to" value="orders">
+            <input type="hidden" name="order_id" x-bind:value="returnOrderId">
+
+            <div>
+                <h3 class="text-lg font-black text-foreground mb-1">Create Return</h3>
+                <p class="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Order <span x-text="returnOrderNo"></span></p>
+            </div>
+
+            <div class="h-px bg-border/60 w-full"></div>
+
+            <div class="space-y-4 overflow-x-auto rounded-2xl border border-border/60">
+                <table class="w-full text-left border-collapse min-w-[520px]">
+                    <thead>
+                        <tr class="border-b border-border/40 bg-muted/5">
+                            <th class="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product</th>
+                            <th class="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Unit</th>
+                            <th class="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Ordered</th>
+                            <th class="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary text-right">Return Qty</th>
+                            <th class="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Refund</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border/40">
+                        <template x-for="(item, index) in returnItems" :key="item.id">
+                            <tr class="hover:bg-muted/10 transition-colors">
+                                <td class="px-3 py-2">
+                                    <div class="font-bold text-sm text-foreground" x-text="item.name"></div>
+                                    <div class="text-[10px] font-bold tracking-widest text-muted-foreground uppercase mt-0.5" x-text="'SKU: ' + item.sku"></div>
+                                    <input type="hidden" :name="'items[' + index + '][order_item_id]'" :value="item.id" x-bind:disabled="Number(item.qty) <= 0">
+                                </td>
+                                <td class="px-3 py-2 text-right text-sm font-bold text-muted-foreground" x-text="'₹' + Number(item.price).toFixed(2)"></td>
+                                <td class="px-3 py-2 text-right text-sm font-black tabular-nums" x-text="item.max"></td>
+                                <td class="px-3 py-2 text-right">
+                                    <input type="number" :name="'items[' + index + '][quantity]'" x-model.number="item.qty" min="0" :max="item.max" step="0.01"
+                                        class="w-24 h-9 px-2 rounded-xl border border-border bg-background/50 text-sm font-semibold text-right"
+                                        x-bind:disabled="Number(item.qty) <= 0">
+                                </td>
+                                <td class="px-3 py-2 text-right text-sm font-black tabular-nums" x-text="'₹' + (Number(item.qty) * Number(item.price)).toFixed(2)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-muted/10 border-t border-border/40">
+                            <td colspan="4" class="px-3 py-3 text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground">Estimated refund</td>
+                            <td class="px-3 py-3 text-right text-base font-black text-primary tabular-nums" x-text="'₹' + returnRefundTotal.toFixed(2)"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Return reason</label>
+                <textarea name="reason" rows="3" required
+                    class="w-full px-4 py-3 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-border/40">
+                <x-ui.button type="button" variant="outline" size="sm" @click="$dispatch('close-modal', { name: 'create-return-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10">
+                    Cancel
+                </x-ui.button>
+                <x-ui.button type="submit" size="sm" x-bind:disabled="returnRefundTotal <= 0" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 bg-amber-600 hover:bg-amber-700 text-white">
+                    <x-ui.icon name="corner-down-left" size="3" class="mr-2" /> Submit Return
                 </x-ui.button>
             </div>
         </form>

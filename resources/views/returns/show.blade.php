@@ -1,5 +1,17 @@
 <x-layouts.app pageTitle="Return Details">
-    <div class="p-6 lg:p-10 space-y-6">
+    <div class="p-6 lg:p-10 space-y-6"
+        x-data="{
+            statusUpdateUrl: @js(route('returns.status', $return)),
+            statusReturnNo: @js($return->return_no),
+            statusCurrent: @js($return->status),
+            statusPending: @js($return->status),
+            statusLocked: @js(in_array($return->status, ['completed', 'rejected'], true)),
+            openReturnDetailStatusModal() {
+                if (this.statusLocked) return;
+                this.statusPending = this.statusCurrent;
+                this.$dispatch('open-modal', { name: 'return-status-modal' });
+            }
+        }">
         <!-- Header -->
         <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
             <div class="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
@@ -144,32 +156,23 @@
 
             <!-- Right Column: Status & Financial Summary -->
             <div class="space-y-6">
-                <!-- Status Update Card -->
+                <!-- Status Update Card — opens same modal as returns ledger -->
                 <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/50 backdrop-blur-3xl rounded-3xl sticky top-6">
                     <div class="p-6 border-b border-border/40 bg-muted/10">
                         <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
                             <x-ui.icon name="refresh-cw" size="3" /> Action Status
                         </h4>
                     </div>
-                    <div class="p-6">
+                    <div class="p-6 space-y-4">
                         @if(!in_array($return->status, ['completed', 'rejected']))
-                            <form action="{{ route('returns.status', $return) }}" method="POST" class="space-y-4">
-                                @csrf
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Update Status To</label>
-                                    <select name="status" class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium">
-                                        @foreach(['requested', 'received', 'inspected', 'completed', 'rejected'] as $statusOption)
-                                            <option value="{{ $statusOption }}" {{ $return->status === $statusOption ? 'selected' : '' }}>
-                                                {{ ucfirst($statusOption) }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <p class="mt-2 text-[9px] font-bold text-muted-foreground text-center">Setting to <strong class="text-emerald-500">Completed</strong> restores stock to inventory.</p>
-                                </div>
-                                <x-ui.button type="submit" class="w-full h-12 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-primary/20">
-                                    Update Status
-                                </x-ui.button>
-                            </form>
+                            <p class="text-xs text-muted-foreground leading-relaxed">
+                                Move this return through <strong class="text-foreground">requested → received → inspected</strong>, then <strong class="text-emerald-600">complete</strong> to restock and trigger refunds, or <strong class="text-destructive">reject</strong> to close without inventory impact.
+                            </p>
+                            <x-ui.button type="button" class="w-full h-12 rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-xl shadow-primary/20" @click="openReturnDetailStatusModal()">
+                                <x-ui.icon name="sliders" size="4" class="mr-2" />
+                                Update status
+                            </x-ui.button>
+                            <p class="text-[9px] font-bold text-muted-foreground text-center">Same workflow as the returns list — opens an improved confirmation panel.</p>
                         @else
                             <div class="p-4 bg-muted/30 rounded-2xl border border-border text-center">
                                 <x-ui.icon name="lock" size="6" class="text-muted-foreground/60 mx-auto mb-2" />
@@ -215,5 +218,7 @@
                 </x-ui.card>
             </div>
         </div>
+
+        @include('returns.partials.update-status-modal')
     </div>
 </x-layouts.app>

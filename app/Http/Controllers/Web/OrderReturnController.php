@@ -134,6 +134,10 @@ class OrderReturnController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
+        if ($request->input('return_to') === 'orders') {
+            return redirect()->route('orders.index')->with('success', 'Return request created successfully.');
+        }
+
         return redirect()->route('returns.index')->with('success', 'Return request created successfully.');
     }
 
