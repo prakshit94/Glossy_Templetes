@@ -9,6 +9,42 @@ class Order extends Model
 {
     use SoftDeletes;
 
+    /** Canonical order lifecycle (warehouse → customer). */
+    public const LIFECYCLE_STATUSES = [
+        'pending',
+        'confirmed',
+        'processing',
+        'ready_to_ship',
+        'dispatched',
+        'delivered',
+    ];
+
+    /** Statuses where stock has left the warehouse (in transit to customer). */
+    public static function inTransitStatuses(): array
+    {
+        return ['dispatched', 'shipped']; // shipped: legacy rows only (see migration 2026_05_20_000002)
+    }
+
+    /** Map legacy DB value and normalize for UI / stepper logic. */
+    public function lifecycleStatus(): string
+    {
+        return $this->status === 'shipped' ? 'dispatched' : $this->status;
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->lifecycleStatus()) {
+            'ready_to_ship' => 'Ready to Ship',
+            'dispatched'    => 'Dispatched',
+            'delivered'     => 'Delivered',
+            'processing'    => 'Processing',
+            'confirmed'     => 'Confirmed',
+            'cancelled'     => 'Cancelled',
+            'returned'      => 'Returned',
+            default         => ucfirst(str_replace('_', ' ', $this->lifecycleStatus())),
+        };
+    }
+
     protected $fillable = [
         'order_no', 'type', 'party_id', 'order_date', 'total_amount', 
         'tax_amount', 'discount_amount', 'net_amount', 'status', 'warehouse_id',

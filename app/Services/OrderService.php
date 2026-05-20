@@ -67,6 +67,18 @@ class OrderService
                 ]);
             }
 
+            $order->load('items');
+            $itemsTotal = (float) $order->items->sum('total_amount');
+            $taxAmount  = (float) ($data['tax_amount'] ?? 0);
+            $discount   = (float) ($data['discount_amount'] ?? 0);
+
+            $order->update([
+                'total_amount'    => $data['total_amount'] ?? $itemsTotal,
+                'tax_amount'      => $taxAmount,
+                'discount_amount' => $discount,
+                'net_amount'      => $data['net_amount'] ?? max(0, $itemsTotal - $discount + $taxAmount),
+            ]);
+
             activity('orders')
                 ->performedOn($order)
                 ->log("Order #{$orderNo} created ({$data['type']})");

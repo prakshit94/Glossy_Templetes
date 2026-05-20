@@ -120,11 +120,11 @@
                             } elseif ($order->status === 'ready_to_ship') {
                                 $transitions[] = ['status' => 'dispatched', 'label' => 'Dispatch Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
                                 $transitions[] = ['status' => 'processing', 'label' => 'Revert to Processing', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
-                            } elseif ($order->status === 'dispatched' || $order->status === 'shipped') {
+                            } elseif (in_array($order->status, ['dispatched', 'shipped'], true)) {
                                 $transitions[] = ['status' => 'delivered', 'label' => 'Deliver Order', 'type' => 'upcoming', 'icon' => 'check', 'color' => 'emerald'];
-                                $transitions[] = ['status' => 'processing', 'label' => 'Revert to Processing', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                                $transitions[] = ['status' => 'ready_to_ship', 'label' => 'Revert to Ready to Ship', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                             } elseif ($order->status === 'delivered') {
-                                $transitions[] = ['status' => $order->shipments->isNotEmpty() ? 'ready_to_ship' : 'processing', 'label' => 'Revert to Shipped', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                                $transitions[] = ['status' => 'dispatched', 'label' => 'Revert to Dispatched', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                             } elseif ($order->status === 'cancelled') {
                                 $transitions[] = ['status' => 'pending', 'label' => 'Revert to Pending', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                             }
@@ -149,7 +149,7 @@
                                     'default' => 'bg-blue-500/10 text-blue-600 border border-blue-500/20',
                                     default => 'bg-muted/40 text-muted-foreground border border-border/50'
                                 } }}">
-                                <span class="uppercase text-[9px] font-black tracking-[0.12em]">{{ str_replace('_', ' ', $order->status) }}</span>
+                                <span class="uppercase text-[9px] font-black tracking-[0.12em]">{{ $order->statusLabel() }}</span>
                                 <x-ui.icon name="chevron-down" size="2.5" class="opacity-60" />
                             </button>
 

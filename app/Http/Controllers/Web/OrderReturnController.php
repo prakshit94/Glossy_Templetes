@@ -66,12 +66,15 @@ class OrderReturnController extends Controller
         
         if ($orderId) {
             $order = Order::with('items.product')->findOrFail($orderId);
-            if (!in_array($order->status, ['shipped', 'dispatched', 'delivered', 'processing', 'completed'])) {
-                return redirect()->route('orders.show', $order)->with('error', 'Only shipped/delivered/dispatched orders can be returned.');
+            if (!in_array($order->status, array_merge(Order::inTransitStatuses(), ['delivered', 'processing']), true)) {
+                return redirect()->route('orders.show', $order)->with('error', 'Only dispatched, delivered, or processing orders can be returned.');
             }
         }
         
-        $orders = Order::whereIn('status', ['shipped', 'dispatched', 'delivered', 'completed'])->latest()->limit(50)->get();
+        $orders = Order::whereIn('status', array_merge(Order::inTransitStatuses(), ['delivered', 'processing']))
+            ->latest()
+            ->limit(50)
+            ->get();
 
         return view('returns.create', compact('order', 'orders'));
     }

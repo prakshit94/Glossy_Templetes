@@ -19,9 +19,9 @@
                                 <div class="flex items-center gap-2 mb-1">
                                     <h3 class="text-lg font-black text-foreground">{{ $order->order_no }}</h3>
                                     @php
-                                        $statusColor = match($order->status) {
-                                            'delivered', 'completed' => 'emerald',
-                                            'dispatched', 'shipped' => 'blue',
+                                        $statusColor = match($order->lifecycleStatus()) {
+                                            'delivered' => 'emerald',
+                                            'dispatched' => 'blue',
                                             'ready_to_ship' => 'indigo',
                                             'processing' => 'amber',
                                             'confirmed' => 'indigo',
@@ -30,8 +30,8 @@
                                             default => 'primary'
                                         };
                                     @endphp
-                                    <x-ui.badge variant="{{ match($order->status) { 'shipped', 'dispatched', 'delivered', 'completed' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'warning', default => 'default' } }}" class="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
-                                        {{ str_replace('_', ' ', $order->status) }}
+                                    <x-ui.badge variant="{{ match($order->lifecycleStatus()) { 'dispatched', 'delivered' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'warning', default => 'default' } }}" class="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
+                                        {{ $order->statusLabel() }}
                                     </x-ui.badge>
                                 </div>
                                 <div class="text-xs text-muted-foreground font-medium flex items-center gap-2 mt-1">
@@ -85,19 +85,21 @@
                                         $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
                                     } elseif ($order->status === 'confirmed') {
                                         $transitions[] = ['status' => 'processing', 'label' => 'Mark Processing', 'type' => 'upcoming', 'icon' => 'loader', 'color' => 'amber'];
-                                        $transitions[] = ['status' => 'shipped', 'label' => 'Ship Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
+                                        $transitions[] = ['status' => 'ready_to_ship', 'label' => 'Mark Ready to Ship', 'type' => 'upcoming', 'icon' => 'package', 'color' => 'indigo'];
                                         $transitions[] = ['status' => 'pending', 'label' => 'Revert to Pending', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                                         $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
                                     } elseif ($order->status === 'processing') {
-                                        $transitions[] = ['status' => 'shipped', 'label' => 'Ship Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
-                                        $transitions[] = ['status' => 'delivered', 'label' => 'Deliver Order', 'type' => 'upcoming', 'icon' => 'check', 'color' => 'emerald'];
+                                        $transitions[] = ['status' => 'ready_to_ship', 'label' => 'Mark Ready to Ship', 'type' => 'upcoming', 'icon' => 'package', 'color' => 'indigo'];
                                         $transitions[] = ['status' => 'confirmed', 'label' => 'Revert to Confirmed', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                                         $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
-                                    } elseif ($order->status === 'shipped') {
-                                        $transitions[] = ['status' => 'delivered', 'label' => 'Deliver Order', 'type' => 'upcoming', 'icon' => 'check', 'color' => 'emerald'];
+                                    } elseif ($order->status === 'ready_to_ship') {
+                                        $transitions[] = ['status' => 'dispatched', 'label' => 'Dispatch Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
                                         $transitions[] = ['status' => 'processing', 'label' => 'Revert to Processing', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                                    } elseif (in_array($order->status, ['dispatched', 'shipped'], true)) {
+                                        $transitions[] = ['status' => 'delivered', 'label' => 'Deliver Order', 'type' => 'upcoming', 'icon' => 'check', 'color' => 'emerald'];
+                                        $transitions[] = ['status' => 'ready_to_ship', 'label' => 'Revert to Ready to Ship', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                                     } elseif ($order->status === 'delivered') {
-                                        $transitions[] = ['status' => 'shipped', 'label' => 'Revert to Shipped', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
+                                        $transitions[] = ['status' => 'dispatched', 'label' => 'Revert to Dispatched', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                                     } elseif ($order->status === 'cancelled') {
                                         $transitions[] = ['status' => 'pending', 'label' => 'Revert to Pending', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
                                     }
@@ -172,11 +174,11 @@
                                     ['key' => 'confirmed',  'label' => 'Confirmed',  'icon' => 'check-circle'],
                                     ['key' => 'processing', 'label' => 'Processing', 'icon' => 'loader'],
                                     ['key' => 'ready_to_ship', 'label' => 'Ready to Ship', 'icon' => 'package'],
-                                    ['key' => $order->status === 'shipped' ? 'shipped' : 'dispatched', 'label' => $order->status === 'shipped' ? 'Shipped' : 'Dispatched', 'icon' => 'truck'],
+                                    ['key' => 'dispatched', 'label' => 'Dispatched', 'icon' => 'truck'],
                                     ['key' => 'delivered',  'label' => 'Delivered',  'icon' => 'check-circle'],
                                 ];
                                 $stepKeys = array_column($steps, 'key');
-                                $currentIndex = array_search($order->status, $stepKeys);
+                                $currentIndex = array_search($order->lifecycleStatus(), $stepKeys);
                                 $isCancelled = in_array($order->status, ['cancelled', 'returned']);
                             @endphp
                             <div class="bg-card/60 backdrop-blur-md rounded-2xl border border-border/50 p-6">

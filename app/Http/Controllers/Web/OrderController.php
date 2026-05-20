@@ -43,7 +43,7 @@ class OrderController extends Controller
 }
 
         if ($request->filled('status')) {
-            $statuses = array_filter(array_map('trim', explode(',', $request->status)));
+            $statuses = $this->expandOrderStatusFilter($request->status);
             $query->whereIn('status', $statuses);
         }
 
@@ -94,14 +94,13 @@ class OrderController extends Controller
             'pending'       => (clone $query)->where('status', 'pending')->count(),
             'processing'    => (clone $query)->where('status', 'processing')->count(),
             'ready_to_ship' => (clone $query)->where('status', 'ready_to_ship')->count(),
-            'dispatched'    => (clone $query)->where('status', 'dispatched')->count(),
-            'shipped'       => (clone $query)->whereIn('status', ['shipped', 'dispatched'])->count(),
+            'dispatched'    => (clone $query)->whereIn('status', ['dispatched', 'shipped'])->count(),
         ];
 
         $perPage = (int) $request->get('perPage', 10);
         $orders  = $query->latest()->paginate($perPage)->withQueryString();
 
-        $statusesList = ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'shipped', 'delivered', 'cancelled', 'returned'];
+        $statusesList = ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'delivered', 'cancelled', 'returned'];
 
         $productsList = Product::where('status', 'active')->orderBy('name')->get(['id', 'name', 'sku']);
 
@@ -346,8 +345,8 @@ class OrderController extends Controller
     {
         $order = Order::findOrFail($id);
 
-        if (!in_array($order->status, ['shipped', 'dispatched', 'processing'])) {
-            return back()->with('error', 'Only shipped, dispatched, or processing orders can be marked as delivered.');
+        if (!in_array($order->status, Order::inTransitStatuses(), true)) {
+            return back()->with('error', 'Only dispatched orders can be marked as delivered.');
         }
 
         try {
@@ -398,7 +397,7 @@ class OrderController extends Controller
     {
         $request->validate([
             'ids'    => 'required|json',
-            'status' => 'required|string|in:pending,confirmed,processing,ready_to_ship,dispatched,shipped,delivered,cancelled,returned',
+            'status' => 'required|string|in:pending,confirmed,processing,ready_to_ship,dispatched,delivered,cancelled,returned',
         ]);
 
         $rawIds = json_decode($request->ids, true);
@@ -445,10 +444,7 @@ class OrderController extends Controller
                         } elseif ($targetStatus === 'dispatched' && $order->status === 'ready_to_ship') {
                             $inventoryService->dispatchOrder($order);
                             $count++;
-                        } elseif ($targetStatus === 'shipped' && in_array($order->status, ['confirmed', 'processing'])) {
-                            $inventoryService->shipOrder($order, null, null);
-                            $count++;
-                        } elseif ($targetStatus === 'delivered' && in_array($order->status, ['shipped', 'dispatched', 'processing'])) {
+                        } elseif ($targetStatus === 'delivered' && in_array($order->status, Order::inTransitStatuses(), true)) {
                             $inventoryService->deliverOrder($order);
                             $count++;
                         } elseif ($targetStatus === 'cancelled' && !in_array($order->status, ['delivered', 'cancelled', 'returned'])) {
@@ -463,16 +459,17 @@ class OrderController extends Controller
                             // Processing → Confirmed: no stock change, just status
                             $order->update(['status' => 'confirmed', 'updated_by' => auth()->id()]);
                             $count++;
-                        } elseif ($targetStatus === 'processing' && in_array($order->status, ['shipped', 'dispatched', 'ready_to_ship'])) {
+                        } elseif ($targetStatus === 'ready_to_ship' && $order->status === 'dispatched') {
                             $inventoryService->revertOrderToProcessing($order);
                             $count++;
-                        } elseif ($targetStatus === 'dispatched' && $order->status === 'delivered') {
-                            // Delivered → Dispatched: metadata-only revert
-                            $order->update(['status' => 'dispatched', 'updated_by' => auth()->id()]);
+                        } elseif ($targetStatus === 'processing' && $order->status === 'ready_to_ship') {
+                            $inventoryService->revertOrderToProcessing($order);
                             $count++;
-                        } elseif ($targetStatus === 'shipped' && $order->status === 'delivered') {
-                            // Delivered → Shipped: metadata-only revert
-                            $order->update(['status' => 'shipped', 'updated_by' => auth()->id()]);
+                        } elseif ($targetStatus === 'ready_to_ship' && $order->status === 'delivered') {
+                            $order->update(['status' => 'ready_to_ship', 'updated_by' => auth()->id()]);
+                            $count++;
+                        } elseif ($targetStatus === 'dispatched' && $order->status === 'delivered') {
+                            $inventoryService->revertDeliveredToDispatched($order);
                             $count++;
                         }
                     } catch (ValidationException $e) {
@@ -599,5 +596,21 @@ class OrderController extends Controller
         }
 
         return back()->with('error', 'Invalid print type.');
+    }
+
+    /**
+     * Expand status filter: "dispatched" includes legacy "shipped" rows until fully migrated.
+     *
+     * @return list<string>
+     */
+    private function expandOrderStatusFilter(string $statusCsv): array
+    {
+        $statuses = array_filter(array_map('trim', explode(',', $statusCsv)));
+
+        if (in_array('dispatched', $statuses, true)) {
+            $statuses[] = 'shipped';
+        }
+
+        return array_values(array_unique($statuses));
     }
 }

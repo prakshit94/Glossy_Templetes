@@ -68,8 +68,7 @@
                 if (status === 'processing') return current === 'confirmed';
                 if (status === 'ready_to_ship') return current === 'confirmed' || current === 'processing';
                 if (status === 'dispatched') return current === 'ready_to_ship';
-                if (status === 'shipped') return current === 'confirmed' || current === 'processing';
-                if (status === 'delivered') return current === 'shipped' || current === 'dispatched';
+                if (status === 'delivered') return current === 'dispatched' || current === 'shipped';
                 if (status === 'cancelled') return ['pending', 'confirmed', 'processing', 'ready_to_ship'].includes(current);
                 return false;
             });
@@ -81,19 +80,19 @@
             return selectedValues.some(current => {
                 if (status === 'pending') return ['confirmed', 'processing', 'cancelled', 'ready_to_ship'].includes(current);
                 if (status === 'confirmed') return current === 'processing';
-                if (status === 'processing') return ['shipped', 'dispatched', 'ready_to_ship'].includes(current);
+                if (status === 'ready_to_ship') return current === 'dispatched' || current === 'delivered';
+                if (status === 'processing') return current === 'ready_to_ship';
                 if (status === 'dispatched') return current === 'delivered';
-                if (status === 'shipped') return current === 'delivered';
                 return false;
             });
         },
 
         hasBulkFulfillOptions() {
-            return ['confirmed', 'processing', 'ready_to_ship', 'dispatched', 'shipped', 'delivered', 'cancelled'].some(s => this.canBulkFulfill(s));
+            return ['confirmed', 'processing', 'ready_to_ship', 'dispatched', 'delivered', 'cancelled'].some(s => this.canBulkFulfill(s));
         },
 
         hasBulkRevertOptions() {
-            return ['pending', 'confirmed', 'processing', 'dispatched', 'shipped'].some(s => this.canBulkRevert(s));
+            return ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched'].some(s => this.canBulkRevert(s));
         },
 
         async performSearch() {
@@ -197,8 +196,8 @@
                             <x-ui.icon name="truck" size="7" />
                         </div>
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Shipped</p>
-                            <div class="text-3xl font-black tracking-tighter text-emerald-500" x-text="stats.shipped"></div>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Dispatched</p>
+                            <div class="text-3xl font-black tracking-tighter text-emerald-500" x-text="stats.dispatched"></div>
                         </div>
                     </div>
                 </div>
@@ -256,13 +255,13 @@
                                         <div class="p-1 space-y-1 divide-y divide-border/20">
                                             <div class="py-1" x-show="hasBulkFulfillOptions()">
                                                 <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Fulfillment States</div>
-                                                @foreach(['confirmed' => 'Confirm Orders', 'processing' => 'Mark Processing', 'shipped' => 'Ship Orders', 'delivered' => 'Deliver Orders', 'cancelled' => 'Cancel Orders'] as $status => $label)
+                                                @foreach(['confirmed' => 'Confirm Orders', 'processing' => 'Mark Processing', 'ready_to_ship' => 'Mark Ready to Ship', 'dispatched' => 'Dispatch Orders', 'delivered' => 'Deliver Orders', 'cancelled' => 'Cancel Orders'] as $status => $label)
                                                     <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('{{ $status }}')">
                                                         @csrf
                                                         <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
                                                         <input type="hidden" name="status" value="{{ $status }}">
                                                         <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                            <span class="size-2 rounded-full bg-{{ match($status) { 'confirmed' => 'indigo', 'processing' => 'amber', 'shipped' => 'blue', 'delivered' => 'emerald', 'cancelled' => 'red' } }}-500 mr-2"></span>
+                                                            <span class="size-2 rounded-full bg-{{ match($status) { 'confirmed' => 'indigo', 'processing' => 'amber', 'ready_to_ship' => 'indigo', 'dispatched' => 'blue', 'delivered' => 'emerald', 'cancelled' => 'red' } }}-500 mr-2"></span>
                                                             {{ $label }}
                                                         </button>
                                                     </form>
@@ -270,7 +269,7 @@
                                             </div>
                                             <div class="py-1" x-show="hasBulkRevertOptions()">
                                                 <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70">Revert / Undo States</div>
-                                                @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'shipped' => 'Revert to Shipped'] as $status => $label)
+                                                @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'ready_to_ship' => 'Revert to Ready to Ship', 'dispatched' => 'Revert to Dispatched'] as $status => $label)
                                                     <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkRevert('{{ $status }}')">
                                                         @csrf
                                                         <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">

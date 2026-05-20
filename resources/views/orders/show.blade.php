@@ -8,7 +8,7 @@
                 @php
                     $statusColor = match($order->status) {
                         'delivered', 'completed' => 'emerald',
-                        'dispatched', 'shipped' => 'blue',
+                        'dispatched' => 'blue',
                         'ready_to_ship' => 'indigo',
                         'processing' => 'amber',
                         'confirmed' => 'indigo',
@@ -21,13 +21,13 @@
                 
                 <div class="flex items-center gap-5 relative z-10">
                     <div class="size-16 rounded-2xl bg-{{ $statusColor }}-500/10 border border-{{ $statusColor }}-500/20 text-{{ $statusColor }}-500 flex items-center justify-center shadow-inner">
-                        <x-ui.icon name="{{ match($order->status) { 'delivered' => 'check-circle', 'dispatched', 'shipped' => 'truck', 'cancelled' => 'x-circle', default => 'package' } }}" size="8" />
+                        <x-ui.icon name="{{ match($order->lifecycleStatus()) { 'delivered' => 'check-circle', 'dispatched' => 'truck', 'cancelled' => 'x-circle', default => 'package' } }}" size="8" />
                     </div>
                     <div>
                         <div class="flex items-center gap-3 mb-1">
                             <h3 class="text-2xl font-black text-foreground tracking-tight">{{ $order->order_no }}</h3>
-                            <x-ui.badge variant="{{ match($order->status) { 'shipped', 'dispatched', 'delivered', 'completed' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'indigo', default => 'default' } }}" class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
-                                {{ str_replace('_', ' ', $order->status) }}
+                            <x-ui.badge variant="{{ match($order->lifecycleStatus()) { 'dispatched', 'delivered' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'indigo', default => 'default' } }}" class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
+                                {{ $order->statusLabel() }}
                             </x-ui.badge>
                         </div>
                         <p class="text-xs text-muted-foreground font-medium flex items-center gap-2">
@@ -115,7 +115,7 @@
                     @endif
 
                     {{-- Deliver (dispatched/shipped → delivered) --}}
-                    @if(in_array($order->status, ['dispatched', 'shipped']))
+                    @if(in_array($order->status, \App\Models\Order::inTransitStatuses(), true))
                         <form action="{{ route('orders.deliver', $order) }}" method="POST">
                             @csrf
                             <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
@@ -124,8 +124,8 @@
                         </form>
                     @endif
 
-                    {{-- Cancel (any active status) --}}
-                    @if(!in_array($order->status, ['delivered', 'cancelled', 'returned']))
+                    {{-- Cancel (only before stock leaves the warehouse) --}}
+                    @if(!in_array($order->status, array_merge(['delivered', 'cancelled', 'returned'], \App\Models\Order::inTransitStatuses()), true))
                         <form action="{{ route('orders.cancel', $order) }}" method="POST" onsubmit="return confirm('Cancel this order?')">
                             @csrf
                             <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-destructive border-destructive/30 hover:bg-destructive/10">
@@ -144,11 +144,11 @@
                 ['key' => 'confirmed',  'label' => 'Confirmed',  'icon' => 'check-circle'],
                 ['key' => 'processing', 'label' => 'Processing', 'icon' => 'loader'],
                 ['key' => 'ready_to_ship', 'label' => 'Ready to Ship', 'icon' => 'package'],
-                ['key' => $order->status === 'shipped' ? 'shipped' : 'dispatched', 'label' => $order->status === 'shipped' ? 'Shipped' : 'Dispatched', 'icon' => 'truck'],
+                ['key' => 'dispatched', 'label' => 'Dispatched', 'icon' => 'truck'],
                 ['key' => 'delivered',  'label' => 'Delivered',  'icon' => 'check-circle'],
             ];
             $stepKeys = array_column($steps, 'key');
-            $currentIndex = array_search($order->status, $stepKeys);
+            $currentIndex = array_search($order->lifecycleStatus(), $stepKeys);
             $isCancelled = in_array($order->status, ['cancelled', 'returned']);
         @endphp
         @if(!$isCancelled)

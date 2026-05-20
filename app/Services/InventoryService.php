@@ -601,7 +601,7 @@ class InventoryService
                 'occurred_at' => now(),
             ]);
 
-            $order->update(['status' => 'shipped', 'updated_by' => auth()->id()]);
+            $order->update(['status' => 'dispatched', 'updated_by' => auth()->id()]);
 
             // Sync status for all items in the order
             foreach ($order->items as $item) {
@@ -617,7 +617,7 @@ class InventoryService
                     'carrier_name' => $carrierName,
                     'tracking_no'  => $trackingNo,
                 ]))
-                ->log("Order #{$order->order_no} shipped — inventory deducted, shipment #{$shipment->shipment_no} created");
+                ->log("Order #{$order->order_no} dispatched (quick) — inventory deducted, shipment #{$shipment->shipment_no} created");
         });
     }
 
@@ -628,16 +628,18 @@ class InventoryService
     {
         DB::transaction(function () use ($order) {
             /** @var Order $order */
-            $order = Order::with('items')->lockForUpdate()->findOrFail($order->id);
+            $order = Order::with(['items', 'shipments'])->lockForUpdate()->findOrFail($order->id);
 
-            if (in_array($order->status, ['shipped', 'delivered', 'cancelled'], true)) {
+            if (in_array($order->status, array_merge(Order::inTransitStatuses(), ['delivered', 'cancelled']), true)) {
                 throw ValidationException::withMessages([
                     'status' => 'This order cannot be cancelled.',
                 ]);
             }
 
-            // Only release reservations if the order was confirmed or processing (reserved stock)
-            if (in_array($order->status, ['confirmed', 'processing']) && $order->type === 'sale' && $order->warehouse_id) {
+            // Only release reservations if stock was reserved but not yet dispatched
+            if (in_array($order->status, ['confirmed', 'processing', 'ready_to_ship'], true)
+                && $order->type === 'sale'
+                && $order->warehouse_id) {
                 foreach ($order->items as $item) {
                     $productId   = (int) $item->product_id;
                     $warehouseId = (int) $order->warehouse_id;
@@ -660,6 +662,13 @@ class InventoryService
 
                         $this->logMovement($productId, $warehouseId, $releaseQty, 'release', Order::class, $order->id);
                     }
+                }
+            }
+
+            if ($order->status === 'ready_to_ship') {
+                foreach ($order->shipments as $shipment) {
+                    $shipment->events()->delete();
+                    $shipment->delete();
                 }
             }
 
@@ -825,15 +834,24 @@ class InventoryService
     public function revertOrderToPending(Order $order): void
     {
         DB::transaction(function () use ($order) {
-            $order = Order::with('items')->lockForUpdate()->findOrFail($order->id);
+            $order = Order::with(['items', 'shipments'])->lockForUpdate()->findOrFail($order->id);
 
-            if (!in_array($order->status, ['confirmed', 'processing', 'cancelled'], true)) {
+            if (!in_array($order->status, ['confirmed', 'processing', 'cancelled', 'ready_to_ship'], true)) {
                 throw ValidationException::withMessages([
                     'status' => 'Cannot revert this order to pending.',
                 ]);
             }
 
-            if (in_array($order->status, ['confirmed', 'processing']) && $order->type === 'sale' && $order->warehouse_id) {
+            if ($order->status === 'ready_to_ship') {
+                foreach ($order->shipments as $shipment) {
+                    $shipment->events()->delete();
+                    $shipment->delete();
+                }
+            }
+
+            if (in_array($order->status, ['confirmed', 'processing', 'ready_to_ship'], true)
+                && $order->type === 'sale'
+                && $order->warehouse_id) {
                 foreach ($order->items as $item) {
                     $productId   = (int) $item->product_id;
                     $warehouseId = (int) $order->warehouse_id;
@@ -873,18 +891,24 @@ class InventoryService
         DB::transaction(function () use ($order) {
             $order = Order::with(['items', 'shipments'])->lockForUpdate()->findOrFail($order->id);
 
-            if (!in_array($order->status, ['shipped', 'dispatched', 'ready_to_ship'])) {
+            if (!in_array($order->status, array_merge(Order::inTransitStatuses(), ['ready_to_ship']), true)) {
                 throw ValidationException::withMessages([
-                    'status' => 'Only shipped, dispatched, or ready to ship orders can be reverted to processing.',
+                    'status' => 'Only dispatched or ready to ship orders can be reverted.',
                 ]);
             }
 
-            $statusWasPhysical = in_array($order->status, ['shipped', 'dispatched']);
+            $statusWasPhysical = in_array($order->status, Order::inTransitStatuses(), true);
+            $revertToStatus    = $statusWasPhysical ? 'ready_to_ship' : 'processing';
 
-            // Remove shipment records
-            foreach ($order->shipments as $shp) {
-                $shp->events()->delete();
-                $shp->delete();
+            if ($statusWasPhysical) {
+                foreach ($order->shipments as $shp) {
+                    $shp->update(['status' => 'pending', 'shipped_at' => null]);
+                }
+            } else {
+                foreach ($order->shipments as $shp) {
+                    $shp->events()->delete();
+                    $shp->delete();
+                }
             }
 
             if ($statusWasPhysical) {
@@ -924,7 +948,7 @@ class InventoryService
                 }
             }
 
-            $order->update(['status' => 'processing', 'updated_by' => auth()->id()]);
+            $order->update(['status' => $revertToStatus, 'updated_by' => auth()->id()]);
         });
     }
 
@@ -1104,7 +1128,7 @@ class InventoryService
             // Only decrement dispatched_qty for sale orders that went through
             // the physical fulfilment step (dispatched or shipped).
             $wasPhysical = $order->type === 'sale'
-                && in_array($order->status, ['dispatched', 'shipped']);
+                && in_array($order->status, Order::inTransitStatuses(), true);
 
             if ($wasPhysical) {
                 $order->loadMissing('items');
@@ -1124,6 +1148,56 @@ class InventoryService
 
             // Delegate status + shipment update to OrderService (single source of truth)
             app(\App\Services\OrderService::class)->updateStatus($order, 'delivered');
+        });
+    }
+
+    /**
+     * Undo {@see deliverOrder()}: restore dispatched_qty and shipment rows, then set order dispatched.
+     */
+    public function revertDeliveredToDispatched(Order $order): void
+    {
+        DB::transaction(function () use ($order) {
+            $order = Order::with(['items', 'shipments'])->lockForUpdate()->findOrFail($order->id);
+
+            if ($order->status !== 'delivered') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only delivered orders can be reverted to dispatched.',
+                ]);
+            }
+
+            // Inverse of deliverOrder() stock adjustment (sale + warehouse, same items)
+            if ($order->type === 'sale' && $order->warehouse_id) {
+                $order->loadMissing('items');
+                foreach ($order->items as $item) {
+                    $productId   = (int) $item->product_id;
+                    $warehouseId = (int) $order->warehouse_id;
+                    $qty         = (float) $item->quantity;
+
+                    $stock = $this->getStockForUpdate($productId, $warehouseId);
+                    $stock->dispatched_qty = (float) $stock->dispatched_qty + $qty;
+                    $stock->save();
+
+                    $this->syncProductStatus($productId);
+                }
+            }
+
+            // Inverse of OrderService::updateStatus(..., 'delivered') on shipments
+            foreach ($order->shipments as $shipment) {
+                if ($shipment->status === 'delivered') {
+                    $shipment->update([
+                        'status'       => 'shipped',
+                        'delivered_at' => null,
+                    ]);
+                }
+            }
+
+            $order->update(['status' => 'dispatched', 'updated_by' => auth()->id()]);
+
+            activity('orders')
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->withProperties(['order_no' => $order->order_no])
+                ->log("Order #{$order->order_no} reverted from delivered to dispatched — dispatched_qty restored");
         });
     }
 }
