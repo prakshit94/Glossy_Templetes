@@ -333,35 +333,45 @@
                                     <x-ui.icon name="corner-down-left" size="4" />
                                 </button>
                             @endif
-                            <a href="{{ route('orders.show', $order) }}" title="Visual Dossier">
-                                <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
-                                    <x-ui.icon name="eye" size="4" />
-                                </x-ui.button>
-                            </a>
-                            @if($order->invoice)
-                                <a href="{{ route('orders.invoice-pdf', $order) }}" target="_blank" title="Download Invoice">
-                                    <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 rounded-xl border border-transparent hover:border-blue-500/20 transition-all">
-                                        <x-ui.icon name="file-text" size="4" />
+                            @can('orders.view')
+                                <a href="{{ route('orders.show', $order) }}" title="Visual Dossier">
+                                    <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
+                                        <x-ui.icon name="eye" size="4" />
                                     </x-ui.button>
                                 </a>
+                            @endcan
+                            @if($order->invoice)
+                                @can('orders.invoice_pdf')
+                                    <a href="{{ route('orders.invoice-pdf', $order) }}" target="_blank" title="Download Invoice">
+                                        <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 rounded-xl border border-transparent hover:border-blue-500/20 transition-all">
+                                            <x-ui.icon name="file-text" size="4" />
+                                        </x-ui.button>
+                                    </a>
+                                @endcan
                             @else
-                                <form action="{{ route('orders.generate-invoice', $order) }}" method="POST" class="inline">
-                                    @csrf
-                                    <x-ui.button type="submit" variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/10 rounded-xl border border-transparent hover:border-indigo-500/20 transition-all" title="Generate Invoice">
-                                        <x-ui.icon name="file-plus" size="4" />
-                                    </x-ui.button>
-                                </form>
+                                @can('orders.generate_invoice')
+                                    <form action="{{ route('orders.generate-invoice', $order) }}" method="POST" class="inline">
+                                        @csrf
+                                        <x-ui.button type="submit" variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/10 rounded-xl border border-transparent hover:border-indigo-500/20 transition-all" title="Generate Invoice">
+                                            <x-ui.icon name="file-plus" size="4" />
+                                        </x-ui.button>
+                                    </form>
+                                @endcan
                             @endif
-                            <a href="{{ route('orders.cod-pdf', $order) }}" target="_blank" title="Download COD PDF">
-                                <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl border border-transparent hover:border-emerald-500/20 transition-all">
-                                    <x-ui.icon name="printer" size="4" />
-                                </x-ui.button>
-                            </a>
-                            <a href="{{ route('orders.edit', $order) }}" title="Modify Structure">
-                                <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 rounded-xl border border-transparent hover:border-amber-500/20 transition-all">
-                                    <x-ui.icon name="edit-3" size="4" />
-                                </x-ui.button>
-                            </a>
+                            @can('orders.cod')
+                                <a href="{{ route('orders.cod-pdf', $order) }}" target="_blank" title="Download COD PDF">
+                                    <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl border border-transparent hover:border-emerald-500/20 transition-all">
+                                        <x-ui.icon name="printer" size="4" />
+                                    </x-ui.button>
+                                </a>
+                            @endcan
+                            @can('orders.edit')
+                                <a href="{{ route('orders.edit', $order) }}" title="Modify Structure">
+                                    <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 rounded-xl border border-transparent hover:border-amber-500/20 transition-all">
+                                        <x-ui.icon name="edit-3" size="4" />
+                                    </x-ui.button>
+                                </a>
+                            @endcan
                         </div>
                     </x-ui.table-cell>
                 </x-ui.table-row>

@@ -146,23 +146,33 @@
       </div>
       @endif
 
+      @if(count($catalogItems) > 0 || count($inventoryItems) > 0 || count($salesItems) > 0 || count($procurementItems) > 0)
       <div class="space-y-1">
          <div class="px-3 mb-2 transition-opacity duration-300" :class="sidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'">
             <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">Core Operations</h3>
          </div>
+         @if(count($catalogItems) > 0)
          <x-layout.nav-collapsible title="Catalog" :active="request()->is('products*') || request()->is('categories*') || request()->is('brands*') || request()->is('attributes*') || request()->is('uoms*') || request()->is('tax-rates*') || request()->is('hsn-codes*')" :items="$catalogItems">
             <x-slot name="icon"><x-ui.icon name="product" size="5" /></x-slot>
          </x-layout.nav-collapsible>
+         @endif
+         @if(count($inventoryItems) > 0)
          <x-layout.nav-collapsible title="Inventory" :active="request()->is('inventory*') || request()->is('warehouses*') || request()->is('stock-transfers*') || request()->is('stock-adjustments*')" :items="$inventoryItems">
             <x-slot name="icon"><x-ui.icon name="warehouse" size="5" /></x-slot>
          </x-layout.nav-collapsible>
+         @endif
+         @if(count($salesItems) > 0)
          <x-layout.nav-collapsible title="Sales" :active="request()->is('orders*') || request()->is('invoices*') || request()->is('payments*') || request()->is('order-tracking*') || request()->is('returns*') || request()->is('refunds*') || request()->is('replacement*')" :items="$salesItems">
             <x-slot name="icon"><x-ui.icon name="shopping-bag" size="5" /></x-slot>
          </x-layout.nav-collapsible>
+         @endif
+         @if(count($procurementItems) > 0)
          <x-layout.nav-collapsible title="Procurement" :active="request()->is('purchase-orders*') || request()->is('suppliers*') || request()->is('vendors*')" :items="$procurementItems">
             <x-slot name="icon"><x-ui.icon name="purchase" size="5" /></x-slot>
          </x-layout.nav-collapsible>
+         @endif
       </div>
+      @endif
 
       @if(count($operationsItems) > 0 || count($financeItems) > 0)
       <div class="space-y-1">

@@ -10,6 +10,7 @@ use App\Models\OrderReturn;
 use App\Models\Refund;
 use App\Models\Party;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -66,7 +67,9 @@ class DashboardController extends Controller
         };
 
         // --- Current Metrics ---
-        $revenue = Payment::where('status', 'completed')->whereBetween('payment_date', [$startDate, $endDate])->sum('amount');
+        $revenue = Order::whereNotIn('status', ['cancelled', 'returned'])
+            ->whereBetween('order_date', [$startDate, $endDate])
+            ->sum('net_amount');
         $ordersCount = Order::where('status', '!=', 'cancelled')->whereBetween('order_date', [$startDate, $endDate])->count();
         $cancelledOrdersCount = Order::where('status', 'cancelled')->whereBetween('order_date', [$startDate, $endDate])->count();
         $newCustomers = Party::where('type', 'customer')->whereBetween('created_at', [$startDate, $endDate])->count();
@@ -74,7 +77,9 @@ class DashboardController extends Controller
         $activeReturns = OrderReturn::whereIn('status', ['requested', 'received', 'inspected'])->whereBetween('created_at', [$startDate, $endDate])->count();
 
         // --- Previous Metrics ---
-        $prevRevenue = Payment::where('status', 'completed')->whereBetween('payment_date', [$prevStartDate, $prevEndDate])->sum('amount');
+        $prevRevenue = Order::whereNotIn('status', ['cancelled', 'returned'])
+            ->whereBetween('order_date', [$prevStartDate, $prevEndDate])
+            ->sum('net_amount');
         $prevOrdersCount = Order::where('status', '!=', 'cancelled')->whereBetween('order_date', [$prevStartDate, $prevEndDate])->count();
         $prevCancelledOrdersCount = Order::where('status', 'cancelled')->whereBetween('order_date', [$prevStartDate, $prevEndDate])->count();
         $prevNewCustomers = Party::where('type', 'customer')->whereBetween('created_at', [$prevStartDate, $prevEndDate])->count();
@@ -100,9 +105,9 @@ class DashboardController extends Controller
         $daysDiff = $startDate->diffInDays($endDate);
 
         if ($daysDiff <= 1) { // Today / Yesterday - Group by Hour
-            $payments = Payment::where('status', 'completed')
-                ->whereBetween('payment_date', [$startDate, $endDate])
-                ->select(DB::raw('HOUR(payment_date) as hour'), DB::raw('SUM(amount) as total'))
+            $payments = Order::whereNotIn('status', ['cancelled', 'returned'])
+                ->whereBetween('order_date', [$startDate, $endDate])
+                ->select(DB::raw('HOUR(order_date) as hour'), DB::raw('SUM(net_amount) as total'))
                 ->groupBy('hour')
                 ->pluck('total', 'hour')->toArray();
                 
@@ -118,9 +123,9 @@ class DashboardController extends Controller
                 $ordersData[] = $ordersGrouped[$i] ?? 0;
             }
         } elseif ($daysDiff <= 31) { // Week / Month - Group by Day
-            $payments = Payment::where('status', 'completed')
-                ->whereBetween('payment_date', [$startDate, $endDate])
-                ->select(DB::raw('DATE(payment_date) as date'), DB::raw('SUM(amount) as total'))
+            $payments = Order::whereNotIn('status', ['cancelled', 'returned'])
+                ->whereBetween('order_date', [$startDate, $endDate])
+                ->select(DB::raw('DATE(order_date) as date'), DB::raw('SUM(net_amount) as total'))
                 ->groupBy('date')
                 ->pluck('total', 'date')->toArray();
                 
@@ -139,9 +144,9 @@ class DashboardController extends Controller
                 $current->addDay();
             }
         } else { // Year - Group by Month
-            $payments = Payment::where('status', 'completed')
-                ->whereBetween('payment_date', [$startDate, $endDate])
-                ->select(DB::raw('MONTH(payment_date) as month'), DB::raw('SUM(amount) as total'))
+            $payments = Order::whereNotIn('status', ['cancelled', 'returned'])
+                ->whereBetween('order_date', [$startDate, $endDate])
+                ->select(DB::raw('MONTH(order_date) as month'), DB::raw('SUM(net_amount) as total'))
                 ->groupBy('month')
                 ->pluck('total', 'month')->toArray();
                 
@@ -161,6 +166,20 @@ class DashboardController extends Controller
         // Recent Activity
         $recentOrders = Order::with('party')->latest()->take(5)->get();
         $recentReturns = OrderReturn::with('order')->latest()->take(5)->get();
+        $recentReviews = DB::table('product_reviews')
+            ->join('products', 'product_reviews.product_id', '=', 'products.id')
+            ->where('product_reviews.user_id', Auth::id())
+            ->select([
+                'product_reviews.id',
+                'product_reviews.rating',
+                'product_reviews.comment',
+                'product_reviews.status',
+                'product_reviews.created_at',
+                'products.name as product_name',
+            ])
+            ->orderByDesc('product_reviews.created_at')
+            ->limit(5)
+            ->get();
 
         $dateRangeString = $startDate->format('M d, Y') . ' - ' . $endDate->format('M d, Y');
 
@@ -186,6 +205,7 @@ class DashboardController extends Controller
             'ordersData',
             'recentOrders',
             'recentReturns',
+            'recentReviews',
             'dateRangeString'
         ));
     }

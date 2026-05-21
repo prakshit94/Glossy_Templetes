@@ -204,67 +204,104 @@
             <!-- Recent Activity Section -->
             <div class="space-y-6">
                 
-                <!-- Recent Orders -->
-                <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-2xl rounded-3xl">
-                    <div class="p-5 border-b border-border/40 bg-muted/10 flex justify-between items-center">
-                        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-foreground flex items-center gap-2">
-                            <x-ui.icon name="shopping-bag" size="3.5" class="text-primary" /> Recent Orders
-                        </h3>
-                        <a href="{{ route('orders.index') }}" class="text-[9px] font-bold text-primary uppercase tracking-widest hover:underline">View All</a>
-                    </div>
-                    <div class="divide-y divide-border/40">
-                        @forelse($recentOrders as $order)
-                            <a href="{{ route('orders.show', $order) }}" class="block p-4 hover:bg-primary/5 transition-colors group">
-                                <div class="flex justify-between items-center">
-                                    <div>
-                                        <p class="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{{ $order->order_no }}</p>
-                                        <p class="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                                            {{ $order->party->company_name ?? ($order->party->firstname . ' ' . $order->party->lastname) }}
-                                        </p>
+                @if(auth()->user()->hasAnyRole(['Super Admin','Admin','Manager','Employee']))
+                    <!-- Recent Orders -->
+                    <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-2xl rounded-3xl">
+                        <div class="p-5 border-b border-border/40 bg-muted/10 flex justify-between items-center">
+                            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-foreground flex items-center gap-2">
+                                <x-ui.icon name="shopping-bag" size="3.5" class="text-primary" /> Recent Orders
+                            </h3>
+                            <a href="{{ route('orders.index') }}" class="text-[9px] font-bold text-primary uppercase tracking-widest hover:underline">View All</a>
+                        </div>
+                        <div class="divide-y divide-border/40">
+                            @forelse($recentOrders as $order)
+                                <a href="{{ route('orders.show', $order) }}" class="block p-4 hover:bg-primary/5 transition-colors group">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <p class="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{{ $order->order_no }}</p>
+                                            <p class="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
+                                                {{ $order->party->company_name ?? ($order->party->firstname . ' ' . $order->party->lastname) }}
+                                            </p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-black text-foreground">₹{{ number_format($order->net_amount, 2) }}</p>
+                                            <x-ui.badge variant="outline" class="mt-1 text-[8px] font-black uppercase rounded-md">
+                                                {{ $order->status }}
+                                            </x-ui.badge>
+                                        </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-black text-foreground">₹{{ number_format($order->net_amount, 2) }}</p>
-                                        <x-ui.badge variant="outline" class="mt-1 text-[8px] font-black uppercase rounded-md">
-                                            {{ $order->status }}
-                                        </x-ui.badge>
-                                    </div>
-                                </div>
-                            </a>
-                        @empty
-                            <div class="p-6 text-center text-sm font-medium text-muted-foreground">No recent orders.</div>
-                        @endforelse
-                    </div>
-                </x-ui.card>
+                                </a>
+                            @empty
+                                <div class="p-6 text-center text-sm font-medium text-muted-foreground">No recent orders.</div>
+                            @endforelse
+                        </div>
+                    </x-ui.card>
 
-                <!-- Recent Returns -->
-                <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-2xl rounded-3xl">
-                    <div class="p-5 border-b border-border/40 bg-muted/10 flex justify-between items-center">
-                        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-foreground flex items-center gap-2">
-                            <x-ui.icon name="corner-down-left" size="3.5" class="text-rose-500" /> Recent Returns
-                        </h3>
-                        <a href="{{ route('returns.index') }}" class="text-[9px] font-bold text-primary uppercase tracking-widest hover:underline">View All</a>
-                    </div>
-                    <div class="divide-y divide-border/40">
-                        @forelse($recentReturns as $return)
-                            <a href="{{ route('returns.show', $return) }}" class="block p-4 hover:bg-primary/5 transition-colors group">
-                                <div class="flex justify-between items-center">
-                                    <div>
-                                        <p class="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{{ $return->return_no }}</p>
-                                        <p class="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">Order: {{ $return->order->order_no }}</p>
+                    <!-- Recent Returns -->
+                    <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-2xl rounded-3xl">
+                        <div class="p-5 border-b border-border/40 bg-muted/10 flex justify-between items-center">
+                            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-foreground flex items-center gap-2">
+                                <x-ui.icon name="corner-down-left" size="3.5" class="text-rose-500" /> Recent Returns
+                            </h3>
+                            <a href="{{ route('returns.index') }}" class="text-[9px] font-bold text-primary uppercase tracking-widest hover:underline">View All</a>
+                        </div>
+                        <div class="divide-y divide-border/40">
+                            @forelse($recentReturns as $return)
+                                <a href="{{ route('returns.show', $return) }}" class="block p-4 hover:bg-primary/5 transition-colors group">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <p class="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{{ $return->return_no }}</p>
+                                            <p class="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">Order: {{ $return->order->order_no }}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-black text-rose-500">₹{{ number_format($return->refund_amount, 2) }}</p>
+                                            <x-ui.badge variant="outline" class="mt-1 text-[8px] font-black uppercase rounded-md text-amber-500">
+                                                {{ $return->status }}
+                                            </x-ui.badge>
+                                        </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-black text-rose-500">₹{{ number_format($return->refund_amount, 2) }}</p>
-                                        <x-ui.badge variant="outline" class="mt-1 text-[8px] font-black uppercase rounded-md text-amber-500">
-                                            {{ $return->status }}
+                                </a>
+                            @empty
+                                <div class="p-6 text-center text-sm font-medium text-muted-foreground">No recent returns.</div>
+                            @endforelse
+                        </div>
+                    </x-ui.card>
+                @endif
+
+                @auth
+                    <!-- My Reviews -->
+                    <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-2xl rounded-3xl">
+                        <div class="p-5 border-b border-border/40 bg-muted/10 flex justify-between items-center">
+                            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-foreground flex items-center gap-2">
+                                <x-ui.icon name="star" size="3.5" class="text-amber-500" /> My Reviews
+                            </h3>
+                            <a href="{{ route('reviews.index') }}" class="text-[9px] font-bold text-primary uppercase tracking-widest hover:underline">View All</a>
+                        </div>
+                        <div class="divide-y divide-border/40">
+                            @forelse($recentReviews as $review)
+                                <div class="p-4">
+                                    <div class="flex justify-between items-center gap-4">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-bold text-foreground truncate">{{ $review->product_name }}</p>
+                                            <p class="text-[10px] text-muted-foreground uppercase mt-0.5">
+                                                {{ \Illuminate\Support\Str::limit($review->comment, 80) }}
+                                            </p>
+                                        </div>
+                                        <x-ui.badge variant="outline" class="text-[8px] font-black uppercase rounded-md">
+                                            {{ ucfirst($review->status) }}
                                         </x-ui.badge>
                                     </div>
+                                    <div class="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
+                                        <span>{{ $review->rating }} / 5</span>
+                                        <span>{{ \Illuminate\Support\Carbon::parse($review->created_at)->diffForHumans() }}</span>
+                                    </div>
                                 </div>
-                            </a>
-                        @empty
-                            <div class="p-6 text-center text-sm font-medium text-muted-foreground">No recent returns.</div>
-                        @endforelse
-                    </div>
-                </x-ui.card>
+                            @empty
+                                <div class="p-6 text-center text-sm font-medium text-muted-foreground">You have not left any reviews yet.</div>
+                            @endforelse
+                        </div>
+                    </x-ui.card>
+                @endauth
 
             </div>
         </div>

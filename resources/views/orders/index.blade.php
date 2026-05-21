@@ -266,12 +266,14 @@
                                     <x-ui.icon name="download" size="3" class="mr-2" />
                                     Export
                                 </x-ui.button>
-                                <a href="{{ route('orders.create') }}" class="flex-1 sm:flex-none">
-                                    <x-ui.button size="sm" class="w-full rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-lg shadow-primary/25 ring-1 ring-primary/20">
-                                        <x-ui.icon name="plus" size="3" class="mr-2" />
-                                        New Order
-                                    </x-ui.button>
-                                </a>
+                                @can('orders.create')
+                                    <a href="{{ route('orders.create') }}" class="flex-1 sm:flex-none">
+                                        <x-ui.button size="sm" class="w-full rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-lg shadow-primary/25 ring-1 ring-primary/20">
+                                            <x-ui.icon name="plus" size="3" class="mr-2" />
+                                            New Order
+                                        </x-ui.button>
+                                    </a>
+                                @endcan
                             </div>
                         </div>
 
@@ -283,77 +285,83 @@
 
                             <div x-show="selectedItems.length > 0" x-cloak x-transition
                                 class="flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-300">
-                                <x-ui.dropdown>
-                                    <x-slot name="trigger">
-                                        <x-ui.button variant="outline" size="sm" class="rounded-xl border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap h-10 px-4">
-                                            <span x-text="selectedItems.length"></span> Selected
-                                            <x-ui.icon name="chevron-down" size="3" class="ml-2" />
-                                        </x-ui.button>
-                                    </x-slot>
-                                    <x-slot name="content">
-                                        <x-ui.dropdown-label>Mass Lifecycle Update</x-ui.dropdown-label>
-                                        <div class="p-1 space-y-1 divide-y divide-border/20">
-                                            <div class="py-1" x-show="hasBulkFulfillOptions()">
-                                                <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Fulfillment States</div>
-                                                @foreach(['confirmed' => 'Confirm Orders', 'processing' => 'Mark Processing', 'ready_to_ship' => 'Mark Ready to Ship', 'dispatched' => 'Dispatch Orders', 'delivered' => 'Deliver Orders', 'cancelled' => 'Cancel Orders'] as $status => $label)
-                                                    <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('{{ $status }}')">
-                                                        @csrf
-                                                        <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
-                                                        <input type="hidden" name="status" value="{{ $status }}">
-                                                        <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                            <span class="size-2 rounded-full bg-{{ match($status) { 'confirmed' => 'indigo', 'processing' => 'amber', 'ready_to_ship' => 'indigo', 'dispatched' => 'blue', 'delivered' => 'emerald', 'cancelled' => 'red' } }}-500 mr-2"></span>
-                                                            {{ $label }}
-                                                        </button>
-                                                    </form>
-                                                    @if($status === 'dispatched')
-                                                        <button type="button" @click="openAssignModal(null)" x-show="canBulkFulfill('dispatched')"
-                                                            class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                            <span class="size-2 rounded-full bg-blue-500 mr-2"></span>
-                                                            Assign Shipment
-                                                        </button>
-                                                    @endif
-                                                @endforeach
+                                @canany(['orders.bulk_status', 'orders.bulk_print'])
+                                    <x-ui.dropdown>
+                                        <x-slot name="trigger">
+                                            <x-ui.button variant="outline" size="sm" class="rounded-xl border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap h-10 px-4">
+                                                <span x-text="selectedItems.length"></span> Selected
+                                                <x-ui.icon name="chevron-down" size="3" class="ml-2" />
+                                            </x-ui.button>
+                                        </x-slot>
+                                        <x-slot name="content">
+                                            <x-ui.dropdown-label>Mass Lifecycle Update</x-ui.dropdown-label>
+                                            <div class="p-1 space-y-1 divide-y divide-border/20">
+                                                @can('orders.bulk_status')
+                                                    <div class="py-1" x-show="hasBulkFulfillOptions()">
+                                                        <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Fulfillment States</div>
+                                                        @foreach(['confirmed' => 'Confirm Orders', 'processing' => 'Mark Processing', 'ready_to_ship' => 'Mark Ready to Ship', 'dispatched' => 'Dispatch Orders', 'delivered' => 'Deliver Orders', 'cancelled' => 'Cancel Orders'] as $status => $label)
+                                                            <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('{{ $status }}')">
+                                                                @csrf
+                                                                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                                <input type="hidden" name="status" value="{{ $status }}">
+                                                                <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
+                                                                    <span class="size-2 rounded-full bg-{{ match($status) { 'confirmed' => 'indigo', 'processing' => 'amber', 'ready_to_ship' => 'indigo', 'dispatched' => 'blue', 'delivered' => 'emerald', 'cancelled' => 'red' } }}-500 mr-2"></span>
+                                                                    {{ $label }}
+                                                                </button>
+                                                            </form>
+                                                            @if($status === 'dispatched')
+                                                                <button type="button" @click="openAssignModal(null)" x-show="canBulkFulfill('dispatched')"
+                                                                    class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
+                                                                    <span class="size-2 rounded-full bg-blue-500 mr-2"></span>
+                                                                    Assign Shipment
+                                                                </button>
+                                                            @endif
+                                                        @endforeach
+                                                    </div>
+                                                    <div class="py-1" x-show="hasBulkRevertOptions()">
+                                                        <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70">Revert / Undo States</div>
+                                                        @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'ready_to_ship' => 'Revert to Ready to Ship', 'dispatched' => 'Revert to Dispatched'] as $status => $label)
+                                                            <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkRevert('{{ $status }}')">
+                                                                @csrf
+                                                                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                                <input type="hidden" name="status" value="{{ $status }}">
+                                                                <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-amber-500/5 hover:text-amber-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
+                                                                    <x-ui.icon name="corner-up-left" size="3.5" class="mr-2 text-amber-500" />
+                                                                    {{ $label }}
+                                                                </button>
+                                                            </form>
+                                                        @endforeach
+                                                    </div>
+                                                @endcan
+                                                @can('orders.bulk_print')
+                                                    <div class="py-1">
+                                                        <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-600/70">Bulk PDF Downloads</div>
+                                                        <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
+                                                            <input type="hidden" name="type" value="invoice">
+                                                            <template x-for="id in selectedItems">
+                                                                <input type="hidden" name="ids[]" :value="id">
+                                                            </template>
+                                                            <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-blue-500/5 hover:text-blue-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
+                                                                <x-ui.icon name="file-text" size="3.5" class="mr-2 text-blue-500" />
+                                                                Bulk Invoice PDF
+                                                            </button>
+                                                        </form>
+                                                        <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
+                                                            <input type="hidden" name="type" value="cod">
+                                                            <template x-for="id in selectedItems">
+                                                                <input type="hidden" name="ids[]" :value="id">
+                                                            </template>
+                                                            <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-emerald-500/5 hover:text-emerald-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
+                                                                <x-ui.icon name="printer" size="3.5" class="mr-2 text-emerald-500" />
+                                                                Bulk COD PDF
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                @endcan
                                             </div>
-                                            <div class="py-1" x-show="hasBulkRevertOptions()">
-                                                <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70">Revert / Undo States</div>
-                                                @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'ready_to_ship' => 'Revert to Ready to Ship', 'dispatched' => 'Revert to Dispatched'] as $status => $label)
-                                                    <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkRevert('{{ $status }}')">
-                                                        @csrf
-                                                        <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
-                                                        <input type="hidden" name="status" value="{{ $status }}">
-                                                        <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-amber-500/5 hover:text-amber-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
-                                                            <x-ui.icon name="corner-up-left" size="3.5" class="mr-2 text-amber-500" />
-                                                            {{ $label }}
-                                                        </button>
-                                                    </form>
-                                                @endforeach
-                                            </div>
-                                            <div class="py-1">
-                                                <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-600/70">Bulk PDF Downloads</div>
-                                                <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
-                                                    <input type="hidden" name="type" value="invoice">
-                                                    <template x-for="id in selectedItems">
-                                                        <input type="hidden" name="ids[]" :value="id">
-                                                    </template>
-                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-blue-500/5 hover:text-blue-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
-                                                        <x-ui.icon name="file-text" size="3.5" class="mr-2 text-blue-500" />
-                                                        Bulk Invoice PDF
-                                                    </button>
-                                                </form>
-                                                <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
-                                                    <input type="hidden" name="type" value="cod">
-                                                    <template x-for="id in selectedItems">
-                                                        <input type="hidden" name="ids[]" :value="id">
-                                                    </template>
-                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-emerald-500/5 hover:text-emerald-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
-                                                        <x-ui.icon name="printer" size="3.5" class="mr-2 text-emerald-500" />
-                                                        Bulk COD PDF
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </x-slot>
-                                </x-ui.dropdown>
+                                        </x-slot>
+                                    </x-ui.dropdown>
+                                @endcanany
                             </div>
                             
                             <div class="flex items-center gap-2">

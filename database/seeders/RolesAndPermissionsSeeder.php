@@ -24,6 +24,11 @@ class RolesAndPermissionsSeeder extends Seeder
                 'teams.view', 'teams.manage',
                 'settings.view', 'settings.edit',
 
+                'orders.view', 'orders.create', 'orders.edit', 'orders.delete',
+                'orders.confirm', 'orders.processing', 'orders.ship', 'orders.dispatch', 'orders.deliver', 'orders.cancel',
+                'orders.generate_invoice', 'orders.invoice_pdf', 'orders.cod', 'orders.receipt',
+                'orders.bulk_status', 'orders.bulk_print',
+
                 'villages.view', 'villages.create', 'villages.edit', 'villages.delete', 'villages.import',
                 'services.view', 'services.create', 'services.edit', 'services.delete',
             ],
@@ -34,21 +39,11 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
-        Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
+        $superAdmin = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
+        $superAdmin->syncPermissions(Permission::all());
 
         $admin = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => 'web']);
-        $admin->syncPermissions(array_merge(
-            [
-                'users.view', 'users.create', 'users.edit',
-                'roles.view', 'teams.view', 'teams.manage',
-                'permissions.view',
-                'reports.view', 'reports.export',
-                'audit.view', 'settings.view', 'settings.edit',
-                'villages.view', 'villages.create', 'villages.edit', 'villages.import',
-                'services.view', 'services.create', 'services.edit',
-            ],
-            $this->moduleViewPermissions()
-        ));
+        $admin->syncPermissions(Permission::all());
 
         $manager = Role::firstOrCreate(['name' => 'Manager', 'guard_name' => 'web']);
         $manager->syncPermissions([

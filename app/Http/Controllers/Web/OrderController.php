@@ -16,6 +16,26 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:orders.view')->only(['index', 'show']);
+        $this->middleware('permission:orders.create')->only(['create', 'store']);
+        $this->middleware('permission:orders.edit')->only(['edit']);
+        $this->middleware('permission:orders.delete')->only(['destroy']);
+        $this->middleware('permission:orders.confirm')->only(['confirm']);
+        $this->middleware('permission:orders.ship')->only(['ship']);
+        $this->middleware('permission:orders.dispatch')->only(['dispatch']);
+        $this->middleware('permission:orders.processing')->only(['markProcessing']);
+        $this->middleware('permission:orders.deliver')->only(['markDelivered']);
+        $this->middleware('permission:orders.cancel')->only(['cancel']);
+        $this->middleware('permission:orders.invoice_pdf')->only(['downloadInvoice']);
+        $this->middleware('permission:orders.generate_invoice')->only(['generateInvoice']);
+        $this->middleware('permission:orders.cod')->only(['downloadReceipt']);
+        $this->middleware('permission:orders.receipt')->only(['receipt']);
+        $this->middleware('permission:orders.bulk_status')->only(['bulkStatus']);
+        $this->middleware('permission:orders.bulk_print')->only(['bulkPrint']);
+    }
+
     public function index(Request $request)
     {
         $query = Order::with(['party', 'warehouse', 'invoice', 'items.product', 'shipments'])->withCount('items');

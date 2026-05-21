@@ -54,84 +54,104 @@
                     @endif
 
                     @if($order->invoice)
-                        <a href="{{ route('orders.invoice-pdf', $order) }}" target="_blank">
-                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-blue-600 border-blue-600/30 hover:bg-blue-600/10">
-                                <x-ui.icon name="file-text" size="3" class="mr-2" /> Invoice PDF
-                            </x-ui.button>
-                        </a>
+                        @can('orders.invoice_pdf')
+                            <a href="{{ route('orders.invoice-pdf', $order) }}" target="_blank">
+                                <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-blue-600 border-blue-600/30 hover:bg-blue-600/10">
+                                    <x-ui.icon name="file-text" size="3" class="mr-2" /> Invoice PDF
+                                </x-ui.button>
+                            </a>
+                        @endcan
                     @else
-                        <form action="{{ route('orders.generate-invoice', $order) }}" method="POST" class="inline">
-                            @csrf
-                            <x-ui.button type="submit" variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-indigo-600 border-indigo-600/30 hover:bg-indigo-600/10">
-                                <x-ui.icon name="file-plus" size="3" class="mr-2" /> Generate Invoice
-                            </x-ui.button>
-                        </form>
+                        @can('orders.generate_invoice')
+                            <form action="{{ route('orders.generate-invoice', $order) }}" method="POST" class="inline">
+                                @csrf
+                                <x-ui.button type="submit" variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-indigo-600 border-indigo-600/30 hover:bg-indigo-600/10">
+                                    <x-ui.icon name="file-plus" size="3" class="mr-2" /> Generate Invoice
+                                </x-ui.button>
+                            </form>
+                        @endcan
                     @endif
                     
-                    <a href="{{ route('orders.cod-pdf', $order) }}" target="_blank">
-                        <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-emerald-600 border-emerald-600/30 hover:bg-emerald-600/10">
-                            <x-ui.icon name="printer" size="3" class="mr-2" /> COD PDF
-                        </x-ui.button>
-                    </a>
+                    @can('orders.cod')
+                        <a href="{{ route('orders.cod-pdf', $order) }}" target="_blank">
+                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-emerald-600 border-emerald-600/30 hover:bg-emerald-600/10">
+                                <x-ui.icon name="printer" size="3" class="mr-2" /> COD PDF
+                            </x-ui.button>
+                        </a>
+                    @endcan
 
                     {{-- Confirm (pending → confirmed) --}}
                     @if($order->status === 'pending')
-                        <form action="{{ route('orders.confirm', $order) }}" method="POST">
-                            @csrf
-                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
-                                <x-ui.icon name="check-circle" size="3" class="mr-2" /> Confirm Order
-                            </x-ui.button>
-                        </form>
+                        @can('orders.confirm')
+                            <form action="{{ route('orders.confirm', $order) }}" method="POST">
+                                @csrf
+                                <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+                                    <x-ui.icon name="check-circle" size="3" class="mr-2" /> Confirm Order
+                                </x-ui.button>
+                            </form>
+                        @endcan
                     @endif
 
                     {{-- Mark Processing (confirmed → processing) --}}
                     @if($order->status === 'confirmed')
-                        <form action="{{ route('orders.processing', $order) }}" method="POST">
-                            @csrf
-                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20">
-                                <x-ui.icon name="loader" size="3" class="mr-2" /> Mark Processing
+                        @can('orders.processing')
+                            <form action="{{ route('orders.processing', $order) }}" method="POST">
+                                @csrf
+                                <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20">
+                                    <x-ui.icon name="loader" size="3" class="mr-2" /> Mark Processing
+                                </x-ui.button>
+                            </form>
+                        @endcan
+                        @can('orders.ship')
+                            <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+                                <x-ui.icon name="package" size="3" class="mr-2" /> Mark Ready to Ship
                             </x-ui.button>
-                        </form>
-                        <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
-                            <x-ui.icon name="package" size="3" class="mr-2" /> Mark Ready to Ship
-                        </x-ui.button>
+                        @endcan
                     @endif
 
                     {{-- Mark Ready to Ship (processing → ready_to_ship) --}}
                     @if($order->status === 'processing')
-                        <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
-                            <x-ui.icon name="package" size="3" class="mr-2" /> Mark Ready to Ship
-                        </x-ui.button>
+                        @can('orders.ship')
+                            <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+                                <x-ui.icon name="package" size="3" class="mr-2" /> Mark Ready to Ship
+                            </x-ui.button>
+                        @endcan
                     @endif
 
                     {{-- Dispatch Order (ready_to_ship → dispatched) --}}
                     @if($order->status === 'ready_to_ship')
-                        <form action="{{ route('orders.dispatch', $order) }}" method="POST">
-                            @csrf
-                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-                                <x-ui.icon name="truck" size="3" class="mr-2" /> Dispatch Order
-                            </x-ui.button>
-                        </form>
+                        @can('orders.dispatch')
+                            <form action="{{ route('orders.dispatch', $order) }}" method="POST">
+                                @csrf
+                                <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
+                                    <x-ui.icon name="truck" size="3" class="mr-2" /> Dispatch Order
+                                </x-ui.button>
+                            </form>
+                        @endcan
                     @endif
 
                     {{-- Deliver (dispatched/shipped → delivered) --}}
                     @if(in_array($order->status, \App\Models\Order::inTransitStatuses(), true))
-                        <form action="{{ route('orders.deliver', $order) }}" method="POST">
-                            @csrf
-                            <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
-                                <x-ui.icon name="check-circle" size="3" class="mr-2" /> Mark Delivered
-                            </x-ui.button>
-                        </form>
+                        @can('orders.deliver')
+                            <form action="{{ route('orders.deliver', $order) }}" method="POST">
+                                @csrf
+                                <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
+                                    <x-ui.icon name="check-circle" size="3" class="mr-2" /> Mark Delivered
+                                </x-ui.button>
+                            </form>
+                        @endcan
                     @endif
 
                     {{-- Cancel (only before stock leaves the warehouse) --}}
                     @if(!in_array($order->status, array_merge(['delivered', 'cancelled', 'returned'], \App\Models\Order::inTransitStatuses()), true))
-                        <form action="{{ route('orders.cancel', $order) }}" method="POST" onsubmit="return confirm('Cancel this order?')">
-                            @csrf
-                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-destructive border-destructive/30 hover:bg-destructive/10">
-                                <x-ui.icon name="x-circle" size="3" class="mr-2" /> Cancel
-                            </x-ui.button>
-                        </form>
+                        @can('orders.cancel')
+                            <form action="{{ route('orders.cancel', $order) }}" method="POST" onsubmit="return confirm('Cancel this order?')">
+                                @csrf
+                                <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-destructive border-destructive/30 hover:bg-destructive/10">
+                                    <x-ui.icon name="x-circle" size="3" class="mr-2" /> Cancel
+                                </x-ui.button>
+                            </form>
+                        @endcan
                     @endif
                 </div>
             </div>
@@ -553,13 +573,14 @@
     </div>
 
     <!-- Create Shipment Modal -->
-    <x-ui.modal id="create-shipment-modal" maxWidth="md">
-        <form action="{{ route('orders.ship', $order) }}" method="POST" class="p-6 space-y-4">
-            @csrf
-            <div>
-                <h3 class="text-lg font-black text-foreground mb-1">Ready to Ship Details</h3>
-                <p class="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Order {{ $order->order_no }}</p>
-            </div>
+    @can('orders.ship')
+        <x-ui.modal id="create-shipment-modal" maxWidth="md">
+            <form action="{{ route('orders.ship', $order) }}" method="POST" class="p-6 space-y-4">
+                @csrf
+                <div>
+                    <h3 class="text-lg font-black text-foreground mb-1">Ready to Ship Details</h3>
+                    <p class="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Order {{ $order->order_no }}</p>
+                </div>
             
             <div class="h-px bg-border/60 w-full my-2"></div>
             
@@ -590,4 +611,5 @@
             </div>
         </form>
     </x-ui.modal>
+    @endcan
 </x-layouts.app>
