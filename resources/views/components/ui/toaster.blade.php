@@ -34,6 +34,30 @@
         }
     }" x-init="
         $nextTick(() => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('success')) {
+                add('success', params.get('success'));
+                params.delete('success');
+            }
+            if (params.has('error')) {
+                add('error', params.get('error'));
+                params.delete('error');
+            }
+            if (params.has('warning')) {
+                add('warning', params.get('warning'));
+                params.delete('warning');
+            }
+            if (params.has('info')) {
+                add('info', params.get('info'));
+                params.delete('info');
+            }
+            if (params.toString().length > 0) {
+                const newUrl = window.location.pathname + '?' + params.toString();
+                window.history.replaceState({}, document.title, newUrl);
+            } else {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
             @if(session('success')) add('success', {!! \Illuminate\Support\Js::from(session('success')) !!}); @endif
             @if(session('error')) add('error', {!! \Illuminate\Support\Js::from(session('error')) !!}); @endif
             @if(session('warning')) add('warning', {!! \Illuminate\Support\Js::from(session('warning')) !!}); @endif

@@ -138,6 +138,10 @@
 
         this.searchProducts();
     },
+    closeCustomerProfile() {
+        const message = 'Profile tagged and closed successfully.';
+        window.location.href = '{{ route('dashboard') }}?success=' + encodeURIComponent(message);
+    },
     async searchProducts(resetPage = false) {
         if (resetPage) this.productPage = 1;
         this.searchingProducts = true;

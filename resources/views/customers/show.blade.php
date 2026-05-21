@@ -27,7 +27,7 @@
                                 ].filter(t => t.id !== 'review' || activeTab === 'review')" :key="tab.id">
                                     <button
                                         type="button"
-                                        @click="tab.id === 'close' ? window.location.href='{{ route('dashboard') }}' : activeTab = tab.id"
+                                        @click="tab.id === 'close' ? closeCustomerProfile() : activeTab = tab.id"
                                         :class="activeTab === tab.id
                                             ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30'
                                             : 'text-muted-foreground hover:bg-card hover:text-foreground'"
