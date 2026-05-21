@@ -23,12 +23,6 @@
                 </x-ui.card-header>
 
                 <x-ui.card-content class="p-8">
-                    @if(session('error'))
-                        <div class="mb-6 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
-                            {{ session('error') }}
-                        </div>
-                    @endif
-
                     @if($errors->any())
                         <div class="mb-6 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
                             <ul class="list-disc list-inside">

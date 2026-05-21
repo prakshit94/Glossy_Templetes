@@ -121,17 +121,6 @@
         }
     }">
 
-        @if(session('success'))
-            <div class="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold uppercase tracking-widest">
-                {{ session('success') }}
-            </div>
-        @endif
-        @if(session('error'))
-            <div class="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 text-xs font-bold uppercase tracking-widest">
-                {{ session('error') }}
-            </div>
-        @endif
-
         <!-- Stats Widgets -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <x-ui.card class="p-6 bg-card/40 border-border/60 backdrop-blur-xl hover:bg-primary/5 transition-all duration-500 rounded-3xl group relative overflow-hidden">

@@ -188,16 +188,6 @@
     }">
 
         <div class="max-w-[100rem] mx-auto space-y-8">
-            @if(session('success'))
-                <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-800 dark:text-emerald-200">
-                    {{ session('success') }}
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
-                    {{ session('error') }}
-                </div>
-            @endif
             <!-- Stats Widgets -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-primary/5 transition-all duration-500 overflow-hidden shadow-2xl">

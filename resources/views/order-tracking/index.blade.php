@@ -61,14 +61,6 @@
             this.performSearch();
         }
     }">
-        @if(session('success'))
-            <div class="mb-6 animate-in fade-in slide-in-from-top-4 duration-500 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs font-bold text-emerald-700 dark:text-emerald-300 backdrop-blur-md shadow-lg shadow-emerald-500/5">
-                <div class="flex items-center gap-2">
-                    <x-ui.icon name="check-circle" size="4" />
-                    {{ session('success') }}
-                </div>
-            </div>
-        @endif
         
         <!-- Stats Row -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">

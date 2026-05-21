@@ -262,11 +262,6 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to confirm order.');
         }
 
-        activity('orders')
-            ->performedOn($order->fresh())
-            ->causedBy(auth()->user())
-            ->log("Order #{$order->order_no} confirmed — stock reserved");
-
         return back()->with('success', 'Order confirmed and stock reserved.');
     }
 
@@ -289,12 +284,6 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to mark order as ready to ship.');
         }
 
-        activity('orders')
-            ->performedOn($order->fresh())
-            ->causedBy(auth()->user())
-            ->withProperties(array_filter(['carrier' => $request->carrier_name, 'tracking' => $request->tracking_no]))
-            ->log("Order #{$order->order_no} marked as ready to ship");
-
         return back()->with('success', 'Order marked as ready to ship.');
     }
 
@@ -312,11 +301,6 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to dispatch order.');
         }
 
-        activity('orders')
-            ->performedOn($order->fresh())
-            ->causedBy(auth()->user())
-            ->log("Order #{$order->order_no} dispatched — inventory deducted");
-
         return back()->with('success', 'Order dispatched and inventory updated.');
     }
 
@@ -329,11 +313,6 @@ class OrderController extends Controller
         }
 
         $orderService->updateStatus($order, 'processing');
-
-        activity('orders')
-            ->performedOn($order->fresh())
-            ->causedBy(auth()->user())
-            ->log("Order #{$order->order_no} moved to processing");
 
         return back()->with('success', 'Order moved to processing.');
     }
@@ -352,11 +331,6 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to mark order as delivered.');
         }
 
-        activity('orders')
-            ->performedOn($order->fresh())
-            ->causedBy(auth()->user())
-            ->log("Order #{$order->order_no} marked as delivered");
-
         return back()->with('success', 'Order marked as delivered.');
     }
 
@@ -369,11 +343,6 @@ class OrderController extends Controller
         } catch (ValidationException $e) {
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to cancel order.');
         }
-
-        activity('orders')
-            ->performedOn($order->fresh())
-            ->causedBy(auth()->user())
-            ->log("Order #{$order->order_no} cancelled — stock reservation released");
 
         return back()->with('success', 'Order cancelled and stock released.');
     }
@@ -444,19 +413,39 @@ class OrderController extends Controller
                     // ─── REVERT TRANSITIONS (via InventoryService SSOT) ─
                     } elseif ($targetStatus === 'pending' && in_array($order->status, ['confirmed', 'processing', 'cancelled', 'ready_to_ship'])) {
                         $inventoryService->revertOrderToPending($order);
+                        activity('orders')
+                            ->performedOn($order)
+                            ->causedBy(auth()->user())
+                            ->log("Order #{$order->order_no} reverted to pending");
                         $count++;
                     } elseif ($targetStatus === 'confirmed' && $order->status === 'processing') {
                         // Processing → Confirmed: no stock change, just status
                         $order->update(['status' => 'confirmed', 'updated_by' => auth()->id()]);
+                        activity('orders')
+                            ->performedOn($order)
+                            ->causedBy(auth()->user())
+                            ->log("Order #{$order->order_no} reverted to confirmed");
                         $count++;
                     } elseif ($targetStatus === 'ready_to_ship' && $order->status === 'dispatched') {
                         $inventoryService->revertOrderToProcessing($order);
+                        activity('orders')
+                            ->performedOn($order)
+                            ->causedBy(auth()->user())
+                            ->log("Order #{$order->order_no} reverted to ready to ship");
                         $count++;
                     } elseif ($targetStatus === 'processing' && $order->status === 'ready_to_ship') {
                         $inventoryService->revertOrderToProcessing($order);
+                        activity('orders')
+                            ->performedOn($order)
+                            ->causedBy(auth()->user())
+                            ->log("Order #{$order->order_no} reverted to processing");
                         $count++;
                     } elseif ($targetStatus === 'ready_to_ship' && $order->status === 'delivered') {
                         $order->update(['status' => 'ready_to_ship', 'updated_by' => auth()->id()]);
+                        activity('orders')
+                            ->performedOn($order)
+                            ->causedBy(auth()->user())
+                            ->log("Order #{$order->order_no} reverted to ready to ship");
                         $count++;
                     } elseif ($targetStatus === 'dispatched' && $order->status === 'delivered') {
                         $inventoryService->revertDeliveredToDispatched($order);
@@ -468,13 +457,6 @@ class OrderController extends Controller
             }
         } catch (\Exception $e) {
             return back()->with('error', 'Error processing status update: ' . $e->getMessage());
-        }
-
-        if ($count > 0) {
-            activity('orders')
-                ->causedBy(auth()->user())
-                ->withProperties(['ids' => $ids, 'target_status' => $targetStatus, 'count' => $count])
-                ->log("Bulk status update: {$count} orders moved to '{$targetStatus}'");
         }
 
         $msg = $count . ' orders updated successfully.';

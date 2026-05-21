@@ -49,24 +49,6 @@
             await this.fetchTable(link.href);
         }
     }">
-        @if(session('success'))
-            <div class="mb-6 animate-in fade-in slide-in-from-top-4 duration-500 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs font-bold text-emerald-700 dark:text-emerald-300 backdrop-blur-md shadow-lg shadow-emerald-500/5">
-                <div class="flex items-center gap-2">
-                    <x-ui.icon name="check-circle" size="4" />
-                    {{ session('success') }}
-                </div>
-            </div>
-        @endif
-
-        @if(session('error'))
-            <div class="mb-6 animate-in fade-in slide-in-from-top-4 duration-500 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-xs font-bold text-destructive backdrop-blur-md shadow-lg shadow-destructive/5">
-                <div class="flex items-center gap-2">
-                    <x-ui.icon name="alert-circle" size="4" />
-                    {{ session('error') }}
-                </div>
-            </div>
-        @endif
-
         <form id="inventory-import-form" action="{{ route('inventory.import') }}" method="POST" enctype="multipart/form-data" class="hidden">
             @csrf
             <input id="inventory-import-file" type="file" name="file" accept=".csv,text/csv" onchange="this.form.submit()">

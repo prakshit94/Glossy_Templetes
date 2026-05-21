@@ -43,19 +43,6 @@
             </div>
         </x-ui.card>
 
-        @if(session('success'))
-            <div class="rounded-3xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-4 text-sm font-semibold text-emerald-600 flex items-center gap-3 shadow-sm">
-                <x-ui.icon name="check-circle" size="5" />
-                {{ session('success') }}
-            </div>
-        @endif
-        @if(session('error'))
-            <div class="rounded-3xl border border-destructive/20 bg-destructive/10 px-6 py-4 text-sm font-semibold text-destructive flex items-center gap-3 shadow-sm">
-                <x-ui.icon name="alert-circle" size="5" />
-                {{ session('error') }}
-            </div>
-        @endif
-
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Left Column: Details -->
             <div class="md:col-span-2 space-y-6">

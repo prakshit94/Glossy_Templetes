@@ -27,12 +27,6 @@
                     <form action="{{ route('orders.store') }}" method="POST" class="space-y-8">
                         @csrf
 
-                        @if(session('error'))
-                            <div class="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
-                                {{ session('error') }}
-                            </div>
-                        @endif
-
                         @if($errors->any())
                             <div class="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
                                 {{ $errors->first() }}
