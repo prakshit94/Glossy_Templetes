@@ -400,7 +400,7 @@
                                 </div>
                             </template>
                             <div class="flex justify-between items-center text-xs">
-                                <span class="font-black text-muted-foreground/60 uppercase tracking-widest">Statutory Tax (<span x-text="taxRate"></span>%)</span>
+                                <span class="font-black text-muted-foreground/60 uppercase tracking-widest">Statutory Tax</span>
                                 <span class="font-black text-foreground" x-text="'₹' + Number(taxAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
                             </div>
                             

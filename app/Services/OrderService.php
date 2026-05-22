@@ -21,6 +21,22 @@ class OrderService
 {
     public function __construct(protected InventoryService $inventoryService) {}
 
+    private function calculateLineDiscount(float $unitPrice, float $qty, float $discountValue, ?string $discountType): float
+    {
+        $itemBase = $unitPrice * $qty;
+        $type = strtolower((string) $discountType);
+
+        if ($discountValue <= 0 || $itemBase <= 0) {
+            return 0.0;
+        }
+
+        if ($type === 'percent') {
+            return $itemBase * ($discountValue / 100);
+        }
+
+        return min($discountValue * $qty, $itemBase);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     //  Create
     // ─────────────────────────────────────────────────────────────────────────
@@ -141,13 +157,7 @@ class OrderService
             // Product-level discount (use product default discount to prevent tampering)
             $discountValue = (float) ($product->default_discount ?? 0);
             $discountType = $product->default_discount_type ?? 'percent';
-            $itemDisc = 0.0;
-
-            if ($discountValue > 0) {
-                $itemDisc = $discountType === 'percent'
-                    ? $itemBase * ($discountValue / 100)
-                    : min($discountValue, $itemBase);
-            }
+            $itemDisc = $this->calculateLineDiscount($unitPrice, $qty, $discountValue, $discountType);
 
             $itemTotal = $itemBase - $itemDisc;
             
@@ -450,13 +460,12 @@ class OrderService
             }
 
             $itemBase = (float) $item['price'] * (float) $item['quantity'];
-            $itemDisc = 0.0;
-
-            if (!empty($item['discountValue']) && (float) $item['discountValue'] > 0) {
-                $itemDisc = $item['discountType'] === 'percent'
-                    ? $itemBase * ((float) $item['discountValue'] / 100)
-                    : min((float) $item['discountValue'], $itemBase);
-            }
+            $itemDisc = $this->calculateLineDiscount(
+                (float) $item['price'],
+                (float) $item['quantity'],
+                (float) ($item['discountValue'] ?? 0),
+                $item['discountType'] ?? null
+            );
 
             $items[] = [
                 'product_id'      => $item['id'],

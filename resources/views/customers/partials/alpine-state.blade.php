@@ -30,6 +30,11 @@
         this.editingOrderDetails = order;
         
         this.cart = (order.items || []).map(item => {
+            const productDiscountType = item.product?.default_discount_type || (parseFloat(item.discount_amount) > 0 ? 'flat' : 'percent');
+            const productDiscountValue = item.product?.default_discount != null
+                ? parseFloat(item.product.default_discount) || 0
+                : (productDiscountType === 'percent' ? 0 : ((parseFloat(item.discount_amount) || 0) / Math.max(parseInt(item.quantity) || 1, 1)));
+
             return {
                 id: item.product_id,
                 name: item.product?.name || 'Unknown Product',
@@ -38,8 +43,9 @@
                 image_url: item.product?.image_url || '',
                 quantity: parseInt(item.quantity) || 1,
                 available: 999, 
-                discountType: 'amount',
-                discountValue: parseFloat(item.discount_amount) || 0
+                taxRate: parseFloat(item.product?.tax_rate?.rate ?? item.product?.taxRate?.rate ?? item.tax_rate) || 0,
+                discountType: productDiscountType,
+                discountValue: productDiscountValue
             };
         });
         
@@ -215,6 +221,7 @@
                 image_url: product.image_url,
                 quantity: qty,
                 available: product.available_stock,
+                taxRate: parseFloat(product.tax_rate) || 0,
                 discountType: discType,
                 discountValue: discValue,
             });
@@ -255,14 +262,27 @@
     couponDiscount: 0,
     orderDiscountType: 'percent',
     orderDiscountValue: 0,
-    taxRate: 18,
+    isFlatDiscount(type) {
+        return ['flat', 'amount', 'fixed'].includes(String(type || '').toLowerCase());
+    },
+    itemDiscountAmount(item) {
+        const base = (parseFloat(item.price) || 0) * (parseFloat(item.quantity) || 0);
+        const value = parseFloat(item.discountValue) || 0;
+
+        if (value <= 0 || base <= 0) return 0;
+
+        if (!this.isFlatDiscount(item.discountType)) {
+            return Math.min(base * (value / 100), base);
+        }
+
+        return Math.min(value * (parseFloat(item.quantity) || 0), base);
+    },
     itemLineTotal(item) {
-        const base = item.price * item.quantity;
-        if (!item.discountValue || parseFloat(item.discountValue) <= 0) return base;
-        const disc = item.discountType === 'percent'
-            ? base * (parseFloat(item.discountValue) / 100)
-            : Math.min(parseFloat(item.discountValue) * item.quantity, base);
-        return Math.max(0, base - disc);
+        const base = (parseFloat(item.price) || 0) * (parseFloat(item.quantity) || 0);
+        return Math.max(0, base - this.itemDiscountAmount(item));
+    },
+    itemTaxAmount(item) {
+        return this.itemLineTotal(item) * ((parseFloat(item.taxRate) || 0) / 100);
     },
     get subtotal() {
         return this.cart.reduce((t, item) => t + this.itemLineTotal(item), 0);
@@ -273,14 +293,14 @@
             ? Math.min(this.subtotal * v / 100, this.subtotal)
             : Math.min(v, this.subtotal);
     },
-    get afterDiscount() {
-        return Math.max(0, this.subtotal - this.orderDiscountAmount - this.couponDiscount);
-    },
     get taxAmount() {
-        return this.afterDiscount * this.taxRate / 100;
+        return this.cart.reduce((t, item) => t + this.itemTaxAmount(item), 0);
+    },
+    get totalDiscount() {
+        return Math.min(this.subtotal, this.orderDiscountAmount + this.couponDiscount);
     },
     get grandTotal() {
-        return this.afterDiscount + this.taxAmount;
+        return Math.max(0, this.subtotal - this.totalDiscount + this.taxAmount);
     },
     applyCoupon() {
         const code = this.couponCode.toUpperCase().trim();

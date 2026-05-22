@@ -194,7 +194,7 @@
                     <span class="font-bold align-top" x-text="'- ₹' + Number(couponDiscount).toFixed(2)"></span>
                 </div>
                 <div class="flex justify-between text-xs font-medium text-muted-foreground">
-                    <span>GST (<span x-text="taxRate"></span>%)</span>
+                    <span>GST</span>
                     <span class="text-foreground" x-text="'₹' + Number(taxAmount).toFixed(2)"></span>
                 </div>
                 <div class="h-px bg-border/60 my-2"></div>
