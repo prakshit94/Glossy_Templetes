@@ -105,140 +105,438 @@
                     </x-ui.table-cell>
 
                     <x-ui.table-cell class="align-middle text-center">
-                        @php
-                            $transitions = [];
-                            if ($order->status === 'pending') {
-                                $transitions[] = ['status' => 'confirmed', 'label' => 'Confirm Order', 'type' => 'upcoming', 'icon' => 'check-circle', 'color' => 'indigo'];
-                                $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
-                            } elseif ($order->status === 'confirmed') {
-                                $transitions[] = ['status' => 'processing', 'label' => 'Mark Processing', 'type' => 'upcoming', 'icon' => 'loader', 'color' => 'amber'];
-                                $transitions[] = ['status' => 'ready_to_ship', 'label' => 'Mark Ready to Ship', 'type' => 'upcoming', 'icon' => 'package', 'color' => 'indigo'];
-                                $transitions[] = ['status' => 'pending', 'label' => 'Revert to Pending', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
-                                $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
-                            } elseif ($order->status === 'processing') {
-                                $transitions[] = ['status' => 'ready_to_ship', 'label' => 'Mark Ready to Ship', 'type' => 'upcoming', 'icon' => 'package', 'color' => 'indigo'];
-                                $transitions[] = ['status' => 'confirmed', 'label' => 'Revert to Confirmed', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
-                                $transitions[] = ['status' => 'cancelled', 'label' => 'Cancel Order', 'type' => 'cancel', 'icon' => 'x-circle', 'color' => 'red'];
-                            } elseif ($order->status === 'ready_to_ship') {
-                                $transitions[] = ['status' => 'dispatched', 'label' => 'Dispatch Order', 'type' => 'upcoming', 'icon' => 'truck', 'color' => 'blue'];
-                                $transitions[] = ['status' => 'processing', 'label' => 'Revert to Processing', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
-                            } elseif (in_array($order->status, ['dispatched', 'shipped'], true)) {
-                                $transitions[] = ['status' => 'delivered', 'label' => 'Deliver Order', 'type' => 'upcoming', 'icon' => 'check', 'color' => 'emerald'];
-                                $transitions[] = ['status' => 'ready_to_ship', 'label' => 'Revert to Ready to Ship', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
-                            } elseif ($order->status === 'delivered') {
-                                $transitions[] = ['status' => 'dispatched', 'label' => 'Revert to Dispatched', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
-                            } elseif ($order->status === 'cancelled') {
-                                $transitions[] = ['status' => 'pending', 'label' => 'Revert to Pending', 'type' => 'revert', 'icon' => 'corner-up-left', 'color' => 'gray'];
-                            }
+    @php
+        $transitions = [];
 
-                            $statusVariant = match($order->status) {
-                                'shipped', 'dispatched', 'delivered', 'completed' => 'success',
-                                'cancelled', 'returned' => 'destructive',
-                                'pending' => 'warning',
-                                'processing', 'in_transit' => 'default',
-                                'ready_to_ship' => 'warning',
-                                default => 'outline'
-                            };
-                        @endphp
-                        
-                        <div x-data="{ open: false }" @click.away="open = false" class="relative inline-block text-left">
-                            <button type="button" @click="open = !open" 
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all hover:scale-[1.03] active:scale-[0.97]
-                                {{ match($statusVariant) {
-                                    'success' => 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20',
-                                    'destructive' => 'bg-red-500/10 text-red-600 border border-red-500/20',
-                                    'warning' => 'bg-amber-500/10 text-amber-600 border border-amber-500/20',
-                                    'default' => 'bg-blue-500/10 text-blue-600 border border-blue-500/20',
-                                    default => 'bg-muted/40 text-muted-foreground border border-border/50'
-                                } }}">
-                                <span class="uppercase text-[9px] font-black tracking-[0.12em]">{{ $order->statusLabel() }}</span>
-                                <x-ui.icon name="chevron-down" size="2.5" class="opacity-60" />
-                            </button>
+        if ($order->status === 'pending') {
+            $transitions[] = [
+                'status' => 'confirmed',
+                'label' => 'Confirm Order',
+                'type' => 'upcoming',
+                'icon' => 'check-circle',
+                'color' => 'indigo'
+            ];
 
-                            <div x-show="open" x-cloak
-                                x-transition:enter="transition ease-out duration-100"
-                                x-transition:enter-start="transform opacity-0 scale-95"
-                                x-transition:enter-end="transform opacity-100 scale-100"
-                                x-transition:leave="transition ease-in duration-75"
-                                x-transition:leave-start="transform opacity-100 scale-100"
-                                x-transition:leave-end="transform opacity-0 scale-95"
-                                class="absolute right-0 mt-1.5 w-48 rounded-xl bg-card border border-border/60 shadow-xl z-50 p-1 divide-y divide-border/20">
-                                
-                                @if(count($transitions) > 0)
-                                    @php
-                                        $upcomming = array_filter($transitions, fn($t) => in_array($t['type'], ['upcoming', 'cancel']));
-                                        $reverts = array_filter($transitions, fn($t) => $t['type'] === 'revert');
-                                    @endphp
+            $transitions[] = [
+                'status' => 'cancelled',
+                'label' => 'Cancel Order',
+                'type' => 'cancel',
+                'icon' => 'x-circle',
+                'color' => 'red'
+            ];
 
-                                    @if(count($upcomming) > 0)
-                                        <div class="py-1">
-                                            <div class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 text-left">Fulfillment</div>
-                                            @foreach($upcomming as $t)
-                                                @if($t['status'] === 'ready_to_ship')
-                                                    <button type="button" @click.prevent="openShipModal({{ $order->id }}, '{{ $order->order_no }}')"
-                                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
-                                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
-                                                        {{ $t['label'] }}
-                                                    </button>
-                                                @elseif($t['status'] === 'dispatched')
-                                                    <form action="{{ route('orders.bulk-status') }}" method="POST" class="m-0">
-                                                        @csrf
-                                                        <input type="hidden" name="ids" value="[{{ $order->id }}]">
-                                                        <input type="hidden" name="status" value="{{ $t['status'] }}">
-                                                        <button type="submit" 
-                                                            class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
-                                                            <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
-                                                            {{ $t['label'] }}
-                                                        </button>
-                                                    </form>
-                                                    @php $firstShipment = $order->shipments->first(); @endphp
-                                                    @if($firstShipment)
-                                                        <button type="button"
-                                                            @click.prevent="openAssignModal([{ id: {{ $firstShipment->id }}, no: '{{ addslashes($firstShipment->shipment_no) }}', order: '{{ addslashes($order->order_no) }}', party: '{{ addslashes($order->party?->company_name ?? '') }}' }])"
-                                                            class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:bg-blue-500/5 rounded-lg transition-colors">
-                                                            <x-ui.icon name="truck-2" size="3" class="text-blue-500" />
-                                                            Assign Shipment
-                                                        </button>
-                                                    @endif
-                                                @else
-                                                    <form action="{{ route('orders.bulk-status') }}" method="POST" class="m-0">
-                                                        @csrf
-                                                        <input type="hidden" name="ids" value="[{{ $order->id }}]">
-                                                        <input type="hidden" name="status" value="{{ $t['status'] }}">
-                                                        <button type="submit" 
-                                                            class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
-                                                            <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
-                                                            {{ $t['label'] }}
-                                                        </button>
-                                                    </form>
-                                                @endif
-                                            @endforeach
-                                        </div>
-                                    @endif
+        } elseif ($order->status === 'confirmed') {
 
-                                    @if(count($reverts) > 0)
-                                        <div class="py-1">
-                                            <div class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70 text-left">Revert Change</div>
-                                            @foreach($reverts as $t)
-                                                <form action="{{ route('orders.bulk-status') }}" method="POST" class="m-0">
-                                                    @csrf
-                                                    <input type="hidden" name="ids" value="[{{ $order->id }}]">
-                                                    <input type="hidden" name="status" value="{{ $t['status'] }}">
-                                                    <button type="submit" 
-                                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-amber-600 hover:bg-amber-500/5 rounded-lg transition-colors">
-                                                        <x-ui.icon name="corner-up-left" size="3" class="text-amber-500" />
-                                                        {{ $t['label'] }}
-                                                    </button>
-                                                </form>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                @else
-                                    <div class="px-2.5 py-2 text-[10px] font-bold text-muted-foreground text-center">No actions available</div>
-                                @endif
-                            </div>
+            $transitions[] = [
+                'status' => 'processing',
+                'label' => 'Mark Processing',
+                'type' => 'upcoming',
+                'icon' => 'loader',
+                'color' => 'amber'
+            ];
+
+            $transitions[] = [
+                'status' => 'ready_to_ship',
+                'label' => 'Mark Ready to Ship',
+                'type' => 'upcoming',
+                'icon' => 'package',
+                'color' => 'indigo'
+            ];
+
+            $transitions[] = [
+                'status' => 'pending',
+                'label' => 'Revert to Pending',
+                'type' => 'revert',
+                'icon' => 'corner-up-left',
+                'color' => 'gray'
+            ];
+
+            $transitions[] = [
+                'status' => 'cancelled',
+                'label' => 'Cancel Order',
+                'type' => 'cancel',
+                'icon' => 'x-circle',
+                'color' => 'red'
+            ];
+
+        } elseif ($order->status === 'processing') {
+
+            $transitions[] = [
+                'status' => 'ready_to_ship',
+                'label' => 'Mark Ready to Ship',
+                'type' => 'upcoming',
+                'icon' => 'package',
+                'color' => 'indigo'
+            ];
+
+            $transitions[] = [
+                'status' => 'confirmed',
+                'label' => 'Revert to Confirmed',
+                'type' => 'revert',
+                'icon' => 'corner-up-left',
+                'color' => 'gray'
+            ];
+
+            $transitions[] = [
+                'status' => 'cancelled',
+                'label' => 'Cancel Order',
+                'type' => 'cancel',
+                'icon' => 'x-circle',
+                'color' => 'red'
+            ];
+
+        } elseif ($order->status === 'ready_to_ship') {
+
+            $transitions[] = [
+                'status' => 'dispatched',
+                'label' => 'Dispatch Order',
+                'type' => 'upcoming',
+                'icon' => 'truck',
+                'color' => 'blue'
+            ];
+
+            $transitions[] = [
+                'status' => 'processing',
+                'label' => 'Revert to Processing',
+                'type' => 'revert',
+                'icon' => 'corner-up-left',
+                'color' => 'gray'
+            ];
+
+        } elseif (in_array($order->status, ['dispatched', 'shipped'], true)) {
+
+            $transitions[] = [
+                'status' => 'delivered',
+                'label' => 'Deliver Order',
+                'type' => 'upcoming',
+                'icon' => 'check',
+                'color' => 'emerald'
+            ];
+
+            $transitions[] = [
+                'status' => 'ready_to_ship',
+                'label' => 'Revert to Ready to Ship',
+                'type' => 'revert',
+                'icon' => 'corner-up-left',
+                'color' => 'gray'
+            ];
+
+        } elseif ($order->status === 'delivered') {
+
+            $transitions[] = [
+                'status' => 'dispatched',
+                'label' => 'Revert to Dispatched',
+                'type' => 'revert',
+                'icon' => 'corner-up-left',
+                'color' => 'gray'
+            ];
+
+        } elseif ($order->status === 'cancelled') {
+
+            $transitions[] = [
+                'status' => 'pending',
+                'label' => 'Revert to Pending',
+                'type' => 'revert',
+                'icon' => 'corner-up-left',
+                'color' => 'gray'
+            ];
+        }
+
+        $statusVariant = match($order->status) {
+            'shipped', 'dispatched', 'delivered', 'completed' => 'success',
+            'cancelled', 'returned' => 'destructive',
+            'pending' => 'warning',
+            'processing', 'in_transit' => 'default',
+            'ready_to_ship' => 'warning',
+            default => 'outline'
+        };
+    @endphp
+
+    <div x-data="{ open: false }"
+        @click.away="open = false"
+        class="relative inline-block text-left">
+
+        <button type="button"
+            @click="open = !open"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all hover:scale-[1.03] active:scale-[0.97]
+            {{ match($statusVariant) {
+                'success' => 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20',
+                'destructive' => 'bg-red-500/10 text-red-600 border border-red-500/20',
+                'warning' => 'bg-amber-500/10 text-amber-600 border border-amber-500/20',
+                'default' => 'bg-blue-500/10 text-blue-600 border border-blue-500/20',
+                default => 'bg-muted/40 text-muted-foreground border border-border/50'
+            } }}">
+
+            <span class="uppercase text-[9px] font-black tracking-[0.12em]">
+                {{ $order->statusLabel() }}
+            </span>
+
+            <x-ui.icon name="chevron-down" size="2.5" class="opacity-60" />
+        </button>
+
+        <div x-show="open"
+            x-cloak
+            x-transition:enter="transition ease-out duration-100"
+            x-transition:enter-start="transform opacity-0 scale-95"
+            x-transition:enter-end="transform opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-75"
+            x-transition:leave-start="transform opacity-100 scale-100"
+            x-transition:leave-end="transform opacity-0 scale-95"
+            class="absolute right-0 mt-1.5 w-48 rounded-xl bg-card border border-border/60 shadow-xl z-50 p-1 divide-y divide-border/20">
+
+            @if(count($transitions) > 0)
+
+                @php
+                    $upcomming = array_filter(
+                        $transitions,
+                        fn($t) => in_array($t['type'], ['upcoming', 'cancel'])
+                    );
+
+                    $reverts = array_filter(
+                        $transitions,
+                        fn($t) => $t['type'] === 'revert'
+                    );
+                @endphp
+
+                {{-- UPCOMING ACTIONS --}}
+                @if(count($upcomming) > 0)
+
+                    <div class="py-1">
+
+                        <div class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 text-left">
+                            Fulfillment
                         </div>
-                    </x-ui.table-cell>
+
+                        @foreach($upcomming as $t)
+
+                            {{-- READY TO SHIP --}}
+                            @if($t['status'] === 'ready_to_ship')
+
+                                <button type="button"
+                                    @click.prevent="openShipModal({{ $order->id }}, '{{ $order->order_no }}')"
+                                    class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+
+                                    <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
+
+                                    {{ $t['label'] }}
+
+                                </button>
+
+                            {{-- CONFIRM --}}
+                            @elseif($t['status'] === 'confirmed')
+
+                                <form action="{{ route('orders.confirm', $order->id) }}"
+                                    method="POST"
+                                    class="m-0">
+
+                                    @csrf
+
+                                    <button type="submit"
+                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+
+                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
+
+                                        {{ $t['label'] }}
+
+                                    </button>
+                                </form>
+
+                            {{-- PROCESSING --}}
+                            @elseif($t['status'] === 'processing')
+
+                                <form action="{{ route('orders.processing', $order->id) }}"
+                                    method="POST"
+                                    class="m-0">
+
+                                    @csrf
+
+                                    <button type="submit"
+                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+
+                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
+
+                                        {{ $t['label'] }}
+
+                                    </button>
+                                </form>
+
+                            {{-- DISPATCH --}}
+                            @elseif($t['status'] === 'dispatched')
+
+                                <form action="{{ route('orders.dispatch', $order->id) }}"
+                                    method="POST"
+                                    class="m-0">
+
+                                    @csrf
+
+                                    <button type="submit"
+                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+
+                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
+
+                                        {{ $t['label'] }}
+
+                                    </button>
+                                </form>
+
+                                @php
+                                    $firstShipment = $order->shipments->first();
+                                @endphp
+
+                                @if($firstShipment)
+
+                                    <button type="button"
+                                        @click.prevent="openAssignModal([{
+                                            id: {{ $firstShipment->id }},
+                                            no: '{{ addslashes($firstShipment->shipment_no) }}',
+                                            order: '{{ addslashes($order->order_no) }}',
+                                            party: '{{ addslashes($order->party?->company_name ?? '') }}'
+                                        }])"
+
+                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:bg-blue-500/5 rounded-lg transition-colors">
+
+                                        <x-ui.icon name="truck-2"
+                                            size="3"
+                                            class="text-blue-500" />
+
+                                        Assign Shipment
+
+                                    </button>
+
+                                @endif
+
+                            {{-- DELIVER --}}
+                            @elseif($t['status'] === 'delivered')
+
+                                <form action="{{ route('orders.deliver', $order->id) }}"
+                                    method="POST"
+                                    class="m-0">
+
+                                    @csrf
+
+                                    <button type="submit"
+                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+
+                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
+
+                                        {{ $t['label'] }}
+
+                                    </button>
+                                </form>
+
+                            {{-- CANCEL --}}
+                            @elseif($t['status'] === 'cancelled')
+
+                                <form action="{{ route('orders.cancel', $order->id) }}"
+                                    method="POST"
+                                    class="m-0">
+
+                                    @csrf
+
+                                    <button type="submit"
+                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+
+                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
+
+                                        {{ $t['label'] }}
+
+                                    </button>
+                                </form>
+
+                            {{-- FALLBACK --}}
+                            @else
+
+                                <form action="{{ route('orders.bulk-status') }}"
+                                    method="POST"
+                                    class="m-0">
+
+                                    @csrf
+
+                                    <input type="hidden"
+                                        name="ids"
+                                        value="[{{ $order->id }}]">
+
+                                    <input type="hidden"
+                                        name="status"
+                                        value="{{ $t['status'] }}">
+
+                                    <button type="submit"
+                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+
+                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
+
+                                        {{ $t['label'] }}
+
+                                    </button>
+                                </form>
+
+                            @endif
+
+                        @endforeach
+
+                    </div>
+
+                @endif
+
+                
+                {{-- REVERT ACTIONS --}}
+@can('orders.revert_status')
+
+    @if(count($reverts) > 0)
+
+        <div class="py-1">
+
+            <div class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70 text-left">
+                Revert Change
+            </div>
+
+            @foreach($reverts as $t)
+
+                <form action="{{ route('orders.revert-status', $order->id) }}"
+                    method="POST"
+                    class="m-0">
+
+                    @csrf
+
+                    <input type="hidden"
+                        name="ids"
+                        value="[{{ $order->id }}]">
+
+                    <input type="hidden"
+                        name="status"
+                        value="{{ $t['status'] }}">
+
+                    <button type="submit"
+                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-amber-600 hover:bg-amber-500/5 rounded-lg transition-colors">
+
+                        <x-ui.icon name="corner-up-left"
+                            size="3"
+                            class="text-amber-500" />
+
+                        {{ $t['label'] }}
+
+                    </button>
+                </form>
+
+            @endforeach
+
+        </div>
+
+    @endif
+
+@endcan
+
+            @else
+
+                <div class="px-2.5 py-2 text-[10px] font-bold text-muted-foreground text-center">
+                    No actions available
+                </div>
+
+            @endif
+
+        </div>
+    </div>
+</x-ui.table-cell>
 
                     <x-ui.table-cell class="align-middle py-3">
                         <div x-data="{ show: false, mouseX: 0, mouseY: 0 }"

@@ -100,6 +100,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('orders/{order}/processing', [OrderController::class, 'markProcessing'])->name('orders.processing');
     Route::post('orders/{order}/deliver', [OrderController::class, 'markDelivered'])->name('orders.deliver');
     Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('orders/{order}/revert-status', [OrderController::class, 'revertStatus'])->name('orders.revert-status');
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
     Route::resource('orders', OrderController::class);
 

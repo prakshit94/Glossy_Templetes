@@ -34,6 +34,7 @@ class OrderController extends Controller
         $this->middleware('permission:orders.receipt')->only(['receipt']);
         $this->middleware('permission:orders.bulk_status')->only(['bulkStatus']);
         $this->middleware('permission:orders.bulk_print')->only(['bulkPrint']);
+        $this->middleware('permission:orders.revert_status')->only(['revertStatus']);
     }
 
     public function index(Request $request)
@@ -604,4 +605,70 @@ class OrderController extends Controller
 
         return array_values(array_unique($statuses));
     }
+
+    public function revertStatus(
+    Request $request,
+    Order $order,
+    InventoryService $inventoryService
+) {
+    abort_unless(
+        auth()->user()->can('orders.revert_status'),
+        403
+    );
+
+    $request->validate([
+        'status' => 'required|string',
+    ]);
+
+    $targetStatus = $request->status;
+
+    // confirmed -> pending
+    if (
+        $targetStatus === 'pending' &&
+        in_array($order->status, [
+            'confirmed',
+            'processing',
+            'cancelled',
+            'ready_to_ship'
+        ])
+    ) {
+
+        $inventoryService->revertOrderToPending($order);
+    }
+
+    // processing -> confirmed
+    elseif (
+        $targetStatus === 'confirmed' &&
+        $order->status === 'processing'
+    ) {
+
+        $order->update([
+            'status' => 'confirmed',
+            'updated_by' => auth()->id(),
+        ]);
+    }
+
+    // ready_to_ship -> processing
+    elseif (
+        $targetStatus === 'processing' &&
+        $order->status === 'ready_to_ship'
+    ) {
+
+        $inventoryService->revertOrderToProcessing($order);
+    }
+
+    // delivered -> dispatched
+    elseif (
+        $targetStatus === 'dispatched' &&
+        $order->status === 'delivered'
+    ) {
+
+        $inventoryService->revertDeliveredToDispatched($order);
+    }
+
+    return back()->with(
+        'success',
+        'Order reverted successfully.'
+    );
+}
 }
