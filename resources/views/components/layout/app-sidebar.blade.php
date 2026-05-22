@@ -116,111 +116,178 @@
          ['title' => 'Coupons', 'url' => '/coupons', 'active' => request()->is('coupons*'), 'permission' => 'coupons.view', 'icon' => '<x-ui.icon name="gift" size="4" />'],
          ['title' => 'Email Marketing', 'url' => '/email-marketing', 'active' => request()->is('email-marketing*'), 'permission' => 'email-marketing.view', 'icon' => '<x-ui.icon name="mail" size="4" />'],
       ]);
+
+      $settingsItems = $filterItems([
+         ['title' => 'Settings', 'url' => '/settings', 'active' => request()->is('settings*'), 'permission' => 'settings.view', 'icon' => '<x-ui.icon name="settings" size="4" />'],
+      ]);
+
+      $sidebarGroups = [
+         [
+            'title' => 'Overview',
+            'links' => [
+               ['title' => 'Dashboard', 'url' => '/dashboard', 'active' => request()->is('dashboard'), 'icon' => 'dashboard'],
+            ],
+         ],
+         [
+            'title' => 'Access & People',
+            'menus' => [
+               ['title' => 'Users & Access', 'active' => request()->is('users*') || request()->is('teams*') || request()->is('roles*') || request()->is('permissions*') || request()->is('activities*'), 'items' => $accessControlItems, 'icon' => 'shield-check'],
+               ['title' => 'Customers', 'active' => request()->is('customers*') || request()->is('customer-groups*') || request()->is('reviews*') || request()->is('support-tickets*'), 'items' => $crmItems, 'icon' => 'users'],
+            ],
+         ],
+         [
+            'title' => 'Core Operations',
+            'menus' => [
+               ['title' => 'Catalog', 'active' => request()->is('products*') || request()->is('categories*') || request()->is('brands*') || request()->is('attributes*') || request()->is('uoms*') || request()->is('tax-rates*') || request()->is('hsn-codes*'), 'items' => $catalogItems, 'icon' => 'product'],
+               ['title' => 'Inventory', 'active' => request()->is('inventory*') || request()->is('warehouses*') || request()->is('stock-transfers*') || request()->is('stock-adjustments*'), 'items' => $inventoryItems, 'icon' => 'warehouse'],
+               ['title' => 'Sales', 'active' => request()->is('orders*') || request()->is('invoices*') || request()->is('payments*') || request()->is('order-tracking*') || request()->is('returns*') || request()->is('refunds*') || request()->is('replacement*'), 'items' => $salesItems, 'icon' => 'shopping-bag'],
+               ['title' => 'Procurement', 'active' => request()->is('purchase-orders*') || request()->is('suppliers*') || request()->is('vendors*'), 'items' => $procurementItems, 'icon' => 'purchase'],
+            ],
+         ],
+         [
+            'title' => 'Operations & Insights',
+            'menus' => [
+               ['title' => 'Field Operations', 'active' => request()->is('villages*') || request()->is('services*') || request()->is('transport*') || request()->is('delivery*') || request()->is('shipment-tracking*') || request()->is('drivers*'), 'items' => $operationsItems, 'icon' => 'truck'],
+               ['title' => 'Finance & Analytics', 'active' => request()->is('accounts*') || request()->is('expenses*') || request()->is('transactions*') || request()->is('financial-reports*') || request()->is('sales-reports*') || request()->is('inventory-reports*') || request()->is('customer-analytics*') || request()->is('performance-reports*'), 'items' => $financeItems, 'icon' => 'bar-chart'],
+            ],
+         ],
+         [
+            'title' => 'Growth & Workforce',
+            'menus' => [
+               ['title' => 'Human Resources', 'active' => request()->is('employees*') || request()->is('attendance*') || request()->is('payroll*') || request()->is('departments*'), 'items' => $peopleItems, 'icon' => 'employees'],
+               ['title' => 'Marketing', 'active' => request()->is('campaigns*') || request()->is('coupons*') || request()->is('email-marketing*'), 'items' => $marketingItems, 'icon' => 'marketing'],
+            ],
+         ],
+         [
+            'title' => 'System',
+            'menus' => [
+               ['title' => 'Configuration', 'active' => request()->is('settings*'), 'items' => $settingsItems, 'icon' => 'settings'],
+            ],
+         ],
+      ];
+
+      $sidebarGroups = array_values(array_filter(array_map(function ($group) {
+         $group['links'] = array_values(array_filter($group['links'] ?? []));
+         $group['menus'] = array_values(array_filter($group['menus'] ?? [], fn ($menu) => count($menu['items'] ?? []) > 0));
+
+         return $group;
+      }, $sidebarGroups), fn ($group) => count($group['links']) > 0 || count($group['menus']) > 0));
+
+      $sidebarSearchItems = [];
+
+      foreach ($sidebarGroups as $group) {
+         foreach ($group['links'] ?? [] as $link) {
+            $sidebarSearchItems[] = [
+               'title' => $link['title'],
+               'group' => $group['title'],
+               'parent' => null,
+               'url' => $link['url'],
+               'active' => $link['active'] ?? false,
+            ];
+         }
+
+         foreach ($group['menus'] ?? [] as $menu) {
+            foreach ($menu['items'] as $item) {
+               $sidebarSearchItems[] = [
+                  'title' => $item['title'],
+                  'group' => $group['title'],
+                  'parent' => $menu['title'],
+                  'url' => $item['url'] ?? '#',
+                  'active' => $item['active'] ?? false,
+               ];
+            }
+         }
+      }
    @endphp
 
-   <div class="flex-1 overflow-y-auto custom-scrollbar py-6 px-3 space-y-8">
-      <div class="space-y-1">
-         <div class="px-3 mb-2 transition-opacity duration-300" :class="sidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'">
-            <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">Overview</h3>
-         </div>
-         <x-layout.nav-link title="Dashboard" url="/dashboard" :active="request()->is('dashboard')">
-            <x-slot name="icon"><x-ui.icon name="dashboard" size="5" /></x-slot>
-         </x-layout.nav-link>
+   <div
+      class="flex-1 overflow-y-auto custom-scrollbar py-6 px-3"
+      x-data="{
+         sidebarSearch: '',
+         sidebarSearchItems: @js($sidebarSearchItems),
+         get sidebarSearchQuery() {
+            return this.sidebarSearch.trim().toLowerCase();
+         },
+         get sidebarSearchResults() {
+            if (!this.sidebarSearchQuery) {
+               return [];
+            }
+
+            return this.sidebarSearchItems.filter((item) => {
+               return [item.title, item.parent, item.group]
+                  .filter(Boolean)
+                  .some((value) => value.toLowerCase().includes(this.sidebarSearchQuery));
+            });
+         }
+      }"
+   >
+      <div x-show="!sidebarCollapsed || {{ $isMobile ? 'true' : 'false' }}" x-transition.opacity class="sticky top-0 z-10 -mx-3 -mt-6 mb-5 border-b border-sidebar-border/50 bg-sidebar/95 px-3 py-4 backdrop-blur-2xl">
+         <label class="relative block">
+            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+               <x-ui.icon name="search" size="4" />
+            </span>
+            <input
+               type="search"
+               x-model="sidebarSearch"
+               placeholder="Search menu..."
+               class="h-10 w-full rounded-xl border border-sidebar-border/70 bg-background/70 pl-9 pr-9 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-primary/40 focus:ring-2 focus:ring-primary/15"
+            >
+            <button
+               type="button"
+               x-show="sidebarSearch"
+               x-transition.opacity
+               @click="sidebarSearch = ''"
+               class="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground"
+               aria-label="Clear sidebar search"
+            >
+               <x-ui.icon name="x" size="3.5" />
+            </button>
+         </label>
       </div>
 
-      @if(count($accessControlItems) > 0 || count($crmItems) > 0)
-      <div class="space-y-1">
-         <div class="px-3 mb-2 transition-opacity duration-300" :class="sidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'">
-            <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">Access & People</h3>
+      <div x-show="sidebarSearchQuery && (!sidebarCollapsed || {{ $isMobile ? 'true' : 'false' }})" x-transition.opacity class="space-y-1">
+         <div class="px-3 mb-2">
+            <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">Search Results</h3>
          </div>
-         @if(count($accessControlItems) > 0)
-         <x-layout.nav-collapsible title="Users & Access" :active="request()->is('users*') || request()->is('teams*') || request()->is('roles*') || request()->is('permissions*') || request()->is('activities*')" :items="$accessControlItems">
-            <x-slot name="icon"><x-ui.icon name="shield-check" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
-         @endif
-         @if(count($crmItems) > 0)
-         <x-layout.nav-collapsible title="Customers" :active="request()->is('customers*') || request()->is('customer-groups*') || request()->is('reviews*') || request()->is('support-tickets*')" :items="$crmItems">
-            <x-slot name="icon"><x-ui.icon name="users" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
-         @endif
-      </div>
-      @endif
 
-      @if(count($catalogItems) > 0 || count($inventoryItems) > 0 || count($salesItems) > 0 || count($procurementItems) > 0)
-      <div class="space-y-1">
-         <div class="px-3 mb-2 transition-opacity duration-300" :class="sidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'">
-            <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">Core Operations</h3>
-         </div>
-         @if(count($catalogItems) > 0)
-         <x-layout.nav-collapsible title="Catalog" :active="request()->is('products*') || request()->is('categories*') || request()->is('brands*') || request()->is('attributes*') || request()->is('uoms*') || request()->is('tax-rates*') || request()->is('hsn-codes*')" :items="$catalogItems">
-            <x-slot name="icon"><x-ui.icon name="product" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
-         @endif
-         @if(count($inventoryItems) > 0)
-         <x-layout.nav-collapsible title="Inventory" :active="request()->is('inventory*') || request()->is('warehouses*') || request()->is('stock-transfers*') || request()->is('stock-adjustments*')" :items="$inventoryItems">
-            <x-slot name="icon"><x-ui.icon name="warehouse" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
-         @endif
-         @if(count($salesItems) > 0)
-         <x-layout.nav-collapsible title="Sales" :active="request()->is('orders*') || request()->is('invoices*') || request()->is('payments*') || request()->is('order-tracking*') || request()->is('returns*') || request()->is('refunds*') || request()->is('replacement*')" :items="$salesItems">
-            <x-slot name="icon"><x-ui.icon name="shopping-bag" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
-         @endif
-         @if(count($procurementItems) > 0)
-         <x-layout.nav-collapsible title="Procurement" :active="request()->is('purchase-orders*') || request()->is('suppliers*') || request()->is('vendors*')" :items="$procurementItems">
-            <x-slot name="icon"><x-ui.icon name="purchase" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
-         @endif
-      </div>
-      @endif
+         <template x-for="item in sidebarSearchResults" :key="`${item.group}-${item.parent || 'root'}-${item.title}`">
+            <a
+               :href="item.url"
+               class="flex min-h-10 items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-sm text-sidebar-foreground transition-all duration-300 hover:border-primary/20 hover:bg-secondary/40 hover:text-primary"
+               :class="item.active ? 'bg-primary/10 font-bold text-primary border-primary/20' : ''"
+            >
+               <span class="min-w-0 flex-1">
+                  <span class="block truncate" x-text="item.title"></span>
+                  <span class="block truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60" x-text="item.parent ? `${item.group} / ${item.parent}` : item.group"></span>
+               </span>
+            </a>
+         </template>
 
-      @if(count($operationsItems) > 0 || count($financeItems) > 0)
-      <div class="space-y-1">
-         <div class="px-3 mb-2 transition-opacity duration-300" :class="sidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'">
-            <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">Operations & Insights</h3>
+         <div x-show="sidebarSearchResults.length === 0" class="rounded-xl border border-dashed border-sidebar-border/70 px-3 py-4 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground/60">
+            No menu found
          </div>
-         @if(count($operationsItems) > 0)
-         <x-layout.nav-collapsible title="Field Operations" :active="request()->is('villages*') || request()->is('services*') || request()->is('transport*') || request()->is('delivery*') || request()->is('shipment-tracking*') || request()->is('drivers*')" :items="$operationsItems">
-            <x-slot name="icon"><x-ui.icon name="truck" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
-         @endif
-         @if(count($financeItems) > 0)
-         <x-layout.nav-collapsible title="Finance & Analytics" :active="request()->is('accounts*') || request()->is('expenses*') || request()->is('transactions*') || request()->is('financial-reports*') || request()->is('sales-reports*') || request()->is('inventory-reports*') || request()->is('customer-analytics*') || request()->is('performance-reports*')" :items="$financeItems">
-            <x-slot name="icon"><x-ui.icon name="bar-chart" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
-         @endif
       </div>
-      @endif
 
-      @if(count($peopleItems) > 0 || count($marketingItems) > 0)
-      <div class="space-y-1">
-         <div class="px-3 mb-2 transition-opacity duration-300" :class="sidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'">
-            <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">Growth & Workforce</h3>
-         </div>
-         @if(count($peopleItems) > 0)
-         <x-layout.nav-collapsible title="Human Resources" :active="request()->is('employees*') || request()->is('attendance*') || request()->is('payroll*') || request()->is('departments*')" :items="$peopleItems">
-            <x-slot name="icon"><x-ui.icon name="employees" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
-         @endif
-         @if(count($marketingItems) > 0)
-         <x-layout.nav-collapsible title="Marketing" :active="request()->is('campaigns*') || request()->is('coupons*') || request()->is('email-marketing*')" :items="$marketingItems">
-            <x-slot name="icon"><x-ui.icon name="marketing" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
-         @endif
-      </div>
-      @endif
+      <div x-show="!sidebarSearchQuery" x-transition.opacity class="space-y-8">
+         @foreach($sidebarGroups as $group)
+            <div class="space-y-1">
+               <div class="px-3 mb-2 transition-opacity duration-300" :class="sidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'">
+                  <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">{{ $group['title'] }}</h3>
+               </div>
 
-      @can('settings.view')
-      <div class="space-y-1">
-         <div class="px-3 mb-2 transition-opacity duration-300" :class="sidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'">
-            <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">System</h3>
-         </div>
-         <x-layout.nav-collapsible title="Configuration" :active="request()->is('settings*')" :items="[
-            ['title' => 'Settings', 'url' => '/settings', 'active' => request()->is('settings*'), 'icon' => '<x-ui.icon name=\'settings\' size=\'4\' />']
-         ]">
-            <x-slot name="icon"><x-ui.icon name="settings" size="5" /></x-slot>
-         </x-layout.nav-collapsible>
+               @foreach($group['links'] ?? [] as $link)
+                  <x-layout.nav-link :title="$link['title']" :url="$link['url']" :active="$link['active']">
+                     <x-slot name="icon"><x-ui.icon :name="$link['icon']" size="5" /></x-slot>
+                  </x-layout.nav-link>
+               @endforeach
+
+               @foreach($group['menus'] ?? [] as $menu)
+                  <x-layout.nav-collapsible :title="$menu['title']" :active="$menu['active']" :items="$menu['items']">
+                     <x-slot name="icon"><x-ui.icon :name="$menu['icon']" size="5" /></x-slot>
+                  </x-layout.nav-collapsible>
+               @endforeach
+            </div>
+         @endforeach
       </div>
-      @endcan
    </div>
 </aside>
