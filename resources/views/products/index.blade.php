@@ -18,18 +18,72 @@
         stats: @js($stats),
         isLoading: false,
 
+        get visibleCheckboxes() {
+            return Array.from(document.querySelectorAll('#table-container input[name=\'product_ids[]\']'));
+        },
+
+        syncSelectionState() {
+            const visibleIds = this.visibleCheckboxes.map(el => parseInt(el.value)).filter(Number.isFinite);
+            this.selectedItems = this.selectedItems.filter(id => visibleIds.includes(id));
+            this.allSelected = visibleIds.length > 0 && visibleIds.every(id => this.selectedItems.includes(id));
+        },
+
         toggleAll() {
             if (this.allSelected) {
-                this.selectedItems = Array.from(
-                    document.querySelectorAll('input[name=\'product_ids[]\']')
-                ).map(el => parseInt(el.value));
+                this.selectedItems = this.visibleCheckboxes
+                    .map(el => parseInt(el.value))
+                    .filter(Number.isFinite);
             } else {
                 this.selectedItems = [];
             }
         },
 
-        async performSearch() {
+        toggleItem(id, checked) {
+            id = parseInt(id);
+            if (!Number.isFinite(id)) return;
+
+            if (checked) {
+                if (!this.selectedItems.includes(id)) this.selectedItems.push(id);
+            } else {
+                this.selectedItems = this.selectedItems.filter(item => item !== id);
+            }
+
+            this.syncSelectionState();
+        },
+
+        hydrateTable() {
+            const container = document.getElementById('table-container');
+            if (window.Alpine && container) {
+                window.Alpine.initTree(container);
+            }
+            this.syncSelectionState();
+        },
+
+        async loadTable(url) {
             this.isLoading = true;
+
+            try {
+                const res = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await res.json();
+                document.getElementById('table-container').innerHTML = data.table;
+                this.categoriesList = data.categoriesList;
+                this.statusList = data.statusList;
+                this.stats = data.stats;
+                this.hydrateTable();
+            } catch (error) {
+                console.error('Search failed:', error);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async performSearch() {
             let params = new URLSearchParams({
                 search: this.search,
                 perPage: this.perPage,
@@ -40,28 +94,9 @@
 
             // Persist to URL
             window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
-
-            try {
-                const res = await fetch(
-                    `{{ route('products.index') }}?${params.toString()}`,
-                    { headers: { 
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
-                    } }
-                );
-                
-                const data = await res.json();
-                document.getElementById('table-container').innerHTML = data.table;
-                this.categoriesList = data.categoriesList;
-                this.statusList = data.statusList;
-                this.stats = data.stats;
-            } catch (error) {
-                console.error('Search failed:', error);
-            } finally {
-                this.isLoading = false;
-                this.selectedItems = [];
-                this.allSelected = false;
-            }
+            this.selectedItems = [];
+            this.allSelected = false;
+            await this.loadTable(`{{ route('products.index') }}?${params.toString()}`);
         },
 
         clearFilters() {
@@ -70,6 +105,27 @@
             this.statusFilter = [];
             this.filter = 'active';
             this.performSearch();
+        },
+
+        async handleTableClick(event) {
+            const link = event.target.closest('#table-container a');
+            if (!link) return;
+
+            const url = new URL(link.href, window.location.origin);
+            if (!url.pathname.startsWith('/products') || !url.searchParams.has('page')) return;
+
+            event.preventDefault();
+            window.history.replaceState({}, '', url.toString());
+            this.selectedItems = [];
+            this.allSelected = false;
+            await this.loadTable(url.toString());
+        },
+
+        init() {
+            this.hydrateTable();
+            this.$root.addEventListener('click', (event) => {
+                this.handleTableClick(event);
+            });
         }
     }">
 
@@ -128,37 +184,37 @@
             </div>
         </div>
 
-        <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
-            <x-ui.card-header class="border-b border-border/40 bg-muted/10 p-8">
+        <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-[2rem]">
+            <x-ui.card-header class="border-b border-border/40 bg-gradient-to-r from-background via-muted/10 to-background p-8">
                 <div class="flex flex-col gap-6">
                     
                     <!-- Row 1: Actions -->
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div class="flex flex-wrap items-center gap-3">
-                            <div class="flex bg-muted/50 p-1 rounded-xl border border-border/50 shadow-inner">
-                                <button @click="clearFilters()" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-background shadow-sm text-primary ring-1 ring-border/50 uppercase tracking-tight hover:bg-muted">
+                            <div class="flex bg-muted/50 p-1 rounded-2xl border border-border/50 shadow-inner">
+                                <button @click="clearFilters()" class="px-4 py-2 rounded-xl text-[11px] font-black transition-all bg-background shadow-sm text-primary ring-1 ring-border/50 uppercase tracking-widest hover:bg-muted">
                                     Clear All Filters
                                 </button>
                             </div>
 
                             <!-- View Toggle -->
-                            <div class="flex bg-muted/20 p-1 rounded-xl border border-border/60 shadow-inner">
+                            <div class="flex bg-muted/20 p-1 rounded-2xl border border-border/60 shadow-inner">
                                 <button @click="filter = 'active'; performSearch()" 
                                     :class="filter === 'active' ? 'bg-card shadow-sm text-primary ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'" 
-                                    class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest">
+                                    class="px-4 py-2 rounded-xl text-[10px] font-black transition-all uppercase tracking-[0.2em]">
                                     Live
                                 </button>
                                     <button @click="filter = 'trashed'; performSearch()" 
                                         :class="filter === 'trashed' ? 'bg-card shadow-sm text-destructive ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'" 
-                                        class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest">
+                                        class="px-4 py-2 rounded-xl text-[10px] font-black transition-all uppercase tracking-[0.2em]">
                                         Disabled Items
                                     </button>
                             </div>
 
                             <div x-show="selectedItems.length > 0" x-cloak class="flex items-center gap-2">
-                                <x-ui.dropdown>
+                                <x-ui.dropdown width="64">
                                     <x-slot name="trigger">
-                                        <x-ui.button variant="outline" size="sm" class="rounded-xl border-primary/20 bg-primary/5 text-primary font-bold h-9">
+                                        <x-ui.button type="button" variant="outline" size="sm" class="rounded-2xl border-primary/20 bg-primary/5 text-primary font-black h-10 px-4">
                                             <span x-text="selectedItems.length"></span> Selected
                                             <x-ui.icon name="chevron-down" size="3" class="ml-2" />
                                         </x-ui.button>
@@ -168,7 +224,7 @@
                                         <form action="{{ route('products.bulk-delete') }}" method="POST" onsubmit="return confirm('Delete selected items?')">
                                             @csrf
                                             <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
-                                            <button type="submit" class="w-full text-left px-2 py-1.5 text-xs hover:bg-muted rounded-md flex items-center text-destructive">
+                                            <button type="submit" class="w-full text-left px-3 py-2 text-xs font-bold hover:bg-muted rounded-xl flex items-center text-destructive">
                                                 <x-ui.icon name="trash" size="3" class="mr-2" />
                                                 Delete Selected
                                             </button>
@@ -179,14 +235,14 @@
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2">
-                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-9" onclick="alert('Import feature coming soon!')">
+                            <x-ui.button type="button" variant="outline" size="sm" class="rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] h-10 px-4" onclick="alert('Import feature coming soon!')">
                                 <x-ui.icon name="upload" size="3" class="mr-2" /> Import
                             </x-ui.button>
-                            <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-9" onclick="alert('Export feature coming soon!')">
+                            <x-ui.button type="button" variant="outline" size="sm" class="rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] h-10 px-4" onclick="alert('Export feature coming soon!')">
                                 <x-ui.icon name="download" size="3" class="mr-2" /> Export
                             </x-ui.button>
                             <a href="{{ route('products.create') }}">
-                                <x-ui.button size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-9 shadow-lg shadow-primary/20">
+                                <x-ui.button size="sm" class="rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] h-10 shadow-lg shadow-primary/20 px-4">
                                     <x-ui.icon name="plus" size="3" class="mr-2" /> Add Product
                                 </x-ui.button>
                             </a>
@@ -199,7 +255,7 @@
                             
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Show</span>
-                                <select x-model="perPage" @change="performSearch()" class="h-9 px-3 rounded-xl border border-border bg-background/50 text-xs font-medium focus:ring-1 focus:ring-primary outline-none">
+                                <select x-model="perPage" @change="performSearch()" class="h-10 px-3 rounded-2xl border border-border bg-background/50 text-xs font-bold focus:ring-1 focus:ring-primary outline-none">
                                     <option value="10">10</option>
                                     <option value="25">25</option>
                                     <option value="50">50</option>
@@ -213,7 +269,7 @@
                         <div class="relative group w-full lg:max-w-xs">
                             <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                             <input type="text" x-model="search" @input.debounce.500ms="performSearch()" placeholder="Search catalog..." 
-                                class="pl-9 pr-4 py-2 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
+                                class="pl-9 pr-4 h-10 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none font-medium">
                         </div>
                     </div>
                 </div>

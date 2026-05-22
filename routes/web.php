@@ -129,6 +129,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Promo Codes / Coupons
     Route::post('/coupons/validate', [App\Http\Controllers\Web\CouponController::class, 'validateApi'])->name('coupons.validate');
     Route::resource('coupons', App\Http\Controllers\Web\CouponController::class);
+    Route::resource('offers', App\Http\Controllers\Web\OfferController::class)->except(['show']);
 
     // Transport Management
     Route::post('/transport/bulk-delete', [\App\Http\Controllers\Web\TransportController::class, 'bulkDelete'])->name('transport.bulk-delete');

@@ -19,6 +19,20 @@
     productStockFilter: 'available',
     productCategoryFilter: '',
     cart: [],
+    activeOffers: @js(($activeOffers ?? collect())->map(fn($offer) => [
+        'id' => $offer->id,
+        'name' => $offer->name,
+        'type' => $offer->type,
+        'discount_type' => $offer->discount_type,
+        'value' => (float) $offer->value,
+        'min_spend' => (float) $offer->min_spend,
+        'max_discount' => $offer->max_discount !== null ? (float) $offer->max_discount : null,
+        'product_id' => $offer->product_id,
+        'buy_qty' => (int) $offer->buy_qty,
+        'get_qty' => (int) $offer->get_qty,
+        'priority' => (int) $offer->priority,
+        'product_name' => $offer->product?->name,
+    ])->values()),
     showSummary: false,
     selectedWarehouseId: '{{ $warehouses->first()?->id ?? '' }}',
     selectedBillingAddressId: '{{ $customer->addresses->where('is_default', true)->first()?->id ?? $customer->addresses->first()?->id ?? '' }}',
@@ -260,10 +274,14 @@
     couponCode: '',
     couponApplied: false,
     couponDiscount: 0,
-    orderDiscountType: 'percent',
-    orderDiscountValue: 0,
     isFlatDiscount(type) {
         return ['flat', 'amount', 'fixed'].includes(String(type || '').toLowerCase());
+    },
+    get activeOrderOffers() {
+        return (this.activeOffers || []).filter(offer => offer.type === 'order_discount');
+    },
+    get activeBogoOffers() {
+        return (this.activeOffers || []).filter(offer => offer.type === 'bogo' && offer.product_id);
     },
     itemDiscountAmount(item) {
         const base = (parseFloat(item.price) || 0) * (parseFloat(item.quantity) || 0);
@@ -284,20 +302,70 @@
     itemTaxAmount(item) {
         return this.itemLineTotal(item) * ((parseFloat(item.taxRate) || 0) / 100);
     },
+    bogoDiscountForItem(item) {
+        const offers = this.activeBogoOffers
+            .filter(offer => Number(offer.product_id) === Number(item.id))
+            .sort((a, b) => (b.priority - a.priority) || (a.id - b.id));
+
+        const match = offers[0];
+        if (!match) return 0;
+
+        const buyQty = Math.max(parseInt(match.buy_qty) || 1, 1);
+        const getQty = Math.max(parseInt(match.get_qty) || 1, 1);
+        const qty = parseFloat(item.quantity) || 0;
+        const cycle = buyQty + getQty;
+
+        if (qty < cycle) return 0;
+
+        const freeUnits = Math.floor(qty / cycle) * getQty;
+        const effectiveUnit = qty > 0 ? this.itemLineTotal(item) / qty : 0;
+
+        return Math.min(effectiveUnit * freeUnits, this.itemLineTotal(item));
+    },
+    get bogoDiscountTotal() {
+        return this.cart.reduce((t, item) => t + this.bogoDiscountForItem(item), 0);
+    },
     get subtotal() {
         return this.cart.reduce((t, item) => t + this.itemLineTotal(item), 0);
     },
+    orderOfferDiscount(offer) {
+        if (!offer || this.subtotal <= 0) return 0;
+        if ((parseFloat(offer.min_spend) || 0) > this.subtotal) return 0;
+
+        let discount = String(offer.discount_type) === 'percentage'
+            ? this.subtotal * ((parseFloat(offer.value) || 0) / 100)
+            : (parseFloat(offer.value) || 0);
+
+        if ((parseFloat(offer.max_discount) || 0) > 0) {
+            discount = Math.min(discount, parseFloat(offer.max_discount) || 0);
+        }
+
+        return Math.min(discount, this.subtotal);
+    },
+    get bestOrderOffer() {
+        const offers = this.activeOrderOffers
+            .map(offer => ({ ...offer, computed_discount: this.orderOfferDiscount(offer) }))
+            .filter(offer => offer.computed_discount > 0)
+            .sort((a, b) => (b.priority - a.priority) || (b.computed_discount - a.computed_discount) || (a.id - b.id));
+
+        return offers[0] || null;
+    },
     get orderDiscountAmount() {
-        const v = parseFloat(this.orderDiscountValue) || 0;
-        return this.orderDiscountType === 'percent'
-            ? Math.min(this.subtotal * v / 100, this.subtotal)
-            : Math.min(v, this.subtotal);
+        return this.bestOrderOffer ? this.bestOrderOffer.computed_discount : 0;
+    },
+    get orderDiscountLabel() {
+        if (!this.bestOrderOffer) return '';
+        if (this.bestOrderOffer.discount_type === 'percentage') {
+            return `${this.bestOrderOffer.name} (${this.bestOrderOffer.value}% off)`;
+        }
+
+        return `${this.bestOrderOffer.name} (Flat ₹${Number(this.bestOrderOffer.value).toFixed(2)})`;
     },
     get taxAmount() {
         return this.cart.reduce((t, item) => t + this.itemTaxAmount(item), 0);
     },
     get totalDiscount() {
-        return Math.min(this.subtotal, this.orderDiscountAmount + this.couponDiscount);
+        return Math.min(this.subtotal, this.bogoDiscountTotal + this.orderDiscountAmount + this.couponDiscount);
     },
     get grandTotal() {
         return Math.max(0, this.subtotal - this.totalDiscount + this.taxAmount);

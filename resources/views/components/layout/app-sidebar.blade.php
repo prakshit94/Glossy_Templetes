@@ -114,6 +114,7 @@
       $marketingItems = $filterItems([
          ['title' => 'Campaigns', 'url' => '/campaigns', 'active' => request()->is('campaigns*'), 'permission' => 'campaigns.view', 'icon' => '<x-ui.icon name="marketing" size="4" />'],
          ['title' => 'Coupons', 'url' => '/coupons', 'active' => request()->is('coupons*'), 'permission' => 'coupons.view', 'icon' => '<x-ui.icon name="gift" size="4" />'],
+         ['title' => 'Offers', 'url' => '/offers', 'active' => request()->is('offers*'), 'permission' => 'coupons.view', 'icon' => '<x-ui.icon name="tag" size="4" />'],
          ['title' => 'Email Marketing', 'url' => '/email-marketing', 'active' => request()->is('email-marketing*'), 'permission' => 'email-marketing.view', 'icon' => '<x-ui.icon name="mail" size="4" />'],
       ]);
 
@@ -155,7 +156,7 @@
             'title' => 'Growth & Workforce',
             'menus' => [
                ['title' => 'Human Resources', 'active' => request()->is('employees*') || request()->is('attendance*') || request()->is('payroll*') || request()->is('departments*'), 'items' => $peopleItems, 'icon' => 'employees'],
-               ['title' => 'Marketing', 'active' => request()->is('campaigns*') || request()->is('coupons*') || request()->is('email-marketing*'), 'items' => $marketingItems, 'icon' => 'marketing'],
+               ['title' => 'Marketing', 'active' => request()->is('campaigns*') || request()->is('coupons*') || request()->is('offers*') || request()->is('email-marketing*'), 'items' => $marketingItems, 'icon' => 'marketing'],
             ],
          ],
          [

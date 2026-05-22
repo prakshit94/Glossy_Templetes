@@ -355,10 +355,17 @@ class ProductController extends Controller
 
     public function bulkDelete(Request $request)
     {
-        $ids = json_decode($request->ids, true);
-        if (is_array($ids) && count($ids) > 0) {
-            Product::whereIn('id', $ids)->delete();
+        $ids = array_values(array_filter(
+            array_map('intval', json_decode($request->ids, true) ?? []),
+            fn ($id) => $id > 0
+        ));
+
+        if (empty($ids)) {
+            return back()->with('error', 'No products selected.');
         }
+
+        Product::whereIn('id', $ids)->delete();
+
         return back()->with('success', 'Selected products deleted.');
     }
 

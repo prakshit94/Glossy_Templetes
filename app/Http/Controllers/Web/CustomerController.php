@@ -172,13 +172,18 @@ class CustomerController extends Controller
 
         $categories = \App\Models\Category::whereNull('parent_id')->get();
         $warehouses = \App\Models\Warehouse::with('village')->where('status', 'active')->get();
+        $activeOffers = \App\Models\Offer::active()
+            ->with('product:id,name,sku')
+            ->orderByDesc('priority')
+            ->orderBy('id')
+            ->get();
         
         // For the Edit Profile Modal
         $crops = \App\Models\Crop::where('status', 'active')->orderBy('name')->get();
         $irrigationTypes = \App\Models\IrrigationType::where('status', 'active')->orderBy('name')->get();
         $landUnits = \App\Models\LandUnit::where('status', 'active')->orderBy('name')->get();
 
-        return view('customers.show', compact('customer', 'categories', 'warehouses', 'crops', 'irrigationTypes', 'landUnits'));
+        return view('customers.show', compact('customer', 'categories', 'warehouses', 'activeOffers', 'crops', 'irrigationTypes', 'landUnits'));
     }
 
     // ─── Edit ─────────────────────────────────────────────────────────────────

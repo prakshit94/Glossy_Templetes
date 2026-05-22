@@ -380,12 +380,20 @@
                                 <span class="font-black text-muted-foreground/60 uppercase tracking-widest">Gross Subtotal</span>
                                 <span class="font-black text-foreground" x-text="'₹' + Number(subtotal).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
                             </div>
+                            <template x-if="bogoDiscountTotal > 0">
+                                <div class="flex justify-between items-center text-xs text-emerald-600">
+                                    <div class="flex flex-col">
+                                        <span class="font-black uppercase tracking-widest">BOGO Savings</span>
+                                        <span class="text-[9px] text-muted-foreground font-semibold">Auto-applied backend offer</span>
+                                    </div>
+                                    <span class="font-black" x-text="'- ₹' + Number(bogoDiscountTotal).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                                </div>
+                            </template>
                             <template x-if="orderDiscountAmount > 0">
                                 <div class="flex justify-between items-center text-xs text-emerald-600">
                                     <div class="flex flex-col">
                                         <span class="font-black uppercase tracking-widest">Order Adjustment</span>
-                                        <span class="text-[9px] text-muted-foreground font-semibold" x-show="orderDiscountType === 'percent'" x-text="'(' + orderDiscountValue + '% of ₹' + Number(subtotal).toFixed(2) + ')'"></span>
-                                        <span class="text-[9px] text-muted-foreground font-semibold" x-show="orderDiscountType === 'flat'" x-text="'(Flat ₹' + Number(orderDiscountValue).toFixed(2) + ')'"></span>
+                                        <span class="text-[9px] text-muted-foreground font-semibold" x-text="orderDiscountLabel"></span>
                                     </div>
                                     <span class="font-black" x-text="'- ₹' + Number(orderDiscountAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
                                 </div>

@@ -19,12 +19,12 @@
                                 <div>
                                     <div class="flex items-center gap-2">
                                         <span class="px-2 py-1 rounded-lg bg-primary/10 border border-primary/20 text-[10px] font-black text-primary uppercase tracking-widest">
-                                            {{ $product->category->parent->name ?? $product->category->name }}
+                                            {{ $product->category?->parent?->name ?? $product->category?->name ?? 'Uncategorized' }}
                                         </span>
-                                        @if($product->category->parent)
+                                        @if($product->category?->parent)
                                             <span class="text-muted-foreground opacity-20"><x-ui.icon name="chevron-right" size="3" /></span>
                                             <span class="px-2 py-1 rounded-lg bg-muted/30 border border-border/40 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                                                {{ $product->category->name }}
+                                                {{ $product->category?->name }}
                                             </span>
                                         @endif
                                     </div>
@@ -59,11 +59,11 @@
                                         <div class="flex flex-wrap gap-4">
                                             @foreach($product->attributeValues->groupBy('attribute_id') as $attrId => $values)
                                                 <div class="space-y-1">
-                                                    <span class="text-[9px] font-black uppercase text-muted-foreground/40">{{ $values->first()->attribute->name }}</span>
+                                                    <span class="text-[9px] font-black uppercase text-muted-foreground/40">{{ $values->first()?->attribute?->name ?? 'Attribute' }}</span>
                                                     <div class="flex gap-1.5">
                                                         @foreach($values as $val)
                                                             <span class="px-2 py-1 rounded-lg bg-muted/30 border border-border/40 text-[10px] font-bold text-foreground flex items-center gap-2">
-                                                                @if($val->attribute->type === 'color')
+                                                                @if($val->attribute?->type === 'color')
                                                                     <span class="size-2 rounded-full" style="background-color: {{ $val->color_code }}"></span>
                                                                 @endif
                                                                 {{ $val->value }}
@@ -116,7 +116,7 @@
                             <tbody>
                                 @foreach($product->stocks as $stock)
                                     <tr class="border-b border-border/30">
-                                        <td class="p-4 font-bold text-sm text-foreground">{{ $stock->warehouse->name }}</td>
+                                        <td class="p-4 font-bold text-sm text-foreground">{{ $stock->warehouse?->name ?? 'Unknown Warehouse' }}</td>
                                         <td class="p-4 text-center font-black text-lg text-primary">{{ number_format($stock->quantity) }}</td>
                                         <td class="p-4 text-right">
                                             <span class="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-black uppercase">In Stock</span>

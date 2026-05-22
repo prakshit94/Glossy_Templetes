@@ -37,6 +37,36 @@ class OrderService
         return min($discountValue * $qty, $itemBase);
     }
 
+    private function calculateBogoDiscount(float $lineTotal, float $qty, int $buyQty, int $getQty): float
+    {
+        $cycle = max(1, $buyQty + $getQty);
+        if ($qty < $cycle || $lineTotal <= 0) {
+            return 0.0;
+        }
+
+        $freeUnits = floor($qty / $cycle) * $getQty;
+        $effectiveUnit = $qty > 0 ? ($lineTotal / $qty) : 0.0;
+
+        return min($effectiveUnit * $freeUnits, $lineTotal);
+    }
+
+    private function calculateOfferDiscount(float $subtotal, \App\Models\Offer $offer): float
+    {
+        if ($subtotal <= 0 || (float) $offer->min_spend > $subtotal) {
+            return 0.0;
+        }
+
+        $discount = $offer->discount_type === 'percentage'
+            ? $subtotal * ((float) $offer->value / 100)
+            : (float) $offer->value;
+
+        if ((float) $offer->max_discount > 0) {
+            $discount = min($discount, (float) $offer->max_discount);
+        }
+
+        return min($discount, $subtotal);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     //  Create
     // ─────────────────────────────────────────────────────────────────────────
@@ -127,10 +157,25 @@ class OrderService
             ->get()
             ->keyBy('id');
 
+        $activeOffers = \App\Models\Offer::active()
+            ->where(function ($query) use ($productIds) {
+                $query->where('type', 'order_discount')
+                    ->orWhere(function ($q) use ($productIds) {
+                        $q->where('type', 'bogo')->whereIn('product_id', $productIds);
+                    });
+            })
+            ->orderByDesc('priority')
+            ->orderBy('id')
+            ->get();
+
+        $orderOffers = $activeOffers->where('type', 'order_discount')->values();
+        $bogoOffers = $activeOffers->where('type', 'bogo')->groupBy('product_id');
+
         $items = [];
         $subtotal = 0.0;
         $taxAmount = 0.0;
         $totalItemDiscount = 0.0;
+        $bogoDiscount = 0.0;
 
         foreach ($cart as $item) {
             if (empty($item['id']) || !isset($item['quantity']) || (float)$item['quantity'] <= 0) {
@@ -160,6 +205,16 @@ class OrderService
             $itemDisc = $this->calculateLineDiscount($unitPrice, $qty, $discountValue, $discountType);
 
             $itemTotal = $itemBase - $itemDisc;
+
+            $productBogoOffer = $bogoOffers->get($product->id)?->first();
+            if ($productBogoOffer) {
+                $bogoDiscount += $this->calculateBogoDiscount(
+                    $itemTotal,
+                    $qty,
+                    (int) $productBogoOffer->buy_qty,
+                    (int) $productBogoOffer->get_qty
+                );
+            }
             
             // Recalculate tax
             $taxRateVal = (float) ($product->taxRate?->rate ?? 0);
@@ -242,8 +297,21 @@ class OrderService
             $couponCode = $coupon->code;
         }
 
-        $orderDiscount = max(0.0, (float) ($data['order_discount_amount'] ?? 0));
-        $totalDiscount = $orderDiscount + $couponDiscount;
+        $bestOrderOffer = null;
+        $orderDiscount = 0.0;
+        foreach ($orderOffers as $offer) {
+            $discount = $this->calculateOfferDiscount($subtotal, $offer);
+            if ($discount <= 0) {
+                continue;
+            }
+
+            if (!$bestOrderOffer || (int) $offer->priority > (int) $bestOrderOffer->priority) {
+                $bestOrderOffer = $offer;
+                $orderDiscount = $discount;
+            }
+        }
+
+        $totalDiscount = $bogoDiscount + $orderDiscount + $couponDiscount;
 
         if ($totalDiscount > $subtotal) {
             $totalDiscount = $subtotal;
@@ -255,11 +323,13 @@ class OrderService
             'items'                 => $items,
             'subtotal'              => $subtotal,
             'tax_amount'            => $taxAmount,
+            'bogo_discount'         => $bogoDiscount,
             'order_discount_amount' => $orderDiscount,
             'coupon_discount'       => $couponDiscount,
             'total_discount'        => $totalDiscount,
             'grand_total'           => $grandTotal,
             'coupon_code'           => $couponCode,
+            'order_offer_name'      => $bestOrderOffer?->name,
         ];
     }
 

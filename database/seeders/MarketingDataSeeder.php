@@ -12,21 +12,69 @@ class MarketingDataSeeder extends Seeder
     {
         $users = DB::table('users')->get();
         $products = DB::table('products')->get();
+        $primaryProduct = $products->first();
 
         // 1. Coupons
-        DB::table('coupons')->insert([
-            'code' => 'WELCOME10',
-            'type' => 'percentage',
-            'value' => 10.00,
-            'min_spend' => 500,
-            'expiry_date' => now()->addMonths(3),
-            'usage_limit' => 100,
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::table('coupons')->updateOrInsert(
+            ['code' => 'WELCOME10'],
+            [
+                'type' => 'percentage',
+                'value' => 10.00,
+                'min_spend' => 500,
+                'expiry_date' => now()->addMonths(3),
+                'usage_limit' => 100,
+                'used_count' => 0,
+                'status' => 'active',
+                'is_active' => true,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
 
-        // 2. Campaigns
+        // 2. Backend-managed offers
+        DB::table('offers')->updateOrInsert(
+            ['name' => 'Auto 10% Off on Orders Above 5000'],
+            [
+                'type' => 'order_discount',
+                'discount_type' => 'percentage',
+                'value' => 10.00,
+                'min_spend' => 5000.00,
+                'max_discount' => 2000.00,
+                'product_id' => null,
+                'buy_qty' => 1,
+                'get_qty' => 1,
+                'starts_at' => now()->subDay(),
+                'ends_at' => now()->addMonths(3),
+                'priority' => 100,
+                'is_active' => true,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        if ($primaryProduct) {
+            DB::table('offers')->updateOrInsert(
+                ['name' => 'Buy 1 Get 1 on ' . $primaryProduct->name],
+                [
+                    'type' => 'bogo',
+                    'discount_type' => null,
+                    'value' => 0,
+                    'min_spend' => 0,
+                    'max_discount' => null,
+                    'product_id' => $primaryProduct->id,
+                    'buy_qty' => 1,
+                    'get_qty' => 1,
+                    'starts_at' => now()->subDay(),
+                    'ends_at' => now()->addMonths(3),
+                    'priority' => 90,
+                    'is_active' => true,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+        }
+
+        // 3. Campaigns
         $campId = DB::table('campaigns')->insertGetId([
             'name' => 'Summer Sale 2026',
             'type' => 'email',
@@ -49,7 +97,7 @@ class MarketingDataSeeder extends Seeder
             ]);
         }
 
-        // 3. Support Tickets
+        // 4. Support Tickets
         foreach ($users->take(2) as $user) {
             DB::table('support_tickets')->insert([
                 'user_id' => $user->id,
@@ -63,7 +111,7 @@ class MarketingDataSeeder extends Seeder
             ]);
         }
 
-        // 4. Product Reviews
+        // 5. Product Reviews
         foreach ($products->take(5) as $product) {
             DB::table('product_reviews')->insert([
                 'product_id' => $product->id,
