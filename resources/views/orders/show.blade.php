@@ -44,7 +44,7 @@
                             <x-ui.icon name="arrow-left" size="3" class="mr-2" /> Back
                         </x-ui.button>
                     </a>
-                    
+                    @can('orders.edit')
                     @if($order->type === 'sale' && $order->party && $order->party->type === 'customer')
                         <a href="{{ route('customers.show', ['customer' => $order->party_id, 'edit_order' => $order->id]) }}">
                             <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-amber-600 border-amber-600/30 hover:bg-amber-600/10">
@@ -52,6 +52,7 @@
                             </x-ui.button>
                         </a>
                     @endif
+                    @endcan
 
                     @if($order->invoice)
                         @can('orders.invoice_pdf')

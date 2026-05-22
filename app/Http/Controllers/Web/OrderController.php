@@ -39,7 +39,7 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::with(['party', 'warehouse', 'invoice', 'items.product', 'shipments'])->withCount('items');
+        $query = Order::with(['party', 'warehouse', 'invoice', 'items.product', 'shipments','creator'])->withCount('items');
 
         if ($request->filled('search')) {
 
@@ -118,7 +118,7 @@ class OrderController extends Controller
             'dispatched'    => (clone $query)->whereIn('status', ['dispatched', 'shipped'])->count(),
         ];
 
-        $perPage = (int) $request->get('perPage', 10);
+        $perPage = (int) $request->get('perPage', 15);
         $orders  = $query->latest()->paginate($perPage)->withQueryString();
 
         $statusesList = ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'delivered', 'cancelled', 'returned'];

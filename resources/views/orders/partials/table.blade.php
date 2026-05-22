@@ -18,6 +18,9 @@
                 <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Transaction Type</x-ui.table-head>
                 <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Associated Party</x-ui.table-head>
                 <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Fulfillment Node</x-ui.table-head>
+                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
+    Created By
+</x-ui.table-head>
                 <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap text-center">Lifecycle Status</x-ui.table-head>
                 <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Ordered Products</x-ui.table-head>
                 <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 text-right whitespace-nowrap">Financial Total</x-ui.table-head>
@@ -103,6 +106,32 @@
                             <span class="text-[11px] font-bold text-foreground/80 truncate max-w-[120px]">{{ $order->warehouse?->name ?? 'Main Hub' }}</span>
                         </div>
                     </x-ui.table-cell>
+
+                    <x-ui.table-cell class="align-middle">
+
+    <div class="flex items-center gap-2">
+
+        <div class="size-7 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-600">
+            <x-ui.icon name="user-circle" size="3" />
+        </div>
+
+        <div class="flex flex-col min-w-0">
+
+            <span class="text-[11px] font-bold text-foreground/80 truncate max-w-[120px]">
+                {{ $order->creator?->name ?? 'System' }}
+            </span>
+
+            @if($order->creator?->email)
+                <span class="text-[9px] text-muted-foreground truncate max-w-[140px]">
+                    {{ $order->creator->email }}
+                </span>
+            @endif
+
+        </div>
+
+    </div>
+
+</x-ui.table-cell>
 
                     <x-ui.table-cell class="align-middle text-center">
     @php
@@ -675,7 +704,7 @@
                 </x-ui.table-row>
             @empty
                 <x-ui.table-row>
-                    <x-ui.table-cell colspan="9" class="h-72 text-center align-middle p-0">
+                    <x-ui.table-cell colspan="10" class="h-72 text-center align-middle p-0">
                         <div class="flex flex-col items-center justify-center gap-5 py-12 px-6">
                             <div class="size-24 rounded-3xl bg-gradient-to-br from-primary/25 via-primary/8 to-transparent border border-primary/20 flex items-center justify-center text-primary shadow-inner ring-1 ring-primary/10">
                                 <x-ui.icon name="package" size="12" />
