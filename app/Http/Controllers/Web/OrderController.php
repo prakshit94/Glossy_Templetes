@@ -41,6 +41,11 @@ class OrderController extends Controller
     {
         $query = Order::with(['party', 'warehouse', 'invoice', 'items.product', 'shipments','creator'])->withCount('items');
 
+        $user = auth()->user();
+        if ($user && !$user->hasAnyRole(['Super Admin', 'Admin']) && !$user->can('view_all_order')) {
+            $query->where('created_by', $user->id);
+        }
+
         if ($request->filled('search')) {
 
     $s = trim($request->search);
@@ -81,7 +86,7 @@ class OrderController extends Controller
             if ($request->fulfillment === 'unfulfillable') {
                 $query->where('status', 'pending')
                       ->whereHas('items', function ($q) {
-                          $q->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id AND stocks.deleted_at IS NULL), 0))');
+                          $q->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id AND stocks.warehouse_id = orders.warehouse_id AND stocks.deleted_at IS NULL), 0))');
                       });
             } elseif ($request->fulfillment === 'fulfillable') {
                 $query->where(function ($query) {
@@ -89,7 +94,7 @@ class OrderController extends Controller
                           ->orWhere(function ($q) {
                               $q->where('status', 'pending')
                                 ->whereDoesntHave('items', function ($iq) {
-                                    $iq->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id AND stocks.deleted_at IS NULL), 0))');
+                                    $iq->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id AND stocks.warehouse_id = orders.warehouse_id AND stocks.deleted_at IS NULL), 0))');
                                 });
                           });
                 });
@@ -604,6 +609,242 @@ class OrderController extends Controller
         }
 
         return array_values(array_unique($statuses));
+    }
+
+    public function bulkExport(Request $request)
+    {
+        $query = Order::with(['party', 'warehouse', 'items.product', 'shipments']);
+
+        $user = auth()->user();
+        if ($user && !$user->hasAnyRole(['Super Admin', 'Admin']) && !$user->can('view_all_order')) {
+            $query->where('created_by', $user->id);
+        }
+
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+            $query->where(function ($subQuery) use ($s) {
+                $subQuery->where('order_no', 'LIKE', "%{$s}%")
+                    ->orWhereHas('party', function ($q) use ($s) {
+                        $q->where('firstname', 'LIKE', "%{$s}%")
+                            ->orWhere('lastname', 'LIKE', "%{$s}%")
+                            ->orWhere('company_name', 'LIKE', "%{$s}%")
+                            ->orWhere('phone', 'LIKE', "%{$s}%");
+                    });
+            });
+        }
+
+        if ($request->filled('status')) {
+            $statuses = $this->expandOrderStatusFilter($request->status);
+            $query->whereIn('status', $statuses);
+        }
+
+        if ($request->filled('product')) {
+            $productIds = array_filter(array_map('intval', explode(',', $request->product)));
+            if (!empty($productIds)) {
+                $query->whereHas('items', function ($q) use ($productIds) {
+                    $q->whereIn('product_id', $productIds);
+                });
+            }
+        }
+
+        if ($request->filled('fulfillment')) {
+            if ($request->fulfillment === 'unfulfillable') {
+                $query->where('status', 'pending')
+                      ->whereHas('items', function ($q) {
+                          $q->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id AND stocks.warehouse_id = orders.warehouse_id AND stocks.deleted_at IS NULL), 0))');
+                      });
+            } elseif ($request->fulfillment === 'fulfillable') {
+                $query->where(function ($query) {
+                    $query->whereIn('status', ['confirmed', 'processing'])
+                          ->orWhere(function ($q) {
+                              $q->where('status', 'pending')
+                                ->whereDoesntHave('items', function ($iq) {
+                                    $iq->whereRaw('quantity > (IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = order_items.product_id AND stocks.warehouse_id = orders.warehouse_id AND stocks.deleted_at IS NULL), 0))');
+                                });
+                          });
+                });
+            }
+        }
+
+        if ($request->filled('state') || $request->filled('district') || $request->filled('taluka')) {
+            $query->whereHas('shippingAddress.village', function ($q) use ($request) {
+                if ($request->filled('state')) {
+                    $q->whereIn('state_name', array_map('trim', explode(',', $request->state)));
+                }
+                if ($request->filled('district')) {
+                    $q->whereIn('district_name', array_map('trim', explode(',', $request->district)));
+                }
+                if ($request->filled('taluka')) {
+                    $q->whereIn('taluka_name', array_map('trim', explode(',', $request->taluka)));
+                }
+            });
+        }
+
+        $orders = $query->orderBy('id')->get();
+
+        $filename = 'orders-export-' . now()->format('Ymd_His') . '.csv';
+
+        return response()->streamDownload(function () use ($orders) {
+            $out = fopen('php://output', 'w');
+
+            fputcsv($out, [
+                'order_no',
+                'type',
+                'status',
+                'order_date',
+                'party_name',
+                'party_phone',
+                'warehouse_code',
+                'warehouse_name',
+                'carrier_name',
+                'tracking_no',
+                'total_items'
+            ]);
+
+            foreach ($orders as $order) {
+                $shipment = $order->shipments->first();
+                $partyName = $order->party ? trim($order->party->firstname . ' ' . $order->party->lastname . ' ' . $order->party->company_name) : '';
+                fputcsv($out, [
+                    $order->order_no,
+                    $order->type,
+                    $order->status,
+                    $order->order_date,
+                    $partyName,
+                    $order->party?->phone,
+                    $order->warehouse?->code,
+                    $order->warehouse?->name,
+                    $shipment?->carrier_name,
+                    $shipment?->tracking_no,
+                    $order->items->count(),
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    public function bulkImport(Request $request, InventoryService $inventoryService)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:10240',
+        ]);
+
+        $isPreview = $request->boolean('preview');
+
+        $file = $request->file('file');
+        $handle = fopen($file->getRealPath(), 'r');
+
+        if ($handle === false) {
+            if ($isPreview) return response()->json(['error' => 'Unable to read uploaded file.'], 400);
+            return back()->with('error', 'Unable to read uploaded file.');
+        }
+
+        $firstRow = fgetcsv($handle);
+        if ($firstRow === false) {
+            fclose($handle);
+            if ($isPreview) return response()->json(['error' => 'CSV file is empty.'], 400);
+            return back()->with('error', 'CSV file is empty.');
+        }
+
+        $normalized = array_map(fn($v) => strtolower(trim((string)$v)), $firstRow);
+        $hasHeader = in_array('order_no', $normalized, true);
+
+        $updated = 0;
+        $skipped = 0;
+        $previewData = [];
+
+        $extractByHeader = function (array $row, array $header, array $keys): ?string {
+            foreach ($keys as $key) {
+                $index = array_search($key, $header, true);
+                if ($index !== false) {
+                    return isset($row[$index]) ? trim((string)$row[$index]) : null;
+                }
+            }
+            return null;
+        };
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            while (($row = fgetcsv($handle)) !== false) {
+                if ($hasHeader) {
+                    $orderNo = $extractByHeader($row, $normalized, ['order_no']);
+                    $carrierName = $extractByHeader($row, $normalized, ['carrier_name']);
+                    $trackingNo = $extractByHeader($row, $normalized, ['tracking_no']);
+                } else {
+                    $orderNo = trim((string)($row[0] ?? ''));
+                    $carrierName = trim((string)($row[1] ?? ''));
+                    $trackingNo = trim((string)($row[2] ?? ''));
+                }
+
+                if (!$orderNo) {
+                    continue;
+                }
+
+                $order = Order::with(['party', 'shipments'])->where('order_no', $orderNo)->first();
+
+                if ($isPreview) {
+                    $shipment = $order ? $order->shipments->first() : null;
+                    $previewData[] = [
+                        'order_no' => $orderNo,
+                        'csv_carrier' => $carrierName ?: 'N/A',
+                        'csv_tracking' => $trackingNo ?: 'N/A',
+                        'is_valid' => $order && $order->status === 'processing',
+                        'customer' => $order ? ($order->party ? trim($order->party->firstname . ' ' . $order->party->lastname) : 'N/A') : 'Not Found',
+                        'current_status' => $order ? $order->status : 'Not Found',
+                        'upcoming_status' => ($order && $order->status === 'processing') ? 'ready_to_ship' : 'N/A',
+                        'existing_carrier' => $shipment && $shipment->carrier_name ? $shipment->carrier_name : 'N/A',
+                        'existing_tracking' => $shipment && $shipment->tracking_no ? $shipment->tracking_no : 'N/A',
+                    ];
+                    continue;
+                }
+
+                if (!$order || $order->status !== 'processing') {
+                    $skipped++;
+                    continue;
+                }
+
+                $inventoryService->readyToShipOrder($order, $carrierName, $trackingNo);
+                $updated++;
+            }
+            
+            if ($isPreview) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                fclose($handle);
+                return response()->json(['preview' => $previewData]);
+            }
+            
+            \Illuminate\Support\Facades\DB::commit();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            fclose($handle);
+            if ($isPreview) {
+                return response()->json(['error' => 'Error processing CSV: ' . $e->getMessage()], 400);
+            }
+            return back()->with('error', 'Error processing CSV: ' . $e->getMessage());
+        }
+
+        fclose($handle);
+
+        $message = "Orders import completed. Updated {$updated} order(s).";
+        if ($skipped > 0) {
+            $message .= " Skipped {$skipped} invalid/non-processing row(s).";
+        }
+
+        return back()->with('success', $message);
+    }
+
+    public function bulkImportTemplate()
+    {
+        return response()->streamDownload(function () {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['order_no', 'carrier_name', 'tracking_no']);
+            fputcsv($out, ['ORD-000001', 'FedEx', 'FDX123456789']);
+            fclose($out);
+        }, 'orders-shipping-import-template.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
     public function revertStatus(

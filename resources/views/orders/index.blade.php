@@ -1,7 +1,7 @@
 <x-layouts.app pageTitle="Orders Management">
     @php
         $qStatus = request('status') ? explode(',', request('status')) : [];
-        $qProduct = request('product') ? array_map('intval', explode(',', request('product'))) : [];
+        $qProduct = request('product') ? explode(',', request('product')) : [];
         $qState = request('state') ? explode(',', request('state')) : [];
         $qDistrict = request('district') ? explode(',', request('district')) : [];
         $qTaluka = request('taluka') ? explode(',', request('taluka')) : [];
@@ -70,6 +70,43 @@
                 qty: i.max,
             }));
             this.$dispatch('open-modal', { name: 'create-return-modal' });
+        },
+        importRows: [],
+        async handleImportFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('preview', '1');
+            formData.append('_token', document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '{{ csrf_token() }}');
+
+            this.importRows = [];
+
+            try {
+                const response = await fetch('{{ route('orders.import') }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.preview) {
+                    this.importRows = data.preview;
+                    this.$dispatch('open-modal', { name: 'import-preview-modal' });
+                } else if (data.error) {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                alert('Error generating preview.');
+            }
+        },
+        confirmImport() {
+            document.getElementById('import-form').submit();
+        },
+        cancelImport() {
+            document.getElementById('import-form').reset();
+            this.importRows = [];
+            this.$dispatch('close-modal', { name: 'import-preview-modal' });
         },
 
         toggleAll() {
@@ -258,11 +295,32 @@
                                 </div>
                             </div>
                             <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto lg:justify-end">
-                                <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm" onclick="alert('Import feature coming soon!')">
-                                    <x-ui.icon name="upload" size="3" class="mr-2" />
-                                    Import
-                                </x-ui.button>
-                                <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm" onclick="alert('Export feature coming soon!')">
+                                <form id="import-form" action="{{ route('orders.import') }}" method="POST" enctype="multipart/form-data" class="hidden">
+                                    @csrf
+                                    <input type="file" name="file" id="import-file" accept=".csv,.txt" @change="handleImportFileSelect($event)">
+                                </form>
+                                <x-ui.dropdown>
+                                    <x-slot name="trigger">
+                                        <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm">
+                                            <x-ui.icon name="upload" size="3" class="mr-2" />
+                                            Import
+                                            <x-ui.icon name="chevron-down" size="3" class="ml-2 opacity-50" />
+                                        </x-ui.button>
+                                    </x-slot>
+                                    <x-slot name="content">
+                                        <div class="p-1 space-y-1">
+                                            <a href="{{ route('orders.import-template') }}" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
+                                                <x-ui.icon name="file-text" size="3.5" class="mr-2 text-muted-foreground" />
+                                                Download Template
+                                            </a>
+                                            <button type="button" onclick="document.getElementById('import-file').click()" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
+                                                <x-ui.icon name="upload-cloud" size="3.5" class="mr-2 text-muted-foreground" />
+                                                Upload CSV
+                                            </button>
+                                        </div>
+                                    </x-slot>
+                                </x-ui.dropdown>
+                                <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm" onclick="window.location.href = '{{ route('orders.export') }}' + window.location.search">
                                     <x-ui.icon name="download" size="3" class="mr-2" />
                                     Export
                                 </x-ui.button>
@@ -664,6 +722,65 @@
             </form>
         </div>
     </x-ui.modal>
+
+    <!-- Import Preview Modal -->
+    <x-ui.modal id="import-preview-modal" maxWidth="4xl">
+        <div class="p-6 space-y-4 max-h-[85vh] flex flex-col">
+            <div>
+                <h3 class="text-lg font-black text-foreground mb-1">Preview Import</h3>
+                <p class="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                    <span x-text="importRows.length"></span> records found
+                </p>
+            </div>
+            
+            <div class="h-px bg-border/60 w-full shrink-0"></div>
+            
+            <div class="flex-1 overflow-auto rounded-2xl border border-border/60 custom-scrollbar">
+                <table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead class="sticky top-0 bg-muted/90 backdrop-blur-md z-10 shadow-sm">
+                        <tr class="border-b border-border/40">
+                            <th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">Order No</th>
+                            <th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">Customer</th>
+                            <th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">Current Status</th>
+                            <th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">Upcoming Status</th>
+                            <th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">CSV Tracking</th>
+                            <th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">Existing Tracking</th>
+                            <th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">Valid?</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border/40">
+                        <template x-for="(row, rowIndex) in importRows" :key="rowIndex">
+                            <tr class="hover:bg-muted/10 transition-colors">
+                                <td class="px-4 py-2.5 text-xs font-bold text-foreground/80" x-text="row.order_no"></td>
+                                <td class="px-4 py-2.5 text-xs font-semibold text-foreground/80" x-text="row.customer"></td>
+                                <td class="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground" x-text="(row.current_status || '').replace(/_/g, ' ')"></td>
+                                <td class="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-blue-500" x-text="(row.upcoming_status || '').replace(/_/g, ' ')"></td>
+                                <td class="px-4 py-2.5 text-xs font-semibold text-foreground/80" x-text="row.csv_carrier + ' - ' + row.csv_tracking"></td>
+                                <td class="px-4 py-2.5 text-xs font-semibold text-muted-foreground" x-text="row.existing_carrier + ' - ' + row.existing_tracking"></td>
+                                <td class="px-4 py-2.5 text-xs font-semibold">
+                                    <span x-show="row.is_valid" class="text-emerald-500 font-bold"><x-ui.icon name="check-circle" size="3" class="inline" /> Yes</span>
+                                    <span x-show="!row.is_valid" class="text-red-500 font-bold"><x-ui.icon name="x-circle" size="3" class="inline" /> No</span>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+                <div x-show="importRows.length === 0" class="p-8 text-center text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                    No data rows found in CSV
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-border/40 shrink-0">
+                <x-ui.button type="button" variant="outline" size="sm" @click="cancelImport()" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10">
+                    Cancel
+                </x-ui.button>
+                <x-ui.button type="button" size="sm" @click="confirmImport()" x-bind:disabled="importRows.filter(r => r.is_valid).length === 0" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-lg shadow-primary/20">
+                    <x-ui.icon name="check-circle" size="3" class="mr-2" /> Confirm & Process (<span x-text="importRows.filter(r => r.is_valid).length"></span>)
+                </x-ui.button>
+            </div>
+        </div>
+    </x-ui.modal>
+
     </div>
 
     <style>

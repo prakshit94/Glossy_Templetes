@@ -204,7 +204,7 @@
             <!-- Recent Activity Section -->
             <div class="space-y-6">
                 
-                @if(auth()->user()->hasAnyRole(['Super Admin','Admin','Manager','Employee']))
+                @auth
                     <!-- Recent Orders -->
                     <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-2xl rounded-3xl">
                         <div class="p-5 border-b border-border/40 bg-muted/10 flex justify-between items-center">
@@ -221,6 +221,9 @@
                                             <p class="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{{ $order->order_no }}</p>
                                             <p class="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
                                                 {{ $order->party->company_name ?? ($order->party->firstname . ' ' . $order->party->lastname) }}
+                                            </p>
+                                            <p class="text-[9px] text-muted-foreground mt-1 flex items-center gap-1">
+                                                <x-ui.icon name="clock" size="2.5" /> {{ $order->created_at->diffForHumans() }}
                                             </p>
                                         </div>
                                         <div class="text-right">
@@ -266,7 +269,7 @@
                             @endforelse
                         </div>
                     </x-ui.card>
-                @endif
+                @endauth
 
                 @auth
                     <!-- My Reviews -->

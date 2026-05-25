@@ -24,7 +24,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'teams.view', 'teams.manage',
                 'settings.view', 'settings.edit',
 
-                'orders.view', 'orders.create', 'orders.edit', 'orders.delete',
+                'orders.view', 'view_all_order', 'orders.create', 'orders.edit', 'orders.delete',
                 'orders.confirm', 'orders.processing', 'orders.ship', 'orders.dispatch', 'orders.deliver', 'orders.cancel','orders.revert_status',
                 'orders.generate_invoice', 'orders.invoice_pdf', 'orders.cod', 'orders.receipt',
                 'orders.bulk_status', 'orders.bulk_print',

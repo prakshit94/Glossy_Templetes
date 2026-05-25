@@ -90,6 +90,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('stock-adjustments/{adjustment}/reject', [\App\Http\Controllers\Web\StockAdjustmentController::class, 'reject'])->name('adjustments.reject');
     Route::post('orders/bulk-status', [OrderController::class, 'bulkStatus'])->name('orders.bulk-status');
     Route::get('orders/bulk-print', [OrderController::class, 'bulkPrint'])->name('orders.bulk-print');
+    Route::get('orders/export', [OrderController::class, 'bulkExport'])->name('orders.export');
+    Route::post('orders/import', [OrderController::class, 'bulkImport'])->name('orders.import');
+    Route::get('orders/import-template', [OrderController::class, 'bulkImportTemplate'])->name('orders.import-template');
     Route::get('orders/{order}/invoice-pdf', [OrderController::class, 'downloadInvoice'])->name('orders.invoice-pdf');
     Route::post('orders/{order}/generate-invoice', [OrderController::class, 'generateInvoice'])->name('orders.generate-invoice');
     Route::get('orders/{order}/cod-pdf', [OrderController::class, 'downloadReceipt'])->name('orders.cod-pdf');

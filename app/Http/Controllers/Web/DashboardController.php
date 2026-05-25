@@ -81,7 +81,7 @@ class DashboardController extends Controller
         $returnsQuery = OrderReturn::query();
 
         // Security: Filter by owner if not Admin
-        if (!$user->hasAnyRole(['Super Admin', 'Admin'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Admin']) && !$user->can('view_all_order')) {
             if (Schema::hasColumn('orders', 'created_by')) {
                 $orderQuery->where('created_by', $user->id);
             }
@@ -252,7 +252,7 @@ class DashboardController extends Controller
         | RECENT ACTIVITY
         |--------------------------------------------------------------------------
         */
-        $recentOrders = (clone $orderQuery)->with('party')->latest()->take(5)->get();
+        $recentOrders = (clone $orderQuery)->where('created_by', Auth::id())->with('party')->latest()->take(5)->get();
         $recentReturns = (clone $returnsQuery)->with('order')->latest()->take(5)->get();
         
         $recentReviews = DB::table('product_reviews')
