@@ -1,161 +1,630 @@
 <x-layouts.app pageTitle="Offers">
-    <div class="p-6 lg:p-10 space-y-8">
-        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-            <div class="flex items-center gap-4">
-                <div class="size-14 rounded-[1.25rem] bg-gradient-to-br from-primary/20 via-primary/10 to-background border border-primary/20 text-primary flex items-center justify-center shadow-inner shadow-primary/10">
-                    <x-ui.icon name="tag" size="7" />
+
+    <div class="p-6 lg:p-10"
+        x-data="{
+            selectedOffers: [],
+            allSelected: false,
+
+            search: '{{ request('search', '') }}',
+            statusFilter: '{{ request('status', '') }}',
+            typeFilter: '{{ request('type', '') }}',
+            perPage: '{{ request('perPage', 10) }}',
+
+            isLoading: false,
+
+            init() {
+
+                document.addEventListener('click', (e) => {
+
+                    const link = e.target.closest('#offers-table-container .pagination a');
+
+                    if (!link) return;
+
+                    e.preventDefault();
+
+                    const url = new URL(link.href);
+
+                    this.performSearch(
+                        url.searchParams.get('page') || 1
+                    );
+                });
+            },
+
+            toggleAll() {
+
+                if (this.allSelected) {
+
+                    this.selectedOffers = Array.from(
+                        document.querySelectorAll('input[name=\'offer_ids[]\']')
+                    ).map(el => parseInt(el.value));
+
+                } else {
+
+                    this.selectedOffers = [];
+                }
+            },
+
+            toggleOffer(id) {
+
+                if (this.selectedOffers.includes(id)) {
+
+                    this.selectedOffers =
+                        this.selectedOffers.filter(c => c !== id);
+
+                } else {
+
+                    this.selectedOffers.push(id);
+                }
+            },
+
+            async performSearch(page = 1) {
+
+                this.isLoading = true;
+
+                const params = new URLSearchParams({
+
+                    search: this.search,
+
+                    status: this.statusFilter,
+
+                    type: this.typeFilter,
+
+                    perPage: this.perPage,
+
+                    page: page
+                });
+
+                const res = await fetch(
+                    `{{ route('offers.index') }}?${params.toString()}`,
+                    {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    }
+                );
+
+                const html = await res.text();
+
+                document
+                    .getElementById('offers-table-container')
+                    .innerHTML = html;
+
+                this.isLoading = false;
+
+                this.selectedOffers = [];
+
+                this.allSelected = false;
+            }
+        }">
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+            <!-- Total -->
+            <div
+                class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-primary/5 transition-all duration-500 overflow-hidden shadow-2xl">
+
+                <div
+                    class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-primary/10 blur-[50px] rounded-full group-hover:bg-primary/20 transition-all duration-500">
                 </div>
-                <div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70 mb-2">Marketing Control</p>
-                    <h1 class="text-3xl md:text-4xl font-black tracking-tighter text-foreground">Offers</h1>
-                    <p class="text-sm text-muted-foreground max-w-2xl">Manage automatic order discounts and BOGO campaigns in the same visual language as the rest of the admin.</p>
-                </div>
-            </div>
 
-            <a href="{{ route('offers.create') }}" class="h-11 px-5 rounded-2xl bg-primary text-primary-foreground text-sm font-black uppercase tracking-[0.2em] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 flex items-center justify-center gap-2">
-                <x-ui.icon name="plus" size="4" />
-                Create Offer
-            </a>
-        </div>
+                <div class="flex items-center gap-5 relative z-10">
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div class="group relative p-6 rounded-[1.75rem] bg-card/40 border border-border/60 backdrop-blur-xl overflow-hidden shadow-xl">
-                <div class="absolute inset-y-0 right-0 w-24 bg-primary/10 blur-3xl opacity-70 pointer-events-none"></div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mb-2">Total Offers</p>
-                <p class="text-3xl font-black tracking-tighter text-foreground">{{ number_format($offers->total()) }}</p>
-            </div>
-            <div class="group relative p-6 rounded-[1.75rem] bg-card/40 border border-border/60 backdrop-blur-xl overflow-hidden shadow-xl">
-                <div class="absolute inset-y-0 right-0 w-24 bg-emerald-500/10 blur-3xl opacity-70 pointer-events-none"></div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mb-2">Active On This Page</p>
-                <p class="text-3xl font-black tracking-tighter text-emerald-500">{{ number_format($offers->getCollection()->where('is_active', true)->count()) }}</p>
-            </div>
-            <div class="group relative p-6 rounded-[1.75rem] bg-card/40 border border-border/60 backdrop-blur-xl overflow-hidden shadow-xl">
-                <div class="absolute inset-y-0 right-0 w-24 bg-orange-500/10 blur-3xl opacity-70 pointer-events-none"></div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mb-2">BOGO Rules</p>
-                <p class="text-3xl font-black tracking-tighter text-orange-500">{{ number_format($offers->getCollection()->where('type', 'bogo')->count()) }}</p>
-            </div>
-        </div>
+                    <div
+                        class="size-14 rounded-2xl bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/10 text-primary flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
 
-        <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-[2rem]">
-            <x-ui.card-header class="border-b border-border/40 bg-gradient-to-r from-background via-muted/10 to-background p-8">
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <x-ui.icon name="tag" size="7" />
+
+                    </div>
+
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 mb-2">Directory</p>
-                        <h2 class="text-xl font-black tracking-tight text-foreground">Offer Registry</h2>
+
+                        <p
+                            class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
+                            Total Offers
+                        </p>
+
+                        <div class="text-3xl font-black tracking-tighter text-foreground">
+                            {{ number_format($stats['total'] ?? 0) }}
+                        </div>
+
                     </div>
-                    <div class="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                        Automatic pricing rules
-                    </div>
+
                 </div>
+
+            </div>
+
+            <!-- Active -->
+            <div
+                class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-emerald-500/5 transition-all duration-500 overflow-hidden shadow-2xl">
+
+                <div
+                    class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-emerald-500/10 blur-[50px] rounded-full group-hover:bg-emerald-500/20 transition-all duration-500">
+                </div>
+
+                <div class="flex items-center gap-5 relative z-10">
+
+                    <div
+                        class="size-14 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-emerald-500/5 border border-emerald-500/10 text-emerald-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
+
+                        <x-ui.icon name="check-circle" size="7" />
+
+                    </div>
+
+                    <div>
+
+                        <p
+                            class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
+                            Active Offers
+                        </p>
+
+                        <div class="text-3xl font-black tracking-tighter text-foreground">
+                            {{ number_format($stats['active'] ?? 0) }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- BOGO -->
+            <div
+                class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-orange-500/5 transition-all duration-500 overflow-hidden shadow-2xl">
+
+                <div
+                    class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-orange-500/10 blur-[50px] rounded-full group-hover:bg-orange-500/20 transition-all duration-500">
+                </div>
+
+                <div class="flex items-center gap-5 relative z-10">
+
+                    <div
+                        class="size-14 rounded-2xl bg-gradient-to-tr from-orange-500/20 to-orange-500/5 border border-orange-500/10 text-orange-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
+
+                        <x-ui.icon name="shopping-bag" size="7" />
+
+                    </div>
+
+                    <div>
+
+                        <p
+                            class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
+                            BOGO Rules
+                        </p>
+
+                        <div class="text-3xl font-black tracking-tighter text-foreground">
+                            {{ number_format($stats['bogo'] ?? 0) }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Discounts -->
+            <div
+                class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-blue-500/5 transition-all duration-500 overflow-hidden shadow-2xl">
+
+                <div
+                    class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-blue-500/10 blur-[50px] rounded-full group-hover:bg-blue-500/20 transition-all duration-500">
+                </div>
+
+                <div class="flex items-center gap-5 relative z-10">
+
+                    <div
+                        class="size-14 rounded-2xl bg-gradient-to-tr from-blue-500/20 to-blue-500/5 border border-blue-500/10 text-blue-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
+
+                        <x-ui.icon name="percent" size="7" />
+
+                    </div>
+
+                    <div>
+
+                        <p
+                            class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
+                            Order Discounts
+                        </p>
+
+                        <div class="text-3xl font-black tracking-tighter text-foreground">
+                            {{ number_format($stats['discounts'] ?? 0) }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Main Card -->
+        <x-ui.card
+            class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
+
+            <!-- Header -->
+            <x-ui.card-header class="p-8 border-b border-border/40 bg-muted/10">
+
+                <div class="flex flex-col gap-8">
+
+                    <!-- Top -->
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+
+                        <!-- Left -->
+                        <div class="flex flex-wrap items-center gap-3">
+
+                            <div
+                                class="flex bg-muted/50 px-4 py-1.5 rounded-xl border border-border/50 shadow-inner">
+
+                                <span
+                                    class="text-xs font-bold text-primary tracking-widest uppercase">
+                                    Offer Registry
+                                </span>
+
+                            </div>
+
+                            <!-- Status -->
+                            <div
+                                class="flex bg-muted/20 p-1 rounded-xl border border-border/60 shadow-inner">
+
+                                <button
+                                    @click="statusFilter=''; performSearch()"
+                                    :class="statusFilter === '' ? 'bg-card shadow-sm text-primary ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'"
+                                    class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest">
+                                    All
+                                </button>
+
+                                <button
+                                    @click="statusFilter='active'; performSearch()"
+                                    :class="statusFilter === 'active' ? 'bg-card shadow-sm text-emerald-600 ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'"
+                                    class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest">
+                                    Active
+                                </button>
+
+                                <button
+                                    @click="statusFilter='inactive'; performSearch()"
+                                    :class="statusFilter === 'inactive' ? 'bg-card shadow-sm text-destructive ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'"
+                                    class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest">
+                                    Inactive
+                                </button>
+
+                            </div>
+
+                            <!-- Type -->
+                            <div
+                                class="flex bg-muted/20 p-1 rounded-xl border border-border/60 shadow-inner">
+
+                                <button
+                                    @click="typeFilter=''; performSearch()"
+                                    :class="typeFilter === '' ? 'bg-card shadow-sm text-primary ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'"
+                                    class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest">
+                                    All Types
+                                </button>
+
+                                <button
+                                    @click="typeFilter='order_discount'; performSearch()"
+                                    :class="typeFilter === 'order_discount' ? 'bg-card shadow-sm text-blue-600 ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'"
+                                    class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest">
+                                    Discounts
+                                </button>
+
+                                <button
+                                    @click="typeFilter='bogo'; performSearch()"
+                                    :class="typeFilter === 'bogo' ? 'bg-card shadow-sm text-orange-600 ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'"
+                                    class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest">
+                                    BOGO
+                                </button>
+
+                            </div>
+
+                            <!-- Bulk Actions -->
+                            <div x-show="selectedOffers.length > 0"
+                                x-cloak
+                                x-transition
+                                class="flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-300">
+
+                                <x-ui.dropdown>
+
+                                    <x-slot name="trigger">
+
+                                        <x-ui.button
+                                            variant="outline"
+                                            size="sm"
+                                            class="rounded-xl border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap">
+
+                                            <span x-text="selectedOffers.length"></span>
+                                            Selected
+
+                                            <x-ui.icon
+                                                name="chevron-down"
+                                                size="3"
+                                                class="ml-2" />
+
+                                        </x-ui.button>
+
+                                    </x-slot>
+
+                                    <x-slot name="content">
+
+                                        <x-ui.dropdown-label>
+                                            Bulk Actions
+                                        </x-ui.dropdown-label>
+
+                                        <div class="p-1 space-y-1">
+
+                                            <!-- Activate -->
+                                            <form
+                                                action="{{ route('offers.bulk-status') }}"
+                                                method="POST">
+
+                                                @csrf
+
+                                                <input
+                                                    type="hidden"
+                                                    name="ids"
+                                                    :value="JSON.stringify(selectedOffers)">
+
+                                                <input
+                                                    type="hidden"
+                                                    name="status"
+                                                    value="active">
+
+                                                <button
+                                                    type="submit"
+                                                    class="w-full text-left px-3 py-2 text-[10px] font-black hover:bg-emerald-500/10 rounded-xl flex items-center text-emerald-600 uppercase tracking-widest transition-colors">
+
+                                                    <x-ui.icon
+                                                        name="check-circle"
+                                                        size="3.5"
+                                                        class="mr-2" />
+
+                                                    Activate
+
+                                                </button>
+
+                                            </form>
+
+                                            <!-- Disable -->
+                                            <form
+                                                action="{{ route('offers.bulk-status') }}"
+                                                method="POST">
+
+                                                @csrf
+
+                                                <input
+                                                    type="hidden"
+                                                    name="ids"
+                                                    :value="JSON.stringify(selectedOffers)">
+
+                                                <input
+                                                    type="hidden"
+                                                    name="status"
+                                                    value="inactive">
+
+                                                <button
+                                                    type="submit"
+                                                    class="w-full text-left px-3 py-2 text-[10px] font-black hover:bg-orange-500/10 rounded-xl flex items-center text-orange-600 uppercase tracking-widest transition-colors">
+
+                                                    <x-ui.icon
+                                                        name="slash"
+                                                        size="3.5"
+                                                        class="mr-2" />
+
+                                                    Disable
+
+                                                </button>
+
+                                            </form>
+
+                                            <x-ui.separator class="my-1 opacity-40" />
+
+                                            <!-- Delete -->
+                                            <form
+                                                action="{{ route('offers.bulk-delete') }}"
+                                                method="POST"
+                                                onsubmit="return confirm('Delete selected offers?')">
+
+                                                @csrf
+
+                                                <input
+                                                    type="hidden"
+                                                    name="ids"
+                                                    :value="JSON.stringify(selectedOffers)">
+
+                                                <button
+                                                    type="submit"
+                                                    class="w-full text-left px-3 py-2 text-[10px] font-black hover:bg-destructive/10 rounded-xl flex items-center text-destructive uppercase tracking-widest transition-colors">
+
+                                                    <x-ui.icon
+                                                        name="trash"
+                                                        size="3.5"
+                                                        class="mr-2" />
+
+                                                    Delete
+
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+
+                                    </x-slot>
+
+                                </x-ui.dropdown>
+
+                            </div>
+
+                        </div>
+
+                        <!-- Right -->
+                        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+
+                            <!-- Export -->
+                            <x-ui.button
+                                variant="outline"
+                                size="sm"
+                                class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-9 shadow-sm"
+                                onclick="alert('Export feature coming soon!')">
+
+                                <x-ui.icon
+                                    name="external-link"
+                                    size="3"
+                                    class="mr-2" />
+
+                                Export
+
+                            </x-ui.button>
+
+                            <!-- Create -->
+                            <a href="{{ route('offers.create') }}"
+                                class="w-full sm:w-auto mt-2 sm:mt-0">
+
+                                <x-ui.button
+                                    size="sm"
+                                    class="w-full rounded-xl font-bold uppercase tracking-widest text-[10px] h-9 shadow-lg shadow-primary/20">
+
+                                    <x-ui.icon
+                                        name="plus"
+                                        size="3"
+                                        class="mr-2" />
+
+                                    Create Offer
+
+                                </x-ui.button>
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Bottom -->
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2">
+
+                        <!-- Per Page -->
+                        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+
+                            <div class="flex items-center gap-2">
+
+                                <span
+                                    class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:inline-block">
+                                    Show
+                                </span>
+
+                                <select
+                                    x-model="perPage"
+                                    @change="performSearch()"
+                                    class="h-9 px-3 py-1.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs font-medium shadow-sm">
+
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="15">15</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                        <!-- Search -->
+                        <div class="relative group w-full lg:max-w-xs shrink-0">
+
+                            <x-ui.icon
+                                name="search"
+                                size="4"
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+
+                            <input
+                                type="text"
+                                x-model="search"
+                                @input.debounce.500ms="performSearch()"
+                                placeholder="Search offers..."
+                                class="pl-9 pr-10 py-2 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all w-full text-xs shadow-sm">
+
+                            <!-- Loader -->
+                            <div
+                                x-show="isLoading"
+                                class="absolute right-3 top-1/2 -translate-y-1/2">
+
+                                <svg
+                                    class="animate-spin h-3 w-3 text-primary"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24">
+
+                                    <circle
+                                        class="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        stroke-width="4">
+                                    </circle>
+
+                                    <path
+                                        class="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+
+                                </svg>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
             </x-ui.card-header>
 
-            <x-ui.card-content class="p-0">
-                @if($offers->hasPages())
-                    <div class="px-6 py-4 border-b border-border/40 bg-muted/10 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <p class="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
-                            Showing {{ $offers->firstItem() ?? 0 }}-{{ $offers->lastItem() ?? 0 }} of {{ $offers->total() }}
-                        </p>
-                        {{ $offers->links() }}
-                    </div>
-                @endif
+            <!-- Table -->
+            <x-ui.card-content class="p-0 relative min-h-[400px]">
 
-                <x-ui.table>
-                    <x-ui.table-header class="bg-muted/20">
-                        <x-ui.table-row class="border-b border-border/60">
-                            <x-ui.table-head>Offer</x-ui.table-head>
-                            <x-ui.table-head>Type</x-ui.table-head>
-                            <x-ui.table-head>Rule</x-ui.table-head>
-                            <x-ui.table-head>Schedule</x-ui.table-head>
-                            <x-ui.table-head>Status</x-ui.table-head>
-                            <x-ui.table-head class="text-right">Actions</x-ui.table-head>
-                        </x-ui.table-row>
-                    </x-ui.table-header>
-                    <x-ui.table-body>
-                        @forelse($offers as $offer)
-                            <x-ui.table-row class="border-b border-border/40 group hover:bg-primary/[0.02] transition-colors">
-                                <x-ui.table-cell>
-                                    <div class="space-y-1">
-                                        <p class="font-black text-foreground">{{ $offer->name }}</p>
-                                        <p class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Priority {{ $offer->priority }}</p>
-                                    </div>
-                                </x-ui.table-cell>
-                                <x-ui.table-cell>
-                                    <x-ui.badge :variant="$offer->type === 'order_discount' ? 'default' : 'success'" className="uppercase text-[9px] font-black tracking-[0.2em] px-3 py-1 rounded-xl">
-                                        {{ $offer->type === 'order_discount' ? 'Order Discount' : 'BOGO' }}
-                                    </x-ui.badge>
-                                </x-ui.table-cell>
-                                <x-ui.table-cell>
-                                    <div class="space-y-1 text-sm text-foreground">
-                                        @if($offer->type === 'order_discount')
-                                            <p class="font-black">
-                                                {{ $offer->discount_type === 'percentage' ? rtrim(rtrim(number_format((float) $offer->value, 2), '0'), '.') . '%' : '₹' . number_format((float) $offer->value, 2) }}
-                                            </p>
-                                            <p class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                                @if((float) $offer->min_spend > 0)
-                                                    Min spend ₹{{ number_format((float) $offer->min_spend, 2) }}
-                                                @else
-                                                    No minimum spend
-                                                @endif
-                                            </p>
-                                        @else
-                                            <p class="font-black">Buy {{ $offer->buy_qty }} Get {{ $offer->get_qty }}</p>
-                                            <p class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{{ $offer->product?->name ?? 'No product linked' }}</p>
-                                        @endif
-                                    </div>
-                                </x-ui.table-cell>
-                                <x-ui.table-cell>
-                                    <div class="space-y-1">
-                                        <p class="text-sm font-bold text-foreground">{{ $offer->starts_at?->format('d M Y h:i A') ?? 'Immediate' }}</p>
-                                        <p class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Until {{ $offer->ends_at?->format('d M Y h:i A') ?? 'No expiry' }}</p>
-                                    </div>
-                                </x-ui.table-cell>
-                                <x-ui.table-cell>
-                                    <x-ui.badge :variant="$offer->is_active ? 'success' : 'destructive'" className="uppercase text-[9px] font-black tracking-[0.2em] px-3 py-1 rounded-xl">
-                                        {{ $offer->is_active ? 'Active' : 'Inactive' }}
-                                    </x-ui.badge>
-                                </x-ui.table-cell>
-                                <x-ui.table-cell class="text-right">
-                                    <div class="flex items-center justify-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                                        <a href="{{ route('offers.edit', $offer) }}" class="inline-flex items-center justify-center size-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-2xl border border-transparent hover:border-primary/20 transition-all">
-                                            <x-ui.icon name="edit-3" size="4" />
-                                        </a>
-                                        <form action="{{ route('offers.destroy', $offer) }}" method="POST" onsubmit="return confirm('Delete this offer?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="inline-flex items-center justify-center size-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-2xl border border-transparent hover:border-destructive/20 transition-all">
-                                                <x-ui.icon name="trash-2" size="4" />
-                                            </button>
-                                        </form>
-                                    </div>
-                                </x-ui.table-cell>
-                            </x-ui.table-row>
-                        @empty
-                            <x-ui.table-row>
-                                <x-ui.table-cell colspan="6" class="h-60 text-center">
-                                    <div class="flex flex-col items-center justify-center gap-4 opacity-40">
-                                        <div class="size-16 rounded-[1.5rem] bg-primary/5 border border-primary/10 flex items-center justify-center">
-                                            <x-ui.icon name="tag" size="10" class="text-primary/40" />
-                                        </div>
-                                        <div class="space-y-1">
-                                            <p class="text-sm font-black uppercase tracking-[0.2em]">No offers found</p>
-                                            <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Create your first automatic pricing rule.</p>
-                                        </div>
-                                    </div>
-                                </x-ui.table-cell>
-                            </x-ui.table-row>
-                        @endforelse
-                    </x-ui.table-body>
-                </x-ui.table>
+                <!-- Loading Overlay -->
+                <div
+                    x-show="isLoading"
+                    x-cloak
+                    class="absolute inset-0 z-50 bg-background/40 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-300">
 
-                @if($offers->hasPages())
-                    <div class="px-6 py-4 border-t border-border/40 bg-muted/10 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-b-[2rem]">
-                        <p class="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
-                            Page {{ $offers->currentPage() }} of {{ $offers->lastPage() }}
-                        </p>
-                        {{ $offers->links() }}
+                    <div class="flex flex-col items-center gap-4">
+
+                        <x-ui.icon
+                            name="refresh-cw"
+                            class="animate-spin text-primary"
+                            size="8" />
+
+                        <span
+                            class="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                            Syncing Offer Data
+                        </span>
+
                     </div>
-                @endif
+
+                </div>
+
+                <!-- Table -->
+                <div id="offers-table-container">
+
+                    @include('offers.partials.table', [
+                        'records' => $offers
+                    ])
+
+                </div>
+
             </x-ui.card-content>
+
         </x-ui.card>
+
     </div>
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+
 </x-layouts.app>

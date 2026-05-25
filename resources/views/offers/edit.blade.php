@@ -1,3 +1,13 @@
 <x-layouts.app pageTitle="Edit Offer">
-    @include('offers.form', ['offer' => $offer])
+
+    <div class="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+
+        @include('offers.form', [
+
+            'offer' => $offer
+
+        ])
+
+    </div>
+
 </x-layouts.app>

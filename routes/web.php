@@ -127,9 +127,44 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('order-tracking/{shipment}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'show']);
 
     // Promo Codes / Coupons
-    Route::post('/coupons/validate', [App\Http\Controllers\Web\CouponController::class, 'validateApi'])->name('coupons.validate');
-    Route::resource('coupons', App\Http\Controllers\Web\CouponController::class);
-    Route::resource('offers', App\Http\Controllers\Web\OfferController::class)->except(['show']);
+
+Route::post(
+    '/coupons/validate',
+    [App\Http\Controllers\Web\CouponController::class, 'validateApi']
+)->name('coupons.validate');
+
+Route::post(
+    '/coupons/bulk-status',
+    [App\Http\Controllers\Web\CouponController::class, 'bulkStatus']
+)->name('coupons.bulk-status');
+
+Route::post(
+    '/coupons/bulk-delete',
+    [App\Http\Controllers\Web\CouponController::class, 'bulkDelete']
+)->name('coupons.bulk-delete');
+
+Route::resource(
+    'coupons',
+    App\Http\Controllers\Web\CouponController::class
+);
+
+// Offers
+
+Route::post(
+    '/offers/bulk-status',
+    [App\Http\Controllers\Web\OfferController::class, 'bulkStatus']
+)->name('offers.bulk-status');
+
+Route::post(
+    '/offers/bulk-delete',
+    [App\Http\Controllers\Web\OfferController::class, 'bulkDelete']
+)->name('offers.bulk-delete');
+
+Route::resource(
+    'offers',
+    App\Http\Controllers\Web\OfferController::class
+)->except(['show']);
+
 
     // Transport Management
     Route::post('/transport/bulk-delete', [\App\Http\Controllers\Web\TransportController::class, 'bulkDelete'])->name('transport.bulk-delete');

@@ -40,35 +40,35 @@
 
                 </x-ui.table-head>
 
-                <!-- Code -->
+                <!-- Offer -->
                 <x-ui.table-head
                     class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
 
-                    Coupon Identity
+                    Offer Identity
 
                 </x-ui.table-head>
 
-                <!-- Discount -->
+                <!-- Type -->
                 <x-ui.table-head
                     class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
 
-                    Discount Structure
+                    Campaign Type
 
                 </x-ui.table-head>
 
-                <!-- Usage -->
-                <x-ui.table-head
-                    class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap text-center">
-
-                    Usage Metrics
-
-                </x-ui.table-head>
-
-                <!-- Expiry -->
+                <!-- Rule -->
                 <x-ui.table-head
                     class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
 
-                    Expiry Window
+                    Discount Logic
+
+                </x-ui.table-head>
+
+                <!-- Schedule -->
+                <x-ui.table-head
+                    class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
+
+                    Active Window
 
                 </x-ui.table-head>
 
@@ -76,7 +76,7 @@
                 <x-ui.table-head
                     class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap text-center">
 
-                    Lifecycle
+                    Status
 
                 </x-ui.table-head>
 
@@ -95,42 +95,42 @@
         <!-- Body -->
         <x-ui.table-body>
 
-            @forelse($rows as $record)
+            @forelse($rows as $offer)
 
                 @php
 
-                    $r = is_array($record)
-                        ? (object) $record
-                        : $record;
-
                     $isExpired =
-                        $r->expiry_date &&
-                        \Illuminate\Support\Carbon::parse($r->expiry_date)->isPast();
+                        $offer->ends_at &&
+                        \Illuminate\Support\Carbon::parse($offer->ends_at)->isPast();
 
-                    $isActive = $r->is_active && !$isExpired;
+                    $isActive =
+                        $offer->is_active &&
+                        !$isExpired;
 
                     $statusVariant = match (true) {
 
                         $isExpired => 'warning',
 
-                        $r->is_active => 'success',
+                        $offer->is_active => 'success',
 
                         default => 'destructive',
+
                     };
 
                     $statusLabel = match (true) {
 
                         $isExpired => 'EXPIRED',
 
-                        $r->is_active => 'ACTIVE',
+                        $offer->is_active => 'ACTIVE',
 
                         default => 'INACTIVE',
+
                     };
 
                 @endphp
 
                 <x-ui.table-row
-                    x-bind:class="selectedCoupons.includes({{ $r->id }}) ? 'bg-primary/[0.06] ring-1 ring-inset ring-primary/15 relative z-40' : 'hover:bg-primary/[0.03] hover:z-50 relative'"
+                    x-bind:class="selectedOffers.includes({{ $offer->id }}) ? 'bg-primary/[0.06] ring-1 ring-inset ring-primary/15 relative z-40' : 'hover:bg-primary/[0.03] hover:z-50 relative'"
                     class="border-b border-border/40 group/row transition-colors duration-200">
 
                     <!-- Checkbox -->
@@ -138,15 +138,15 @@
 
                         <input
                             type="checkbox"
-                            name="coupon_ids[]"
-                            value="{{ $r->id }}"
-                            :checked="selectedCoupons.includes({{ $r->id }})"
-                            @change="toggleCoupon({{ $r->id }})"
+                            name="offer_ids[]"
+                            value="{{ $offer->id }}"
+                            :checked="selectedOffers.includes({{ $offer->id }})"
+                            @change="toggleOffer({{ $offer->id }})"
                             class="rounded-md border-border bg-background text-primary focus:ring-primary/25 shadow-sm">
 
                     </x-ui.table-cell>
 
-                    <!-- Coupon Identity -->
+                    <!-- Offer Identity -->
                     <x-ui.table-cell class="align-middle">
 
                         <div class="flex items-center gap-4 py-0.5">
@@ -156,7 +156,7 @@
                                 <div
                                     class="size-11 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/15 flex items-center justify-center text-primary shadow-inner ring-1 ring-primary/10 group-hover/row:scale-[1.02] transition-transform duration-300">
 
-                                    <x-ui.icon name="gift" size="4.5" />
+                                    <x-ui.icon name="tag" size="4.5" />
 
                                 </div>
 
@@ -168,10 +168,10 @@
 
                                     <span
                                         x-data="{ copied: false }"
-                                        @click.prevent.stop="navigator.clipboard.writeText('{{ $r->code }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                                        class="cursor-pointer text-sm font-black tracking-tight text-foreground uppercase truncate hover:text-primary transition-colors flex items-center gap-1.5 relative group/copy w-max">
+                                        @click.prevent.stop="navigator.clipboard.writeText('{{ $offer->name }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                        class="cursor-pointer text-sm font-black tracking-tight text-foreground truncate hover:text-primary transition-colors flex items-center gap-1.5 relative group/copy w-max">
 
-                                        {{ $r->code }}
+                                        {{ $offer->name }}
 
                                         <x-ui.icon
                                             name="copy"
@@ -192,7 +192,7 @@
                                     <span
                                         class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/40 whitespace-nowrap">
 
-                                        ID: {{ $r->id }}
+                                        ID: {{ $offer->id }}
 
                                     </span>
 
@@ -201,7 +201,7 @@
                                 <span
                                     class="text-[10px] font-bold text-muted-foreground/65 uppercase tracking-widest">
 
-                                    {{ $r->type === 'percentage' ? 'Percentage Rule' : 'Fixed Discount Rule' }}
+                                    Priority {{ $offer->priority }}
 
                                 </span>
 
@@ -211,37 +211,76 @@
 
                     </x-ui.table-cell>
 
-                    <!-- Discount -->
+                    <!-- Type -->
+                    <x-ui.table-cell class="align-middle">
+
+                        <x-ui.badge
+                            :variant="$offer->type === 'order_discount' ? 'default' : 'success'"
+                            className="uppercase text-[9px] font-black tracking-[0.2em] px-3 py-1 rounded-xl shadow-sm">
+
+                            {{ $offer->type === 'order_discount'
+                                ? 'ORDER DISCOUNT'
+                                : 'BOGO'
+                            }}
+
+                        </x-ui.badge>
+
+                    </x-ui.table-cell>
+
+                    <!-- Rule -->
                     <x-ui.table-cell class="align-middle">
 
                         <div class="space-y-1">
 
-                            <span class="text-lg font-black text-foreground">
+                            @if($offer->type === 'order_discount')
 
-                                {{ $r->type === 'percentage'
-                                    ? rtrim(rtrim(number_format((float) $r->value, 2), '0'), '.') . '%'
-                                    : '₹' . number_format((float) $r->value, 2)
-                                }}
+                                <span class="text-lg font-black text-foreground">
 
-                            </span>
+                                    {{ $offer->discount_type === 'percentage'
+                                        ? rtrim(rtrim(number_format((float) $offer->value, 2), '0'), '.') . '%'
+                                        : '₹' . number_format((float) $offer->value, 2)
+                                    }}
 
-                            @if((float) $r->min_spend > 0)
+                                </span>
 
                                 <p
                                     class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
 
-                                    Min spend ₹{{ number_format((float) $r->min_spend, 2) }}
+                                    @if((float) $offer->min_spend > 0)
+
+                                        Min spend ₹{{ number_format((float) $offer->min_spend, 2) }}
+
+                                    @else
+
+                                        No minimum spend
+
+                                    @endif
 
                                 </p>
 
-                            @endif
+                                @if((float) $offer->max_discount > 0)
 
-                            @if((float) $r->max_discount > 0)
+                                    <p
+                                        class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+
+                                        Max ₹{{ number_format((float) $offer->max_discount, 2) }}
+
+                                    </p>
+
+                                @endif
+
+                            @else
+
+                                <span class="text-lg font-black text-foreground">
+
+                                    Buy {{ $offer->buy_qty }} Get {{ $offer->get_qty }}
+
+                                </span>
 
                                 <p
                                     class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
 
-                                    Max ₹{{ number_format((float) $r->max_discount, 2) }}
+                                    {{ $offer->product?->name ?? 'No linked product' }}
 
                                 </p>
 
@@ -251,39 +290,16 @@
 
                     </x-ui.table-cell>
 
-                    <!-- Usage -->
-                    <x-ui.table-cell class="align-middle text-center">
-
-                        <div class="flex flex-col items-center">
-
-                            <span
-                                class="text-sm font-black tabular-nums text-foreground">
-
-                                {{ $r->used_count ?? 0 }}
-
-                            </span>
-
-                            <span
-                                class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-
-                                of {{ $r->usage_limit ?? 'Unlimited' }}
-
-                            </span>
-
-                        </div>
-
-                    </x-ui.table-cell>
-
-                    <!-- Expiry -->
+                    <!-- Schedule -->
                     <x-ui.table-cell class="align-middle">
 
                         <div class="space-y-1">
 
                             <span class="text-sm font-bold text-foreground">
 
-                                {{ $r->expiry_date
-                                    ? \Illuminate\Support\Carbon::parse($r->expiry_date)->format('M d, Y')
-                                    : 'Never Expires'
+                                {{ $offer->starts_at
+                                    ? $offer->starts_at->format('M d, Y h:i A')
+                                    : 'Immediate'
                                 }}
 
                             </span>
@@ -291,9 +307,9 @@
                             <p
                                 class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
 
-                                {{ $r->expiry_date
-                                    ? \Illuminate\Support\Carbon::parse($r->expiry_date)->diffForHumans()
-                                    : 'Open Ended'
+                                Until {{ $offer->ends_at
+                                    ? $offer->ends_at->format('M d, Y h:i A')
+                                    : 'No expiry'
                                 }}
 
                             </p>
@@ -322,8 +338,8 @@
 
                             <!-- Edit -->
                             <a
-                                href="{{ route('coupons.edit', $r->id) }}"
-                                title="Edit Coupon">
+                                href="{{ route('offers.edit', $offer) }}"
+                                title="Edit Offer">
 
                                 <x-ui.button
                                     variant="ghost"
@@ -338,10 +354,10 @@
 
                             <!-- Delete -->
                             <form
-                                action="{{ route('coupons.destroy', $r->id) }}"
+                                action="{{ route('offers.destroy', $offer) }}"
                                 method="POST"
                                 class="inline"
-                                onsubmit="return confirm('Delete this coupon?');">
+                                onsubmit="return confirm('Delete this offer?');">
 
                                 @csrf
                                 @method('DELETE')
@@ -379,7 +395,7 @@
                                 class="size-24 rounded-3xl bg-gradient-to-br from-primary/25 via-primary/8 to-transparent border border-primary/20 flex items-center justify-center text-primary shadow-inner ring-1 ring-primary/10">
 
                                 <x-ui.icon
-                                    name="gift"
+                                    name="tag"
                                     size="12" />
 
                             </div>
@@ -390,27 +406,27 @@
                                 <p
                                     class="text-sm font-black uppercase tracking-[0.2em] text-foreground">
 
-                                    No coupons found
+                                    No offers found
 
                                 </p>
 
                                 <p
                                     class="text-[11px] text-muted-foreground font-medium leading-relaxed">
 
-                                    Adjust your filters or create a new coupon to begin managing promotional campaigns.
+                                    Adjust your filters or create a new offer to start running automated campaigns.
 
                                 </p>
 
                             </div>
 
-                            <a href="{{ route('coupons.create') }}">
+                            <a href="{{ route('offers.create') }}">
 
                                 <x-ui.button
                                     variant="outline"
                                     size="sm"
                                     class="rounded-xl border-border/60 font-bold uppercase tracking-widest text-[10px] h-10 px-6">
 
-                                    Create Coupon
+                                    Create Offer
 
                                 </x-ui.button>
 
