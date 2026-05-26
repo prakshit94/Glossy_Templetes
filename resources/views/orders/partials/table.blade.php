@@ -14,17 +14,17 @@
                     <input type="checkbox" x-model="allSelected" @change="toggleAll"
                         class="rounded-md border-border bg-background text-primary focus:ring-primary/25 shadow-sm">
                 </x-ui.table-head>
-                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Order Identity</x-ui.table-head>
-                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Transaction Type</x-ui.table-head>
-                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Associated Party</x-ui.table-head>
-                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Fulfillment Node</x-ui.table-head>
-                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
-    Created By
-</x-ui.table-head>
-                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap text-center">Lifecycle Status</x-ui.table-head>
-                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Ordered Products</x-ui.table-head>
-                <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 text-right whitespace-nowrap">Financial Total</x-ui.table-head>
-                <x-ui.table-head class="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 pr-5">Actions</x-ui.table-head>
+                <x-ui.table-head x-show="visibleColumns.order_identity" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Order Identity</x-ui.table-head>
+                <x-ui.table-head x-show="visibleColumns.transaction_type" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Transaction Type</x-ui.table-head>
+                <x-ui.table-head x-show="visibleColumns.associated_party" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Associated Party</x-ui.table-head>
+                <x-ui.table-head x-show="visibleColumns.fulfillment_node" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Fulfillment Node</x-ui.table-head>
+                <x-ui.table-head x-show="visibleColumns.created_by" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
+                    Created By
+                </x-ui.table-head>
+                <x-ui.table-head x-show="visibleColumns.lifecycle_status" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap text-center">Lifecycle Status</x-ui.table-head>
+                <x-ui.table-head x-show="visibleColumns.ordered_products" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Ordered Products</x-ui.table-head>
+                <x-ui.table-head x-show="visibleColumns.financial_total" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 text-right whitespace-nowrap">Financial Total</x-ui.table-head>
+                <x-ui.table-head x-show="visibleColumns.actions" class="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 pr-5">Actions</x-ui.table-head>
             </x-ui.table-row>
         </x-ui.table-header>
         <x-ui.table-body>
@@ -55,7 +55,7 @@
                             class="rounded-md border-border bg-background text-primary focus:ring-primary/25 shadow-sm">
                     </x-ui.table-cell>
 
-                    <x-ui.table-cell class="align-middle">
+                    <x-ui.table-cell x-show="visibleColumns.order_identity" class="align-middle">
                         <div class="flex items-center gap-4 py-0.5">
                             <div class="shrink-0">
                                 <div class="size-11 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/15 flex items-center justify-center text-primary shadow-inner ring-1 ring-primary/10 group-hover/row:scale-[1.02] transition-transform duration-300">
@@ -78,7 +78,7 @@
                         </div>
                     </x-ui.table-cell>
 
-                    <x-ui.table-cell class="align-middle">
+                    <x-ui.table-cell x-show="visibleColumns.transaction_type" class="align-middle">
                         @php
                             $typeVariant = $order->type === 'sale' ? 'default' : 'outline';
                             $typeColor = $order->type === 'sale' ? 'text-blue-500 bg-blue-500/5' : 'text-purple-500 bg-purple-500/5';
@@ -89,7 +89,7 @@
                         </div>
                     </x-ui.table-cell>
 
-                    <x-ui.table-cell class="align-middle">
+                    <x-ui.table-cell x-show="visibleColumns.associated_party" class="align-middle">
                         <div class="flex items-center gap-2">
                             <div class="size-7 rounded-lg bg-muted/40 flex items-center justify-center text-muted-foreground">
                                 <x-ui.icon name="user" size="3" />
@@ -98,7 +98,7 @@
                         </div>
                     </x-ui.table-cell>
 
-                    <x-ui.table-cell class="align-middle">
+                    <x-ui.table-cell x-show="visibleColumns.fulfillment_node" class="align-middle">
                         <div class="flex items-center gap-2">
                             <div class="size-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
                                 <x-ui.icon name="database" size="3" />
@@ -107,37 +107,39 @@
                         </div>
                     </x-ui.table-cell>
 
-                    <x-ui.table-cell class="align-middle">
+                    <x-ui.table-cell x-show="visibleColumns.created_by" class="align-middle">
+                        <div class="flex items-center gap-2">
+                            <div class="size-7 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-600">
+                                <x-ui.icon name="user-circle" size="3" />
+                            </div>
+                            <div class="flex flex-col min-w-0">
+                                <span class="text-[11px] font-bold text-foreground/80 truncate max-w-[120px]">
+                                    {{ $order->creator?->name ?? 'System' }}
+                                </span>
+                                @if($order->creator?->email)
+                                    <span class="text-[9px] text-muted-foreground truncate max-w-[140px]">
+                                        {{ $order->creator->email }}
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    </x-ui.table-cell>
 
-    <div class="flex items-center gap-2">
-
-        <div class="size-7 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-600">
-            <x-ui.icon name="user-circle" size="3" />
-        </div>
-
-        <div class="flex flex-col min-w-0">
-
-            <span class="text-[11px] font-bold text-foreground/80 truncate max-w-[120px]">
-                {{ $order->creator?->name ?? 'System' }}
-            </span>
-
-            @if($order->creator?->email)
-                <span class="text-[9px] text-muted-foreground truncate max-w-[140px]">
-                    {{ $order->creator->email }}
-                </span>
-            @endif
-
-        </div>
-
-    </div>
-
-</x-ui.table-cell>
-
-                    <x-ui.table-cell class="align-middle text-center">
+                    <x-ui.table-cell x-show="visibleColumns.lifecycle_status" class="align-middle text-center">
     @php
+        $lifecycleStatus = $order->lifecycleStatus();
         $transitions = [];
 
-        if ($order->status === 'pending') {
+        if ($lifecycleStatus === 'future_order') {
+            $transitions[] = [
+                'status' => 'cancelled',
+                'label' => 'Cancel Order',
+                'type' => 'cancel',
+                'icon' => 'x-circle',
+                'color' => 'red'
+            ];
+
+        } elseif ($lifecycleStatus === 'pending') {
             $transitions[] = [
                 'status' => 'confirmed',
                 'label' => 'Confirm Order',
@@ -154,7 +156,7 @@
                 'color' => 'red'
             ];
 
-        } elseif ($order->status === 'confirmed') {
+        } elseif ($lifecycleStatus === 'confirmed') {
 
             $transitions[] = [
                 'status' => 'processing',
@@ -188,7 +190,7 @@
                 'color' => 'red'
             ];
 
-        } elseif ($order->status === 'processing') {
+        } elseif ($lifecycleStatus === 'processing') {
 
             $transitions[] = [
                 'status' => 'ready_to_ship',
@@ -214,7 +216,7 @@
                 'color' => 'red'
             ];
 
-        } elseif ($order->status === 'ready_to_ship') {
+        } elseif ($lifecycleStatus === 'ready_to_ship') {
 
             $transitions[] = [
                 'status' => 'dispatched',
@@ -232,7 +234,7 @@
                 'color' => 'gray'
             ];
 
-        } elseif (in_array($order->status, ['dispatched', 'shipped'], true)) {
+        } elseif (in_array($lifecycleStatus, ['dispatched', 'shipped'], true)) {
 
             $transitions[] = [
                 'status' => 'delivered',
@@ -250,7 +252,7 @@
                 'color' => 'gray'
             ];
 
-        } elseif ($order->status === 'delivered') {
+        } elseif ($lifecycleStatus === 'delivered') {
 
             $transitions[] = [
                 'status' => 'dispatched',
@@ -260,7 +262,7 @@
                 'color' => 'gray'
             ];
 
-        } elseif ($order->status === 'cancelled') {
+        } elseif ($lifecycleStatus === 'cancelled') {
 
             $transitions[] = [
                 'status' => 'pending',
@@ -271,14 +273,20 @@
             ];
         }
 
-        $statusVariant = match($order->status) {
-            'shipped', 'dispatched', 'delivered', 'completed' => 'success',
-            'cancelled', 'returned' => 'destructive',
-            'pending' => 'warning',
-            'processing', 'in_transit' => 'default',
-            'ready_to_ship' => 'warning',
-            default => 'outline'
-        };
+        $statusColors = [
+            'future_order' => ['bg' => 'bg-purple-500/10', 'text' => 'text-purple-600', 'border' => 'border-purple-500/20'],
+            'pending' => ['bg' => 'bg-orange-500/10', 'text' => 'text-orange-600', 'border' => 'border-orange-500/20'],
+            'confirmed' => ['bg' => 'bg-sky-500/10', 'text' => 'text-sky-600', 'border' => 'border-sky-500/20'],
+            'processing' => ['bg' => 'bg-blue-500/10', 'text' => 'text-blue-600', 'border' => 'border-blue-500/20'],
+            'ready_to_ship' => ['bg' => 'bg-indigo-500/10', 'text' => 'text-indigo-600', 'border' => 'border-indigo-500/20'],
+            'dispatched' => ['bg' => 'bg-teal-500/10', 'text' => 'text-teal-600', 'border' => 'border-teal-500/20'],
+            'shipped' => ['bg' => 'bg-teal-500/10', 'text' => 'text-teal-600', 'border' => 'border-teal-500/20'],
+            'delivered' => ['bg' => 'bg-emerald-500/10', 'text' => 'text-emerald-600', 'border' => 'border-emerald-500/20'],
+            'cancelled' => ['bg' => 'bg-red-500/10', 'text' => 'text-red-600', 'border' => 'border-red-500/20'],
+            'returned' => ['bg' => 'bg-rose-500/10', 'text' => 'text-rose-600', 'border' => 'border-rose-500/20'],
+        ];
+
+        $colorClasses = $statusColors[$lifecycleStatus] ?? ['bg' => 'bg-muted/40', 'text' => 'text-muted-foreground', 'border' => 'border-border/50'];
     @endphp
 
     <div x-data="{ open: false }"
@@ -288,13 +296,7 @@
         <button type="button"
             @click="open = !open"
             class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all hover:scale-[1.03] active:scale-[0.97]
-            {{ match($statusVariant) {
-                'success' => 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20',
-                'destructive' => 'bg-red-500/10 text-red-600 border border-red-500/20',
-                'warning' => 'bg-amber-500/10 text-amber-600 border border-amber-500/20',
-                'default' => 'bg-blue-500/10 text-blue-600 border border-blue-500/20',
-                default => 'bg-muted/40 text-muted-foreground border border-border/50'
-            } }}">
+            {{ $colorClasses['bg'] }} {{ $colorClasses['text'] }} {{ $colorClasses['border'] }}">
 
             <span class="uppercase text-[9px] font-black tracking-[0.12em]">
                 {{ $order->statusLabel() }}
@@ -567,7 +569,7 @@
     </div>
 </x-ui.table-cell>
 
-                    <x-ui.table-cell class="align-middle py-3">
+                    <x-ui.table-cell x-show="visibleColumns.ordered_products" class="align-middle py-3">
                         <div x-data="{ show: false, mouseX: 0, mouseY: 0 }"
                              @mouseenter="show = true; mouseX = $event.clientX; mouseY = $event.clientY;"
                              @mousemove="mouseX = $event.clientX; mouseY = $event.clientY;"
@@ -627,14 +629,14 @@
                         </div>
                     </x-ui.table-cell>
 
-                    <x-ui.table-cell class="text-right align-middle">
+                    <x-ui.table-cell x-show="visibleColumns.financial_total" class="text-right align-middle">
                         <div class="flex flex-col items-end">
                             <span class="text-sm font-black text-foreground tracking-tight">₹{{ number_format((float) $order->net_amount, 2) }}</span>
                             <span class="text-[9px] font-bold text-muted-foreground/60">{{ $order->items_count ?? 0 }} items itemized</span>
                         </div>
                     </x-ui.table-cell>
 
-                    <x-ui.table-cell class="text-right align-middle pr-5">
+                    <x-ui.table-cell x-show="visibleColumns.actions" class="text-right align-middle pr-5">
                         @php
                             $canReturnFromLedger = $order->status !== 'returned'
                                 && in_array($order->status, array_merge(\App\Models\Order::inTransitStatuses(), ['delivered', 'processing']), true);
@@ -704,7 +706,7 @@
                 </x-ui.table-row>
             @empty
                 <x-ui.table-row>
-                    <x-ui.table-cell colspan="10" class="h-72 text-center align-middle p-0">
+                    <x-ui.table-cell x-bind:colspan="Object.values(visibleColumns).filter(Boolean).length + 1" class="h-72 text-center align-middle p-0">
                         <div class="flex flex-col items-center justify-center gap-5 py-12 px-6">
                             <div class="size-24 rounded-3xl bg-gradient-to-br from-primary/25 via-primary/8 to-transparent border border-primary/20 flex items-center justify-center text-primary shadow-inner ring-1 ring-primary/10">
                                 <x-ui.icon name="package" size="12" />

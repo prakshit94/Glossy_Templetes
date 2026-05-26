@@ -69,8 +69,43 @@ class OrderController extends Controller
 }
 
         if ($request->filled('status')) {
-            $statuses = $this->expandOrderStatusFilter($request->status);
-            $query->whereIn('status', $statuses);
+            $requestedStatuses = array_filter(array_map('trim', explode(',', $request->status)));
+            $hasFutureOrder = in_array('future_order', $requestedStatuses, true);
+            $hasPending     = in_array('pending', $requestedStatuses, true);
+
+            // Strip virtual statuses; expand dispatched → include shipped
+            $realStatuses = array_values(array_filter($requestedStatuses, fn($s) => !in_array($s, ['future_order', 'pending'])));
+            if (in_array('dispatched', $realStatuses, true)) {
+                $realStatuses[] = 'shipped';
+                $realStatuses   = array_values(array_unique($realStatuses));
+            }
+
+            $query->where(function ($q) use ($hasFutureOrder, $hasPending, $realStatuses) {
+                $first = true;
+
+                if ($hasFutureOrder) {
+                    $q->where(function ($sub) {
+                        $sub->where('status', 'pending')->where('is_draft', true);
+                    });
+                    $first = false;
+                }
+
+                if ($hasPending) {
+                    $method = $first ? 'where' : 'orWhere';
+                    $q->$method(function ($sub) {
+                        $sub->where('status', 'pending')
+                            ->where(function ($s2) {
+                                $s2->where('is_draft', false)->orWhereNull('is_draft');
+                            });
+                    });
+                    $first = false;
+                }
+
+                if (!empty($realStatuses)) {
+                    $method = $first ? 'whereIn' : 'orWhereIn';
+                    $q->$method('status', $realStatuses);
+                }
+            });
         }
 
         if ($request->filled('product')) {
@@ -115,18 +150,39 @@ class OrderController extends Controller
             });
         }
 
+        if ($request->filled('carrier')) {
+            $carriers = array_filter(array_map('trim', explode(',', $request->carrier)));
+            if (!empty($carriers)) {
+                $query->whereHas('shipments', function ($q) use ($carriers) {
+                    $q->whereIn('carrier_name', $carriers);
+                });
+            }
+        }
+
+        if ($request->filled('from_date')) {
+            $query->whereDate('order_date', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('order_date', '<=', $request->to_date);
+        }
+
         $stats = [
             'total'         => (clone $query)->count(),
-            'pending'       => (clone $query)->where('status', 'pending')->count(),
+            'future_order'  => (clone $query)->where('status', 'pending')->where('is_draft', true)->count(),
+            'pending'       => (clone $query)->where('status', 'pending')->where(function($q){ $q->where('is_draft', false)->orWhereNull('is_draft'); })->count(),
+            'confirmed'     => (clone $query)->where('status', 'confirmed')->count(),
             'processing'    => (clone $query)->where('status', 'processing')->count(),
             'ready_to_ship' => (clone $query)->where('status', 'ready_to_ship')->count(),
             'dispatched'    => (clone $query)->whereIn('status', ['dispatched', 'shipped'])->count(),
+            'delivered'     => (clone $query)->where('status', 'delivered')->count(),
+            'cancelled'     => (clone $query)->where('status', 'cancelled')->count(),
         ];
 
         $perPage = (int) $request->get('perPage', 15);
-        $orders  = $query->latest()->paginate($perPage)->withQueryString();
+        $sortDate = $request->get('sort_date', 'desc') === 'asc' ? 'asc' : 'desc';
+        $orders  = $query->orderBy('order_date', $sortDate)->paginate($perPage)->withQueryString();
 
-        $statusesList = ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'delivered', 'cancelled', 'returned'];
+        $statusesList = ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'delivered', 'cancelled', 'returned', 'future_order'];
 
         $productsList = Product::where('status', 'active')->orderBy('name')->get(['id', 'name', 'sku']);
 
@@ -149,6 +205,7 @@ class OrderController extends Controller
         $services = \App\Models\Service::active()->get();
         $drivers = \App\Models\Driver::where('status', 'available')->get();
         $transports = \App\Models\Transport::where('status', 'available')->get();
+        $carriersList = $services->pluck('name')->filter()->sort()->values();
 
         if ($request->ajax()) {
             return response()->json([
@@ -156,6 +213,7 @@ class OrderController extends Controller
                 'districts' => $districtsList,
                 'talukas'   => $talukasList,
                 'stats'     => $stats,
+                'carriers'  => $carriersList,
             ]);
         }
 
@@ -169,7 +227,8 @@ class OrderController extends Controller
             'talukasList',
             'services',
             'drivers',
-            'transports'
+            'transports',
+            'carriersList'
         ));
     }
 

@@ -27,10 +27,11 @@
                                             'confirmed' => 'indigo',
                                             'cancelled', 'returned' => 'red',
                                             'pending' => 'orange',
+                                            'future_order' => 'purple',
                                             default => 'primary'
                                         };
                                     @endphp
-                                    <x-ui.badge variant="{{ match($order->lifecycleStatus()) { 'dispatched', 'delivered' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'warning', default => 'default' } }}" class="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
+                                    <x-ui.badge variant="{{ match($order->lifecycleStatus()) { 'dispatched', 'delivered' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'warning', 'future_order' => 'secondary', default => 'default' } }}" class="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
                                         {{ $order->statusLabel() }}
                                     </x-ui.badge>
                                 </div>

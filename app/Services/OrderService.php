@@ -97,6 +97,8 @@ class OrderService
                 'discount_amount'     => $data['discount_amount'] ?? 0,
                 'net_amount'          => $data['net_amount'] ?? 0,
                 'status'              => 'pending',
+                'is_draft'            => $data['is_draft'] ?? false,
+                'future_order_date'   => $data['future_order_date'] ?? null,
                 'created_by'          => auth()->id(),
                 'updated_by'          => auth()->id(),
             ]);
@@ -364,6 +366,8 @@ class OrderService
                 'discount_amount'     => $calc['total_discount'],
                 'net_amount'          => $calc['grand_total'],
                 'items'               => $calc['items'],
+                'is_draft'            => $data['is_draft'] ?? false,
+                'future_order_date'   => $data['future_order_date'] ?? null,
             ]);
 
             if ($calc['coupon_code']) {
@@ -442,6 +446,8 @@ class OrderService
                 'tax_amount'          => $calc['tax_amount'],
                 'discount_amount'     => $calc['total_discount'],
                 'net_amount'          => $calc['grand_total'],
+                'is_draft'            => isset($data['is_draft']) ? (bool)$data['is_draft'] : $order->is_draft,
+                'future_order_date'   => array_key_exists('future_order_date', $data) ? $data['future_order_date'] : $order->future_order_date,
                 'updated_by'          => auth()->id(),
             ]);
 

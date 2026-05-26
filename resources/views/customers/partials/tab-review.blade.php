@@ -419,7 +419,7 @@
                                 </div>
                                 
                                 {{-- ── Confirm Button Moved Here ── --}}
-                                <form action="{{ route('customers.orders.place', $customer) }}" method="POST" class="w-full">
+                                <form action="{{ route('customers.orders.place', $customer) }}" method="POST" class="w-full" x-data="{ isFutureOrder: false }">
                                     @csrf
                                     <input type="hidden" name="order_id" :value="editingOrderId" :disabled="!editingOrderId">
                                     <input type="hidden" name="cart" :value="JSON.stringify(cart)">
@@ -432,11 +432,42 @@
                                     <input type="hidden" name="warehouse_id" :value="selectedWarehouseId">
                                     <input type="hidden" name="billing_address_id" :value="selectedBillingAddressId">
                                     <input type="hidden" name="address_id" :value="selectedShippingAddressId">
+                                    <input type="hidden" name="is_draft" :value="isFutureOrder ? '1' : '0'">
+                                    
+                                    <div class="mb-6 p-4 rounded-2xl border border-border/60 bg-muted/20" x-show="!editingOrderId">
+                                        <label class="flex items-center justify-between cursor-pointer group">
+                                            <div class="flex items-center gap-3">
+                                                <div class="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                                                    <x-ui.icon name="clock" size="4" />
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs font-black text-foreground">Place as Future Order</p>
+                                                    <p class="text-[9px] text-muted-foreground font-semibold uppercase tracking-widest">Save as draft for later</p>
+                                                </div>
+                                            </div>
+                                            <div class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                                :class="isFutureOrder ? 'bg-emerald-500' : 'bg-muted-foreground/30'">
+                                                <input type="checkbox" x-model="isFutureOrder" class="sr-only">
+                                                <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                                                    :class="isFutureOrder ? 'translate-x-6' : 'translate-x-1'"></span>
+                                            </div>
+                                        </label>
+                                        
+                                        <div x-show="isFutureOrder" x-collapse>
+                                            <div class="pt-4 mt-4 border-t border-border/40 space-y-2">
+                                                <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                                    <x-ui.icon name="calendar" size="3" /> Future Follow-up Date <span class="text-destructive">*</span>
+                                                </label>
+                                                <input type="date" name="future_order_date" min="{{ date('Y-m-d') }}" :required="isFutureOrder"
+                                                    class="w-full h-12 px-4 rounded-xl border border-border/60 bg-background/50 text-sm font-semibold text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all">
+                                            </div>
+                                        </div>
+                                    </div>
                                     
                                     <button type="submit" 
                                         class="w-full h-14 rounded-2xl text-primary-foreground text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3"
-                                        :class="editingOrderId ? 'bg-amber-500 shadow-xl shadow-amber-500/20 hover:shadow-amber-500/40 hover:-translate-y-1' : 'bg-primary shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1'">
-                                        <span x-show="!editingOrderId">Confirm & Place Order</span>
+                                        :class="editingOrderId ? 'bg-amber-500 shadow-xl shadow-amber-500/20 hover:shadow-amber-500/40 hover:-translate-y-1' : (isFutureOrder ? 'bg-emerald-500 shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-1' : 'bg-primary shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1')">
+                                        <span x-show="!editingOrderId" x-text="isFutureOrder ? 'Place Future Order' : 'Place Order'"></span>
                                         <span x-show="editingOrderId">Update Existing Order</span>
                                         <x-ui.icon name="zap" size="5" />
                                     </button>

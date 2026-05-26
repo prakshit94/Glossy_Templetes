@@ -420,4 +420,125 @@
 
     </div>
 
+    <!-- ===================================================== -->
+    <!-- CARRIER FILTER -->
+    <!-- ===================================================== -->
+
+    <div class="relative" x-data="{ open: false, filter: '' }">
+
+        <button
+            @click="open = !open"
+            class="h-9 px-4 flex items-center rounded-xl border border-border bg-background/50 text-[11px] font-bold hover:bg-background transition-all group shadow-sm">
+
+            <span class="text-muted-foreground/80 group-hover:text-cyan-500 transition-colors">
+                Carrier
+            </span>
+
+            <span class="ml-2 px-1.5 py-0.5 rounded-lg bg-cyan-500/10 text-cyan-500 font-black text-[10px]">
+                <span x-text="carrierFilter.length"></span> /
+                <span x-text="carriersList.length"></span>
+            </span>
+
+            <x-ui.icon
+                name="chevron-down"
+                size="3"
+                class="ml-2 text-muted-foreground/40" />
+        </button>
+
+        <div
+            x-show="open"
+            x-transition
+            @click.away="open = false"
+            x-cloak
+            class="absolute left-0 mt-2 w-64 bg-popover border border-border rounded-xl shadow-2xl z-[999] p-1">
+
+            <!-- Search -->
+            <div class="p-2 border-b border-border bg-muted/10 mb-1">
+
+                <input
+                    type="text"
+                    x-model="filter"
+                    placeholder="Search carrier..."
+                    class="w-full px-3 py-1 bg-background rounded-lg border border-border text-[11px] outline-none">
+
+            </div>
+
+            <!-- List -->
+            <div class="max-h-60 overflow-y-auto custom-scrollbar">
+
+                <template
+                    x-for="item in carriersList.filter(i =>
+                        (i || '').toLowerCase().includes(filter.toLowerCase())
+                    )"
+                    :key="item">
+
+                    <label
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                        x-bind:class="carrierFilter.includes(item) ? 'bg-cyan-500/5' : ''">
+
+                        <input
+                            type="checkbox"
+                            :value="item"
+                            x-model="carrierFilter"
+                            @change="performSearch()"
+                            class="rounded border-border text-cyan-500">
+
+                        <span
+                            class="text-[11px] font-bold truncate max-w-[180px]"
+                            x-text="item">
+                        </span>
+
+                    </label>
+
+                </template>
+
+                <div x-show="carriersList.length === 0" class="px-3 py-4 text-center text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                    No carriers available
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ===================================================== -->
+    <!-- PLACED DATE SORT -->
+    <!-- ===================================================== -->
+    <div class="relative">
+        <select
+            x-model="sortDate"
+            @change="performSearch()"
+            class="h-9 px-3 rounded-xl border border-border bg-background/50 text-[11px] font-bold text-muted-foreground focus:text-foreground outline-none shadow-sm cursor-pointer hover:bg-background transition-all">
+            <option value="desc">📅 Latest First</option>
+            <option value="asc">📅 Oldest First</option>
+        </select>
+    </div>
+
+    <!-- ===================================================== -->
+    <!-- DATE RANGE FILTER -->
+    <!-- ===================================================== -->
+    <div class="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border bg-background/50 text-[11px] font-bold text-muted-foreground shadow-sm hover:bg-background transition-all">
+        <span class="text-muted-foreground/80">From:</span>
+        <input 
+            type="date" 
+            x-model="fromDate" 
+            @change="performSearch()" 
+            class="bg-transparent border-none text-foreground p-0 text-[11px] font-bold outline-none cursor-pointer w-[100px] focus:ring-0 focus:outline-none">
+        <span class="text-muted-foreground/80 ml-1">To:</span>
+        <input 
+            type="date" 
+            x-model="toDate" 
+            @change="performSearch()" 
+            class="bg-transparent border-none text-foreground p-0 text-[11px] font-bold outline-none cursor-pointer w-[100px] focus:ring-0 focus:outline-none">
+        <button 
+            type="button" 
+            x-show="fromDate || toDate" 
+            @click="fromDate = ''; toDate = ''; performSearch()" 
+            class="ml-1 text-red-500 hover:text-red-600 transition-colors"
+            title="Clear Dates">
+            <x-ui.icon name="x-circle" size="3" />
+        </button>
+    </div>
+
 </div>

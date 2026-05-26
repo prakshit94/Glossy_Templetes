@@ -460,6 +460,8 @@ class CustomerController extends Controller
                 'nullable',
                 \Illuminate\Validation\Rule::exists('party_addresses', 'id')->where('party_id', $customer->id),
             ],
+            'is_draft'              => 'nullable|boolean',
+            'future_order_date'     => 'required_if:is_draft,1|nullable|date_format:Y-m-d',
         ]);
 
         try {

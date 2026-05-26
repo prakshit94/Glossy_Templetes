@@ -28,12 +28,16 @@ class Order extends Model
     /** Map legacy DB value and normalize for UI / stepper logic. */
     public function lifecycleStatus(): string
     {
+        if ($this->is_draft) {
+            return 'future_order';
+        }
         return $this->status === 'shipped' ? 'dispatched' : $this->status;
     }
 
     public function statusLabel(): string
     {
         return match ($this->lifecycleStatus()) {
+            'future_order'  => 'Future Order',
             'ready_to_ship' => 'Ready to Ship',
             'dispatched'    => 'Dispatched',
             'delivered'     => 'Delivered',
@@ -49,7 +53,7 @@ class Order extends Model
         'order_no', 'type', 'party_id', 'order_date', 'total_amount', 
         'tax_amount', 'discount_amount', 'net_amount', 'status', 'warehouse_id',
         'shipping_address_id', 'billing_address_id', 'billing_address', 'shipping_address',
-        'created_by', 'updated_by'
+        'is_draft', 'future_order_date', 'created_by', 'updated_by'
     ];
 
     protected $casts = [

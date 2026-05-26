@@ -11,19 +11,41 @@
         selectedItems: [], 
         selectedStatuses: {},
         allSelected: false,
+        visibleColumns: localStorage.getItem('order_table_visible_columns') 
+            ? JSON.parse(localStorage.getItem('order_table_visible_columns')) 
+            : {
+                order_identity: true,
+                transaction_type: true,
+                associated_party: true,
+                fulfillment_node: true,
+                created_by: true,
+                lifecycle_status: true,
+                ordered_products: true,
+                financial_total: true,
+                actions: true
+            },
+        toggleColumn(col) {
+            this.visibleColumns[col] = !this.visibleColumns[col];
+            localStorage.setItem('order_table_visible_columns', JSON.stringify(this.visibleColumns));
+        },
         search: @js(request('search', '')),
         perPage: @js(request('perPage', 15)),
+        sortDate: @js(request('sort_date', 'desc')),
+        fromDate: @js(request('from_date', '')),
+        toDate: @js(request('to_date', '')),
         statusFilter: @js($qStatus),
         productFilter: @js($qProduct),
         fulfillmentFilter: @js(request('fulfillment', '')),
         stateFilter: @js($qState),
         districtFilter: @js($qDistrict),
         talukaFilter: @js($qTaluka),
+        carrierFilter: @js(request('carrier') ? explode(',', request('carrier')) : []),
         statusesList: @js($statusesList),
         productsList: @js($productsList),
         statesList: @js($statesList),
         districtsList: @js($districtsList),
         talukasList: @js($talukasList),
+        carriersList: @js($carriersList),
         stats: @js($stats),
         isLoading: false,
         shipOrderNo: '',
@@ -178,7 +200,11 @@
                 fulfillment: this.fulfillmentFilter,
                 state: this.stateFilter.join(','),
                 district: this.districtFilter.join(','),
-                taluka: this.talukaFilter.join(',')
+                taluka: this.talukaFilter.join(','),
+                carrier: this.carrierFilter.join(','),
+                sort_date: this.sortDate,
+                from_date: this.fromDate,
+                to_date: this.toDate
             });
 
             // Persist to URL
@@ -201,6 +227,7 @@
             this.districtsList = data.districts;
             this.talukasList = data.talukas;
             this.stats = data.stats;
+            if (data.carriers) this.carriersList = data.carriers;
             
             // Sync dependent filters
             this.districtFilter = this.districtFilter.filter(d => this.districtsList.includes(d));
@@ -220,64 +247,130 @@
             this.stateFilter = [];
             this.districtFilter = [];
             this.talukaFilter = [];
+            this.carrierFilter = [];
+            this.sortDate = 'desc';
+            this.fromDate = '';
+            this.toDate = '';
             this.performSearch();
         }
     }">
 
         <div class="max-w-[100rem] mx-auto space-y-8">
             <!-- Stats Widgets -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-primary/5 transition-all duration-500 overflow-hidden shadow-2xl">
-                    <div class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-primary/10 blur-[50px] rounded-full group-hover:bg-primary/20 transition-all duration-500"></div>
-                    <div class="flex items-center gap-5 relative z-10">
-                        <div class="size-14 rounded-2xl bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/10 text-primary flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
-                            <x-ui.icon name="shopping-cart" size="7" />
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+
+                <!-- Total -->
+                <div class="group relative p-4 rounded-2xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-primary/5 transition-all duration-300 overflow-hidden shadow-xl col-span-2 md:col-span-1">
+                    <div class="absolute top-0 right-0 -mr-6 -mt-6 size-20 bg-primary/10 blur-[40px] rounded-full"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="size-10 rounded-xl bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/10 text-primary flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                            <x-ui.icon name="shopping-cart" size="5" />
                         </div>
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Total Orders</p>
-                            <div class="text-3xl font-black tracking-tighter text-foreground" x-text="stats.total"></div>
+                            <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Total</p>
+                            <div class="text-2xl font-black tracking-tighter text-foreground" x-text="stats.total"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-orange-500/5 transition-all duration-500 overflow-hidden shadow-2xl">
-                    <div class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-orange-500/10 blur-[50px] rounded-full group-hover:bg-orange-500/20 transition-all duration-500"></div>
-                    <div class="flex items-center gap-5 relative z-10">
-                        <div class="size-14 rounded-2xl bg-gradient-to-tr from-orange-500/20 to-orange-500/5 border border-orange-500/10 text-orange-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
-                            <x-ui.icon name="clock" size="7" />
+                <!-- Future Order -->
+                <div class="group relative p-4 rounded-2xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-purple-500/5 transition-all duration-300 overflow-hidden shadow-xl">
+                    <div class="absolute top-0 right-0 -mr-6 -mt-6 size-20 bg-purple-500/10 blur-[40px] rounded-full"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="size-10 rounded-xl bg-gradient-to-tr from-purple-500/20 to-purple-500/5 border border-purple-500/10 text-purple-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                            <x-ui.icon name="calendar" size="5" />
                         </div>
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Pending</p>
-                            <div class="text-3xl font-black tracking-tighter text-orange-500" x-text="stats.pending"></div>
+                            <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Future</p>
+                            <div class="text-2xl font-black tracking-tighter text-purple-500" x-text="stats.future_order"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-blue-500/5 transition-all duration-500 overflow-hidden shadow-2xl">
-                    <div class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-blue-500/10 blur-[50px] rounded-full group-hover:bg-blue-500/20 transition-all duration-500"></div>
-                    <div class="flex items-center gap-5 relative z-10">
-                        <div class="size-14 rounded-2xl bg-gradient-to-tr from-blue-500/20 to-blue-500/5 border border-blue-500/10 text-blue-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
-                            <x-ui.icon name="settings" size="7" />
+                <!-- Pending -->
+                <div class="group relative p-4 rounded-2xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-orange-500/5 transition-all duration-300 overflow-hidden shadow-xl">
+                    <div class="absolute top-0 right-0 -mr-6 -mt-6 size-20 bg-orange-500/10 blur-[40px] rounded-full"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="size-10 rounded-xl bg-gradient-to-tr from-orange-500/20 to-orange-500/5 border border-orange-500/10 text-orange-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                            <x-ui.icon name="clock" size="5" />
                         </div>
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Processing</p>
-                            <div class="text-3xl font-black tracking-tighter text-blue-500" x-text="stats.processing"></div>
+                            <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Pending</p>
+                            <div class="text-2xl font-black tracking-tighter text-orange-500" x-text="stats.pending"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-emerald-500/5 transition-all duration-500 overflow-hidden shadow-2xl">
-                    <div class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-emerald-500/10 blur-[50px] rounded-full group-hover:bg-emerald-500/20 transition-all duration-500"></div>
-                    <div class="flex items-center gap-5 relative z-10">
-                        <div class="size-14 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-emerald-500/5 border border-emerald-500/10 text-emerald-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
-                            <x-ui.icon name="truck" size="7" />
+                <!-- Confirmed -->
+                <div class="group relative p-4 rounded-2xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-sky-500/5 transition-all duration-300 overflow-hidden shadow-xl">
+                    <div class="absolute top-0 right-0 -mr-6 -mt-6 size-20 bg-sky-500/10 blur-[40px] rounded-full"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="size-10 rounded-xl bg-gradient-to-tr from-sky-500/20 to-sky-500/5 border border-sky-500/10 text-sky-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                            <x-ui.icon name="check-circle" size="5" />
                         </div>
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Dispatched</p>
-                            <div class="text-3xl font-black tracking-tighter text-emerald-500" x-text="stats.dispatched"></div>
+                            <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Confirmed</p>
+                            <div class="text-2xl font-black tracking-tighter text-sky-500" x-text="stats.confirmed"></div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Processing -->
+                <div class="group relative p-4 rounded-2xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-blue-500/5 transition-all duration-300 overflow-hidden shadow-xl">
+                    <div class="absolute top-0 right-0 -mr-6 -mt-6 size-20 bg-blue-500/10 blur-[40px] rounded-full"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="size-10 rounded-xl bg-gradient-to-tr from-blue-500/20 to-blue-500/5 border border-blue-500/10 text-blue-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                            <x-ui.icon name="settings" size="5" />
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Processing</p>
+                            <div class="text-2xl font-black tracking-tighter text-blue-500" x-text="stats.processing"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ready to Ship -->
+                <div class="group relative p-4 rounded-2xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-indigo-500/5 transition-all duration-300 overflow-hidden shadow-xl">
+                    <div class="absolute top-0 right-0 -mr-6 -mt-6 size-20 bg-indigo-500/10 blur-[40px] rounded-full"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="size-10 rounded-xl bg-gradient-to-tr from-indigo-500/20 to-indigo-500/5 border border-indigo-500/10 text-indigo-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                            <x-ui.icon name="package" size="5" />
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Ready</p>
+                            <div class="text-2xl font-black tracking-tighter text-indigo-500" x-text="stats.ready_to_ship"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dispatched -->
+                <div class="group relative p-4 rounded-2xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-teal-500/5 transition-all duration-300 overflow-hidden shadow-xl">
+                    <div class="absolute top-0 right-0 -mr-6 -mt-6 size-20 bg-teal-500/10 blur-[40px] rounded-full"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="size-10 rounded-xl bg-gradient-to-tr from-teal-500/20 to-teal-500/5 border border-teal-500/10 text-teal-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                            <x-ui.icon name="truck" size="5" />
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Dispatched</p>
+                            <div class="text-2xl font-black tracking-tighter text-teal-500" x-text="stats.dispatched"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delivered -->
+                <div class="group relative p-4 rounded-2xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-emerald-500/5 transition-all duration-300 overflow-hidden shadow-xl">
+                    <div class="absolute top-0 right-0 -mr-6 -mt-6 size-20 bg-emerald-500/10 blur-[40px] rounded-full"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="size-10 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-emerald-500/5 border border-emerald-500/10 text-emerald-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                            <x-ui.icon name="check" size="5" />
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Delivered</p>
+                            <div class="text-2xl font-black tracking-tighter text-emerald-500" x-text="stats.delivered"></div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
@@ -320,6 +413,31 @@
                                         </div>
                                     </x-slot>
                                 </x-ui.dropdown>
+                                <x-ui.dropdown>
+                                    <x-slot name="trigger">
+                                        <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm">
+                                            <x-ui.icon name="sliders" size="3" class="mr-2 text-cyan-500" />
+                                            Columns
+                                            <x-ui.icon name="chevron-down" size="3" class="ml-2 opacity-50" />
+                                        </x-ui.button>
+                                    </x-slot>
+                                    <x-slot name="content">
+                                        <div class="p-2 space-y-1.5 w-56" @click.stop>
+                                            <div class="px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 border-b border-border/20">
+                                                Toggle Columns
+                                            </div>
+                                            <div class="space-y-0.5">
+                                                <template x-for="(visible, col) in visibleColumns" :key="col">
+                                                    <label class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-primary/5 cursor-pointer transition-colors" x-bind:class="visible ? 'bg-primary/5' : ''">
+                                                        <input type="checkbox" :checked="visible" @change="toggleColumn(col)" class="rounded border-border text-primary focus:ring-primary/25">
+                                                        <span class="text-[10px] font-black uppercase tracking-wider text-foreground/80" x-text="col.replace(/_/g, ' ')"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </x-slot>
+                                </x-ui.dropdown>
+
                                 <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm" onclick="window.location.href = '{{ route('orders.export') }}' + window.location.search">
                                     <x-ui.icon name="download" size="3" class="mr-2" />
                                     Export
@@ -333,121 +451,120 @@
                                     </a>
                                 @endcan
                             </div>
-                        </div>
-
-                        <!-- Toolbar: scope + filters -->
-                        <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 pt-2 border-t border-border/30">
-                            <div class="flex bg-muted/50 px-4 py-1.5 rounded-xl border border-border/50 shadow-inner w-fit">
-                                <span class="text-xs font-bold text-primary tracking-widest uppercase">Order Ledger</span>
-                            </div>
-
-                            <div x-show="selectedItems.length > 0" x-cloak x-transition
-                                class="flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-300">
-                                @canany(['orders.bulk_status', 'orders.bulk_print'])
-                                    <x-ui.dropdown>
-                                        <x-slot name="trigger">
-                                            <x-ui.button variant="outline" size="sm" class="rounded-xl border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap h-10 px-4">
-                                                <span x-text="selectedItems.length"></span> Selected
-                                                <x-ui.icon name="chevron-down" size="3" class="ml-2" />
-                                            </x-ui.button>
-                                        </x-slot>
-                                        <x-slot name="content">
-                                            <x-ui.dropdown-label>Mass Lifecycle Update</x-ui.dropdown-label>
-                                            <div class="p-1 space-y-1 divide-y divide-border/20">
-                                                @can('orders.bulk_status')
-                                                    <div class="py-1" x-show="hasBulkFulfillOptions()">
-                                                        <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Fulfillment States</div>
-                                                        @foreach(['confirmed' => 'Confirm Orders', 'processing' => 'Mark Processing', 'ready_to_ship' => 'Mark Ready to Ship', 'dispatched' => 'Dispatch Orders', 'delivered' => 'Deliver Orders', 'cancelled' => 'Cancel Orders'] as $status => $label)
-                                                            <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('{{ $status }}')">
-                                                                @csrf
-                                                                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
-                                                                <input type="hidden" name="status" value="{{ $status }}">
-                                                                <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                                    <span class="size-2 rounded-full bg-{{ match($status) { 'confirmed' => 'indigo', 'processing' => 'amber', 'ready_to_ship' => 'indigo', 'dispatched' => 'blue', 'delivered' => 'emerald', 'cancelled' => 'red' } }}-500 mr-2"></span>
-                                                                    {{ $label }}
-                                                                </button>
-                                                            </form>
-                                                            @if($status === 'dispatched')
-                                                                <button type="button" @click="openAssignModal(null)" x-show="canBulkFulfill('dispatched')"
-                                                                    class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                                    <span class="size-2 rounded-full bg-blue-500 mr-2"></span>
-                                                                    Assign Shipment
-                                                                </button>
-                                                            @endif
-                                                        @endforeach
-                                                    </div>
-                                                    <div class="py-1" x-show="hasBulkRevertOptions()">
-                                                        <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70">Revert / Undo States</div>
-                                                        @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'ready_to_ship' => 'Revert to Ready to Ship', 'dispatched' => 'Revert to Dispatched'] as $status => $label)
-                                                            <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkRevert('{{ $status }}')">
-                                                                @csrf
-                                                                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
-                                                                <input type="hidden" name="status" value="{{ $status }}">
-                                                                <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-amber-500/5 hover:text-amber-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
-                                                                    <x-ui.icon name="corner-up-left" size="3.5" class="mr-2 text-amber-500" />
-                                                                    {{ $label }}
-                                                                </button>
-                                                            </form>
-                                                        @endforeach
-                                                    </div>
-                                                @endcan
-                                                @can('orders.bulk_print')
-                                                    <div class="py-1">
-                                                        <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-600/70">Bulk PDF Downloads</div>
-                                                        <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
-                                                            <input type="hidden" name="type" value="invoice">
-                                                            <template x-for="id in selectedItems">
-                                                                <input type="hidden" name="ids[]" :value="id">
-                                                            </template>
-                                                            <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-blue-500/5 hover:text-blue-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
-                                                                <x-ui.icon name="file-text" size="3.5" class="mr-2 text-blue-500" />
-                                                                Bulk Invoice PDF
-                                                            </button>
-                                                        </form>
-                                                        <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
-                                                            <input type="hidden" name="type" value="cod">
-                                                            <template x-for="id in selectedItems">
-                                                                <input type="hidden" name="ids[]" :value="id">
-                                                            </template>
-                                                            <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-emerald-500/5 hover:text-emerald-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
-                                                                <x-ui.icon name="printer" size="3.5" class="mr-2 text-emerald-500" />
-                                                                Bulk COD PDF
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                @endcan
-                                            </div>
-                                        </x-slot>
-                                    </x-ui.dropdown>
-                                @endcanany
-                            </div>
-                            
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Show</span>
-                                <select x-model="perPage" @change="performSearch()" class="h-10 px-3 rounded-xl border border-border bg-background/50 text-xs font-medium focus:ring-1 focus:ring-primary outline-none shadow-sm">
-                                    <option value="15">15</option>
-                                    <option value="25">25</option>
-                                    <option value="50">50</option>
-                                    <option value="100">100</option>
-                                </select>
-                            </div>
-
-                            <div class="flex flex-wrap items-center gap-2">
-                                @include('orders.partials.filters')
+                        </div>                        <!-- Toolbar: filters and search controls -->
+                        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pt-4 border-t border-border/30">
+                            <!-- Left: All filters & controls -->
+                            <div class="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
                                 
-                                <x-ui.button variant="ghost" size="sm" @click="clearFilters()" class="rounded-xl h-10 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
+                                <!-- Show Limit Select -->
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <span class="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">Show</span>
+                                    <select x-model="perPage" @change="performSearch()" class="h-9 px-3 rounded-xl border border-border bg-background/50 text-[11px] font-bold text-muted-foreground focus:text-foreground outline-none shadow-sm cursor-pointer hover:bg-background transition-all">
+                                        <option value="15">15</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+
+                                <!-- Bulk actions trigger -->
+                                <div x-show="selectedItems.length > 0" x-cloak x-transition
+                                    class="flex items-center gap-2 shrink-0 animate-in fade-in slide-in-from-left-4 duration-300">
+                                    @canany(['orders.bulk_status', 'orders.bulk_print'])
+                                        <x-ui.dropdown>
+                                            <x-slot name="trigger">
+                                                <x-ui.button variant="outline" size="sm" class="rounded-xl border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap h-9 px-4 text-[10px] uppercase tracking-widest">
+                                                    <span x-text="selectedItems.length"></span> Selected
+                                                    <x-ui.icon name="chevron-down" size="3" class="ml-2" />
+                                                </x-ui.button>
+                                            </x-slot>
+                                            <x-slot name="content">
+                                                <x-ui.dropdown-label>Mass Lifecycle Update</x-ui.dropdown-label>
+                                                <div class="p-1 space-y-1 divide-y divide-border/20">
+                                                    @can('orders.bulk_status')
+                                                        <div class="py-1" x-show="hasBulkFulfillOptions()">
+                                                            <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Fulfillment States</div>
+                                                            @foreach(['confirmed' => 'Confirm Orders', 'processing' => 'Mark Processing', 'ready_to_ship' => 'Mark Ready to Ship', 'dispatched' => 'Dispatch Orders', 'delivered' => 'Deliver Orders', 'cancelled' => 'Cancel Orders'] as $status => $label)
+                                                                <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('{{ $status }}')">
+                                                                    @csrf
+                                                                    <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                                    <input type="hidden" name="status" value="{{ $status }}">
+                                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
+                                                                        <span class="size-2 rounded-full bg-{{ match($status) { 'confirmed' => 'indigo', 'processing' => 'amber', 'ready_to_ship' => 'indigo', 'dispatched' => 'blue', 'delivered' => 'emerald', 'cancelled' => 'red' } }}-500 mr-2"></span>
+                                                                        {{ $label }}
+                                                                    </button>
+                                                                </form>
+                                                                @if($status === 'dispatched')
+                                                                    <button type="button" @click="openAssignModal(null)" x-show="canBulkFulfill('dispatched')"
+                                                                        class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
+                                                                        <span class="size-2 rounded-full bg-blue-500 mr-2"></span>
+                                                                        Assign Shipment
+                                                                    </button>
+                                                                @endif
+                                                            @endforeach
+                                                        </div>
+                                                        <div class="py-1" x-show="hasBulkRevertOptions()">
+                                                            <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70">Revert / Undo States</div>
+                                                            @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'ready_to_ship' => 'Revert to Ready to Ship', 'dispatched' => 'Revert to Dispatched'] as $status => $label)
+                                                                <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkRevert('{{ $status }}')">
+                                                                    @csrf
+                                                                    <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                                    <input type="hidden" name="status" value="{{ $status }}">
+                                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-amber-500/5 hover:text-amber-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
+                                                                        <x-ui.icon name="corner-up-left" size="3.5" class="mr-2 text-amber-500" />
+                                                                        {{ $label }}
+                                                                    </button>
+                                                                </form>
+                                                            @endforeach
+                                                        </div>
+                                                    @endcan
+                                                    @can('orders.bulk_print')
+                                                        <div class="py-1">
+                                                            <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-600/70">Bulk PDF Downloads</div>
+                                                            <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
+                                                                <input type="hidden" name="type" value="invoice">
+                                                                <template x-for="id in selectedItems">
+                                                                    <input type="hidden" name="ids[]" :value="id">
+                                                                </template>
+                                                                <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-blue-500/5 hover:text-blue-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
+                                                                    <x-ui.icon name="file-text" size="3.5" class="mr-2 text-blue-500" />
+                                                                    Bulk Invoice PDF
+                                                                </button>
+                                                            </form>
+                                                            <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
+                                                                <input type="hidden" name="type" value="cod">
+                                                                <template x-for="id in selectedItems">
+                                                                    <input type="hidden" name="ids[]" :value="id">
+                                                                </template>
+                                                                <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-emerald-500/5 hover:text-emerald-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
+                                                                    <x-ui.icon name="printer" size="3.5" class="mr-2 text-emerald-500" />
+                                                                    Bulk COD PDF
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    @endcan
+                                                </div>
+                                            </x-slot>
+                                        </x-ui.dropdown>
+                                    @endcanany
+                                </div>
+
+                                <!-- Filter dropdowns list (Product, Fulfillment Node, Status, Carrier, Sort, Date range) -->
+                                @include('orders.partials.filters')
+
+                                <x-ui.button variant="ghost" size="sm" @click="clearFilters()" class="rounded-xl h-9 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
                                     Clear All
                                 </x-ui.button>
                             </div>
 
-                            <div class="lg:ml-auto relative group w-full lg:max-w-md shrink-0">
+                            <!-- Right: Search input -->
+                            <div class="relative group w-full xl:max-w-xs shrink-0">
                                 <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                 <input type="text" x-model="search" @input.debounce.500ms="performSearch()"
                                     placeholder="Search order number or party name..."
                                     class="pl-9 pr-10 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
                                 <div x-show="isLoading" x-cloak class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                                     <x-ui.icon name="refresh-cw" class="animate-spin text-primary" size="4" />
-                                </div>
                             </div>
                         </div>
                     </div>
