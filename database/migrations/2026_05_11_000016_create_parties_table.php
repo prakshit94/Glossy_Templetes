@@ -176,6 +176,7 @@ return new class extends Migration {
             $table->index(['company_name']);
             $table->index(['phone', 'is_active']);
             $table->index(['email', 'is_active']);
+            $table->fullText(['firstname', 'lastname', 'company_name', 'email', 'phone'], 'ft_party_search');
         });
     }
 

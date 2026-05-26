@@ -18,6 +18,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->index(['reference_type', 'reference_id']);
+            $table->index(['ledger_id', 'entry_date'], 'idx_ledger_statement_lookup');
         });
     }
 

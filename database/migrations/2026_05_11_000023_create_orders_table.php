@@ -16,7 +16,8 @@ return new class extends Migration {
             $table->decimal('tax_amount', 15, 2)->default(0);
             $table->decimal('discount_amount', 15, 2)->default(0);
             $table->decimal('net_amount', 15, 2)->default(0);
-            $table->enum('status', ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'])->default('pending')->index();
+            $table->enum('status', ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'shipped', 'delivered', 'cancelled', 'returned'])->default('pending')->index();
+            $table->boolean('is_draft')->default(false)->index();
             $table->foreignId('warehouse_id')->nullable()->constrained()->nullOnDelete();
 
             // Address FK references (merged from add_shipping_address_id & add_billing_address_id)

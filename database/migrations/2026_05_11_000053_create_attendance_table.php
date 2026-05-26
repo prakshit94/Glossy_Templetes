@@ -16,7 +16,7 @@ return new class extends Migration {
             $table->timestamps();
             $table->softDeletes()->index();
 
-            $table->index(['employee_id', 'date']);
+            $table->index(['employee_id', 'date'], 'idx_attendance_employee_date');
             // Optimization for high data load
             $table->index('created_at');
             $table->index(['status', 'created_at']);

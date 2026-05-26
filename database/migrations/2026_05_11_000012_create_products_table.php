@@ -42,6 +42,7 @@ return new class extends Migration {
             // Optimization for high data load
             $table->index('created_at');
             $table->index(['status', 'created_at']);
+            $table->fullText(['name', 'sku', 'description'], 'ft_product_search');
         });
     }
 
