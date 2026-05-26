@@ -129,15 +129,27 @@ class DeliveryController extends Controller
             });
         }
 
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('driver')) {
+            $query->where('driver_id', $request->driver);
+        }
+
+        if ($request->filled('vehicle')) {
+            $query->where('transport_id', $request->vehicle);
+        }
+
         $perPage = $request->input('perPage', 10);
         $records = $query->latest()->paginate($perPage)->withQueryString();
 
         $stats = [
-            'total' => Delivery::count(),
-            'pending' => Delivery::where('status', 'pending')->count(),
-            'out_for_delivery' => Delivery::where('status', 'out_for_delivery')->count(),
-            'delivered' => Delivery::where('status', 'delivered')->count(),
-            'failed' => Delivery::where('status', 'failed')->count(),
+            'total'           => (clone $query)->count(),
+            'pending'         => (clone $query)->where('status', 'pending')->count(),
+            'out_for_delivery'=> (clone $query)->where('status', 'out_for_delivery')->count(),
+            'delivered'       => (clone $query)->where('status', 'delivered')->count(),
+            'failed'          => (clone $query)->where('status', 'failed')->count(),
         ];
 
         // Fetch pending shipments (shipments that don't have a delivery yet, or aren't delivered)

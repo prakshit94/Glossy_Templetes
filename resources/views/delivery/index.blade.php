@@ -5,6 +5,9 @@
     <div class="p-6 lg:p-10" x-data="{ 
         search: '{{ request('search', '') }}',
         perPage: '{{ request('perPage', 10) }}',
+        driverFilter: '{{ request('driver', '') }}',
+        vehicleFilter: '{{ request('vehicle', '') }}',
+        statusFilter: '{{ request('status', '') }}',
         stats: @js($stats),
         verificationData: @js($verificationPayloads ?? []),
         verificationFormUrl: '',
@@ -102,10 +105,24 @@
         },
 
         async performSearch() {
-            const params = new URLSearchParams({ search: this.search, perPage: this.perPage });
+            const params = new URLSearchParams({
+                search: this.search,
+                perPage: this.perPage,
+                driver: this.driverFilter,
+                vehicle: this.vehicleFilter,
+                status: this.statusFilter,
+            });
             const url = `{{ route('delivery.index') }}?${params.toString()}`;
             window.history.replaceState({}, '', url);
             await this.fetchTable(url);
+        },
+
+        clearFilters() {
+            this.search = '';
+            this.driverFilter = '';
+            this.vehicleFilter = '';
+            this.statusFilter = '';
+            this.performSearch();
         },
 
         async handlePagination(event) {
@@ -117,7 +134,7 @@
         },
 
         openAssignModal() {
-            $dispatch('open-modal', { name: 'assign-modal' });
+            this.$dispatch('open-modal', { name: 'assign-modal' });
         }
     }">
 
@@ -207,24 +224,65 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:inline-block">Show</span>
-                            <select x-model="perPage" @change="performSearch()" class="h-11 px-3 py-1.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs font-medium shadow-sm">
-                                <option value="5">5</option>
-                                <option value="10">10</option>
-                                <option value="20">20</option>
-                                <option value="50">50</option>
+                    <div class="flex flex-col gap-3 w-full">
+                        <!-- Filter Row -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Show Limit -->
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span class="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">Show</span>
+                                <select x-model="perPage" @change="performSearch()" class="h-9 px-3 rounded-xl border border-border bg-background/50 text-[11px] font-bold text-muted-foreground focus:text-foreground outline-none shadow-sm cursor-pointer hover:bg-background transition-all">
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                </select>
+                            </div>
+
+                            <!-- Status Filter -->
+                            <select x-model="statusFilter" @change="performSearch()"
+                                class="h-9 px-3 rounded-xl border border-border bg-background/50 text-[11px] font-bold text-muted-foreground focus:text-foreground outline-none shadow-sm cursor-pointer hover:bg-background transition-all">
+                                <option value="">All Statuses</option>
+                                <option value="out_for_delivery">🔵 Out for Delivery</option>
+                                <option value="delivered">🟢 Delivered</option>
+                                <option value="pending">🟡 Pending</option>
+                                <option value="failed">🔴 Failed</option>
                             </select>
+
+                            <!-- Driver Filter -->
+                            <select x-model="driverFilter" @change="performSearch()"
+                                class="h-9 px-3 rounded-xl border border-border bg-background/50 text-[11px] font-bold text-muted-foreground focus:text-foreground outline-none shadow-sm cursor-pointer hover:bg-background transition-all">
+                                <option value="">All Drivers</option>
+                                @foreach($drivers as $drv)
+                                    <option value="{{ $drv->id }}">{{ $drv->name }}</option>
+                                @endforeach
+                            </select>
+
+                            <!-- Vehicle Filter -->
+                            <select x-model="vehicleFilter" @change="performSearch()"
+                                class="h-9 px-3 rounded-xl border border-border bg-background/50 text-[11px] font-bold text-muted-foreground focus:text-foreground outline-none shadow-sm cursor-pointer hover:bg-background transition-all">
+                                <option value="">All Vehicles</option>
+                                @foreach($transports as $tr)
+                                    <option value="{{ $tr->id }}">{{ $tr->name }} ({{ $tr->vehicle_number }})</option>
+                                @endforeach
+                            </select>
+
+                            <!-- Clear Filters -->
+                            <x-ui.button variant="ghost" size="sm" @click="clearFilters()" class="rounded-xl h-9 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
+                                Clear All
+                            </x-ui.button>
                         </div>
-                        <div class="relative group w-full lg:w-64 shrink-0">
-                            <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <input type="text" x-model="search" @input.debounce.500ms="performSearch()" placeholder="Search deliveries..." 
-                                class="pl-9 pr-4 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
+
+                        <!-- Search + Action Row -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <div class="relative group flex-1 min-w-[200px]">
+                                <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <input type="text" x-model="search" @input.debounce.500ms="performSearch()" placeholder="Search delivery, shipment, driver, vehicle..."
+                                    class="pl-9 pr-4 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
+                            </div>
+                            <x-ui.button @click.stop="openAssignModal" class="rounded-xl font-black uppercase tracking-widest text-[10px] h-10 px-6 shadow-lg shadow-primary/20 shrink-0">
+                                <x-ui.icon name="plus" size="3" class="mr-2" /> Assign Shipment
+                            </x-ui.button>
                         </div>
-                        <x-ui.button @click.stop="openAssignModal" class="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-primary/20 w-full lg:w-auto">
-                            <x-ui.icon name="plus" size="3" class="mr-2" /> Assign Shipment
-                        </x-ui.button>
                     </div>
                 </div>
             </x-ui.card-header>

@@ -16,6 +16,7 @@
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Destination</th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Driver</th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Vehicle</th>
+                <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Carrier</th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Status</th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Calls</th>
                 <th class="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 text-right">Actions</th>
@@ -51,6 +52,25 @@
                         <span class="text-xs font-semibold text-muted-foreground">
                             {{ $r->transport ? $r->transport->name . ' (' . $r->transport->vehicle_number . ')' : '—' }}
                         </span>
+                    </td>
+                    <td class="p-5">
+                        @php
+                            $carrier = $r->shipment?->carrier_name;
+                            $tracking = $r->shipment?->tracking_no;
+                        @endphp
+                        @if($carrier)
+                            <div class="flex flex-col gap-0.5">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-500 text-[10px] font-black uppercase tracking-wide w-fit">
+                                    <x-ui.icon name="package" size="2.5" />
+                                    {{ $carrier }}
+                                </span>
+                                @if($tracking)
+                                    <span class="text-[10px] font-mono text-muted-foreground/70 pl-0.5">{{ $tracking }}</span>
+                                @endif
+                            </div>
+                        @else
+                            <span class="text-xs text-muted-foreground/40">—</span>
+                        @endif
                     </td>
                     <td class="p-5">
                         @php
@@ -109,7 +129,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="9" class="p-20 text-center">
+                    <td colspan="10" class="p-20 text-center">
                         <div class="flex flex-col items-center gap-3">
                             <div class="size-16 rounded-3xl bg-muted/10 flex items-center justify-center text-muted-foreground/20">
                                 <x-ui.icon name="truck-2" size="8" />
