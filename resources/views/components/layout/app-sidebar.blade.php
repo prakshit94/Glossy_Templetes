@@ -45,7 +45,7 @@
       ]);
 
       $crmItems = $filterItems([
-         ['title' => 'Customers', 'url' => route('customers.index'), 'active' => request()->routeIs('customers.*'), 'permission' => 'customers.view', 'icon' => '<x-ui.icon name="users" size="4" />'],
+         ['title' => 'Customers', 'url' => route('customers.index'), 'active' => request()->routeIs('customers.*') || request()->is('customers*'), 'permission' => 'customers.view', 'icon' => '<x-ui.icon name="users" size="4" />'],
          ['title' => 'Customer Groups', 'url' => '/customer-groups', 'active' => request()->is('customer-groups*'), 'permission' => 'customer-groups.view', 'icon' => '<x-ui.icon name="users-2" size="4" />'],
          ['title' => 'Reviews & Ratings', 'url' => '/reviews', 'active' => request()->is('reviews*'), 'permission' => 'reviews.view', 'icon' => '<x-ui.icon name="star" size="4" />'],
          ['title' => 'Support Tickets', 'url' => '/support-tickets', 'active' => request()->is('support-tickets*'), 'permission' => 'support-tickets.view', 'icon' => '<x-ui.icon name="mail" size="4" />'],

@@ -2,45 +2,93 @@
 @php
     $activePageName = 'Dashboard';
     $activePageUrl = '/dashboard';
-    $activeGroupName = 'Home';
+    $activeGroupName = 'Overview';
 
     $sections = [
-        'dashboard*' => ['Dashboard', '/dashboard', 'Home'],
+        'dashboard*' => ['Dashboard', '/dashboard', 'Overview'],
         
-        // Catalog
-        'products*'   => ['Products', '/products', 'Catalog'],
-        'categories*' => ['Categories', '/categories', 'Catalog'],
-        'brands*'     => ['Brands', '/brands', 'Catalog'],
-        'attributes*' => ['Attributes', '/attributes', 'Catalog'],
+        // Access & People
+        'users*'       => ['Users', '/users', 'Access & People'],
+        'teams*'       => ['Teams', '/teams', 'Access & People'],
+        'roles*'       => ['Roles', '/roles', 'Access & People'],
+        'permissions*' => ['Permissions', '/permissions', 'Access & People'],
+        'activities*'  => ['Activity Log', '/activities', 'Access & People'],
         
-        // Sales
-        'orders*'     => ['Orders', '/orders', 'Sales'],
-        'returns*'    => ['Returns', '/returns', 'Sales'],
-        'refunds*'    => ['Refunds', '/refunds', 'Sales'],
-        'payments*'   => ['Payments', '/payments', 'Sales'],
-        'invoices*'   => ['Invoices', '/invoices', 'Sales'],
-        'shipment-tracking*' => ['Shipment Tracking', '/shipment-tracking', 'Sales'],
+        // Customers
+        'customers*'       => ['Customers', '/customers', 'Access & People'],
+        'customer-groups*' => ['Customer Groups', '/customer-groups', 'Access & People'],
+        'reviews*'         => ['Reviews & Ratings', '/reviews', 'Access & People'],
+        'support-tickets*' => ['Support Tickets', '/support-tickets', 'Access & People'],
         
-        // CRM
-        'customers*'  => ['Customers', '/customers', 'CRM'],
-        'farmers*'    => ['Farmers', '/farmers', 'CRM'],
+        // Core Operations - Catalog
+        'products*'   => ['Products', '/products', 'Core Operations'],
+        'categories*' => ['Categories', '/categories', 'Core Operations'],
+        'brands*'     => ['Brands', '/brands', 'Core Operations'],
+        'attributes*' => ['Attributes', '/attributes', 'Core Operations'],
+        'uoms*'       => ['Units of Measure', '/uoms', 'Core Operations'],
+        'tax-rates*'  => ['Tax Rates', '/tax-rates', 'Core Operations'],
+        'hsn-codes*'  => ['HSN Codes', '/hsn-codes', 'Core Operations'],
         
-        // Inventory
-        'warehouses*' => ['Warehouses', '/warehouses', 'Inventory'],
-        'stocks*'     => ['Stocks', '/stocks', 'Inventory'],
+        // Core Operations - Inventory
+        'inventory*'         => ['Inventory', '/inventory', 'Core Operations'],
+        'warehouses*'        => ['Warehouses', '/warehouses', 'Core Operations'],
+        'stock-transfers*'   => ['Stock Transfers', '/stock-transfers', 'Core Operations'],
+        'stock-adjustments*' => ['Stock Adjustments', '/stock-adjustments', 'Core Operations'],
+        
+        // Core Operations - Sales
+        'orders*'         => ['Orders', '/orders', 'Core Operations'],
+        'invoices*'       => ['Invoices', '/invoices', 'Core Operations'],
+        'payments*'       => ['Payments', '/payments', 'Core Operations'],
+        'order-tracking*' => ['Order Tracking', '/order-tracking', 'Core Operations'],
+        'returns*'        => ['Returns', '/returns', 'Core Operations'],
+        'refunds*'        => ['Refunds', '/refunds', 'Core Operations'],
+        'replacement*'    => ['Replacement', '/replacement', 'Core Operations'],
+        
+        // Core Operations - Procurement
+        'purchase-orders*' => ['Purchase Orders', '/purchase-orders', 'Core Operations'],
+        'suppliers*'       => ['Suppliers', '/suppliers', 'Core Operations'],
+        'vendors*'         => ['Vendors', '/vendors', 'Core Operations'],
+        
+        // Operations & Insights - Field Operations
+        'villages*'          => ['Villages', '/villages', 'Operations & Insights'],
+        'services*'          => ['Services', '/services', 'Operations & Insights'],
+        'transport*'         => ['Transport', '/transport', 'Operations & Insights'],
+        'delivery*'          => ['Delivery', '/delivery', 'Operations & Insights'],
+        'shipment-tracking*' => ['Shipment Tracking', '/shipment-tracking', 'Operations & Insights'],
+        'drivers*'           => ['Drivers', '/drivers', 'Operations & Insights'],
+        
+        // Operations & Insights - Finance & Analytics
+        'accounts*'            => ['Accounts', '/accounts', 'Operations & Insights'],
+        'expenses*'            => ['Expenses', '/expenses', 'Operations & Insights'],
+        'transactions*'        => ['Transactions', '/transactions', 'Operations & Insights'],
+        'financial-reports*'   => ['Financial Reports', '/financial-reports', 'Operations & Insights'],
+        'sales-reports*'       => ['Sales Reports', '/sales-reports', 'Operations & Insights'],
+        'inventory-reports*'   => ['Inventory Reports', '/inventory-reports', 'Operations & Insights'],
+        'customer-analytics*'  => ['Customer Analytics', '/customer-analytics', 'Operations & Insights'],
+        'performance-reports*' => ['Performance Reports', '/performance-reports', 'Operations & Insights'],
+        
+        // Growth & Workforce - Human Resources
+        'employees*'   => ['Employees', '/employees', 'Growth & Workforce'],
+        'attendance*'  => ['Attendance', '/attendance', 'Growth & Workforce'],
+        'payroll*'     => ['Payroll', '/payroll', 'Growth & Workforce'],
+        'departments*' => ['Departments', '/departments', 'Growth & Workforce'],
+        
+        // Growth & Workforce - Marketing
+        'campaigns*'       => ['Campaigns', '/campaigns', 'Growth & Workforce'],
+        'coupons*'         => ['Coupons', '/coupons', 'Growth & Workforce'],
+        'offers*'          => ['Offers', '/offers', 'Growth & Workforce'],
+        'email-marketing*' => ['Email Marketing', '/email-marketing', 'Growth & Workforce'],
         
         // System
-        'users*'     => ['Users', '/users', 'System'],
-        'roles*'     => ['Roles', '/roles', 'System'],
-        'settings*'  => ['Settings', '/settings', 'System'],
-        'profile*'   => ['Profile', '/profile', 'Account'],
+        'settings*' => ['Settings', '/settings', 'System'],
+        'profile*'  => ['Profile', '/profile', 'Account'],
     ];
 
     foreach ($sections as $pattern => $data) {
-        if (request()->is($pattern)) {
+        if (request()->is($pattern) || request()->routeIs($pattern)) {
             $activePageName = $data[0];
             $activePageUrl  = $data[1];
-            $activeGroupName = $data[2] ?? 'Home';
+            $activeGroupName = $data[2] ?? 'Overview';
             break;
         }
     }
