@@ -97,14 +97,35 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users',
-            'username' => 'required|string|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'status' => 'required|string|in:active,suspended',
-            'roles' => 'required|array',
+            'firstname'       => 'required|string|max:255',
+            'middlename'      => 'nullable|string|max:255',
+            'lastname'        => 'nullable|string|max:255',
+            'email'           => 'required|string|email|unique:users',
+            'username'        => 'nullable|string|max:255|unique:users',
+            'avatar'          => 'nullable|url|max:2048',
+            'bio'             => 'nullable|string|max:1000',
+            'password'        => 'required|string|min:8|confirmed',
+            'status'          => 'required|string|in:active,suspended',
+            'roles'           => 'required|array',
             'current_team_id' => 'nullable|exists:teams,id',
         ]);
+
+        // Auto-build the full name from name parts
+        $data['name'] = trim(implode(' ', array_filter([
+            $data['firstname'],
+            $data['middlename'] ?? null,
+            $data['lastname']   ?? null,
+        ])));
+
+        // Auto-generate username if not provided
+        if (empty($data['username'])) {
+            $base = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $data['firstname']));
+            $candidate = $base . rand(100, 999);
+            while (\App\Models\User::where('username', $candidate)->exists()) {
+                $candidate = $base . rand(100, 9999);
+            }
+            $data['username'] = $candidate;
+        }
 
         $data['password'] = \Illuminate\Support\Facades\Hash::make($data['password']);
         $user = $this->userRepository->create($data);
@@ -138,13 +159,34 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users,email,' . $user->id,
-            'username' => 'required|string|unique:users,username,' . $user->id,
-            'status' => 'required|string|in:active,suspended',
-            'roles' => 'required|array',
+            'firstname'       => 'required|string|max:255',
+            'middlename'      => 'nullable|string|max:255',
+            'lastname'        => 'nullable|string|max:255',
+            'email'           => 'required|string|email|unique:users,email,' . $user->id,
+            'username'        => 'nullable|string|max:255|unique:users,username,' . $user->id,
+            'avatar'          => 'nullable|url|max:2048',
+            'bio'             => 'nullable|string|max:1000',
+            'status'          => 'required|string|in:active,suspended',
+            'roles'           => 'required|array',
             'current_team_id' => 'nullable|exists:teams,id',
         ]);
+
+        // Auto-build the full name from name parts
+        $data['name'] = trim(implode(' ', array_filter([
+            $data['firstname'],
+            $data['middlename'] ?? null,
+            $data['lastname']   ?? null,
+        ])));
+
+        // Auto-generate username if not provided
+        if (empty($data['username'])) {
+            $base = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $data['firstname']));
+            $candidate = $base . rand(100, 999);
+            while (\App\Models\User::where('username', $candidate)->where('id', '!=', $user->id)->exists()) {
+                $candidate = $base . rand(100, 9999);
+            }
+            $data['username'] = $candidate;
+        }
 
         if ($request->filled('password')) {
             $request->validate(['password' => 'string|min:8|confirmed']);
