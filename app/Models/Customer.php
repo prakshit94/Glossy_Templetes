@@ -118,6 +118,7 @@ class Customer extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
+            ->useLogName('customers')
             ->logOnly(['name', 'email', 'phone', 'status', 'is_blacklisted', 'deleted_at'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();

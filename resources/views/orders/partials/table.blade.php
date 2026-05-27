@@ -287,6 +287,12 @@
         ];
 
         $colorClasses = $statusColors[$lifecycleStatus] ?? ['bg' => 'bg-muted/40', 'text' => 'text-muted-foreground', 'border' => 'border-border/50'];
+
+        $missingFields = [];
+        if ($lifecycleStatus === 'future_order') {
+            if (empty($order->warehouse_id)) $missingFields[] = 'Warehouse';
+            if (empty($order->shipping_address_id) && empty($order->shipping_address) && empty($order->billing_address_id) && empty($order->billing_address)) $missingFields[] = 'Address';
+        }
     @endphp
 
     <div x-data="{ open: false }"
@@ -567,6 +573,23 @@
 
         </div>
     </div>
+
+    @if($lifecycleStatus === 'future_order')
+        <div class="mt-2 flex flex-col items-center gap-1.5 w-full">
+            @if($order->future_order_date)
+                <div class="text-[9px] font-bold text-purple-600 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20 whitespace-nowrap">
+                    <x-ui.icon name="calendar" size="2.5" class="inline mr-1 -mt-0.5" />
+                    Confirm on: {{ \Carbon\Carbon::parse($order->future_order_date)->format('M d, Y') }}
+                </div>
+            @endif
+            @if(count($missingFields) > 0)
+                <div class="text-[9px] font-bold text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 whitespace-nowrap">
+                    <x-ui.icon name="alert-circle" size="2.5" class="inline mr-1 -mt-0.5" />
+                    Missing: {{ implode(', ', $missingFields) }}
+                </div>
+            @endif
+        </div>
+    @endif
 </x-ui.table-cell>
 
                     <x-ui.table-cell x-show="visibleColumns.ordered_products" class="align-middle py-3">

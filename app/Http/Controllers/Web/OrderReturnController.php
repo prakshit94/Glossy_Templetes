@@ -161,11 +161,11 @@ class OrderReturnController extends Controller
                     ]);
                 }
 
-                $alreadyReturned = \Illuminate\Support\Facades\DB::table('order_return_items')
-                    ->join('order_returns', 'order_return_items.return_id', '=', 'order_returns.id')
-                    ->where('order_return_items.order_item_id', $orderItem->id)
-                    ->where('order_returns.status', '!=', 'rejected')
-                    ->sum('order_return_items.quantity');
+                $alreadyReturned = \Illuminate\Support\Facades\DB::table('return_items')
+                    ->join('returns', 'return_items.return_id', '=', 'returns.id')
+                    ->where('return_items.order_item_id', $orderItem->id)
+                    ->where('returns.status', '!=', 'rejected')
+                    ->sum('return_items.quantity');
 
                 if ($itemData['quantity'] + $alreadyReturned > $orderItem->quantity) {
                     throw ValidationException::withMessages([

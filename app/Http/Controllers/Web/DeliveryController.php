@@ -160,8 +160,8 @@ class DeliveryController extends Controller
             ->with(['order.party'])
             ->get();
 
-        $drivers = Driver::where('status', 'available')->with('user')->get();
-        $transports = Transport::where('status', 'available')->get();
+        $drivers = Driver::whereIn('status', ['available', 'busy'])->with('user')->get();
+        $transports = Transport::whereIn('status', ['available', 'on_delivery'])->get();
 
         $verificationPayloads = $this->verificationPayloadsFor($records->getCollection());
 

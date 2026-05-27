@@ -58,6 +58,9 @@ class OrderTrackingController extends Controller
         $shipments = $query->paginate($perPage)->withQueryString();
         
         $availableCarriers = \App\Models\Shipment::whereNotNull('carrier_name')->where('carrier_name', '!=', '')->distinct()->pluck('carrier_name');
+        
+        $drivers = \App\Models\Driver::whereIn('status', ['available', 'busy'])->with('user')->get();
+        $transports = \App\Models\Transport::whereIn('status', ['available', 'on_delivery'])->get();
 
         if ($request->ajax()) {
             return response()->json([
@@ -66,7 +69,7 @@ class OrderTrackingController extends Controller
             ]);
         }
 
-        return view('order-tracking.index', compact('shipments', 'stats', 'availableCarriers'));
+        return view('order-tracking.index', compact('shipments', 'stats', 'availableCarriers', 'drivers', 'transports'));
     }
 
     public function show($id)

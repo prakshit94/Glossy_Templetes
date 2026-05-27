@@ -506,10 +506,33 @@ class OrderService
         ]);
 
         if ($status === 'delivered') {
-            $order->shipments()->where('status', '!=', 'delivered')->update([
-                'status' => 'delivered',
-                'delivered_at' => now(),
-            ]);
+            foreach ($order->shipments as $shipment) {
+                if ($shipment->status !== 'delivered') {
+                    $shipment->update([
+                        'status' => 'delivered',
+                        'delivered_at' => now(),
+                    ]);
+                }
+
+                // SSOT: Release any active delivery resources to prevent stuck drivers
+                $activeDeliveries = \App\Models\Delivery::where('shipment_id', $shipment->id)
+                    ->whereIn('status', ['pending', 'out_for_delivery'])
+                    ->get();
+
+                foreach ($activeDeliveries as $delivery) {
+                    $delivery->update([
+                        'status' => 'delivered',
+                        'delivered_at' => now(),
+                    ]);
+
+                    if ($delivery->driver) {
+                        $delivery->driver->update(['status' => 'available']);
+                    }
+                    if ($delivery->transport) {
+                        $delivery->transport->update(['status' => 'available']);
+                    }
+                }
+            }
         }
 
         activity('orders')

@@ -105,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('orders/{order}/revert-status', [OrderController::class, 'revertStatus'])->name('orders.revert-status');
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
+    Route::post('orders/{order}/verification', [OrderController::class, 'storeVerification'])->name('orders.verification.store');
     Route::resource('orders', OrderController::class);
 
     Route::resource('returns', OrderReturnController::class);

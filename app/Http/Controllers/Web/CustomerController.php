@@ -154,10 +154,6 @@ class CustomerController extends Controller
 
         $customer = Customer::create($data);
 
-        activity('customers')
-            ->performedOn($customer)
-            ->log("Registered new customer: {$customer->name}");
-
         return redirect()->route('customers.show', $customer)
             ->with('success', 'Customer created successfully.');
     }
@@ -277,10 +273,6 @@ class CustomerController extends Controller
         $data['is_blacklisted'] = $data['is_blacklisted'] ?? 0;
 
         $customer->update($data);
-
-        activity('customers')
-            ->performedOn($customer)
-            ->log("Updated customer: {$customer->name}");
 
         return redirect()->route('customers.index')
             ->with('success', 'Customer updated successfully.');

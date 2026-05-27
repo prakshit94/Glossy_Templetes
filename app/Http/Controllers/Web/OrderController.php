@@ -18,7 +18,7 @@ class OrderController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:orders.view')->only(['index', 'show']);
+        $this->middleware('permission:orders.view')->only(['index', 'show', 'storeVerification']);
         $this->middleware('permission:orders.create')->only(['create', 'store']);
         $this->middleware('permission:orders.edit')->only(['edit']);
         $this->middleware('permission:orders.delete')->only(['destroy']);
@@ -203,8 +203,8 @@ class OrderController extends Controller
         });
 
         $services = \App\Models\Service::active()->get();
-        $drivers = \App\Models\Driver::where('status', 'available')->get();
-        $transports = \App\Models\Transport::where('status', 'available')->get();
+        $drivers = \App\Models\Driver::whereIn('status', ['available', 'busy'])->get();
+        $transports = \App\Models\Transport::whereIn('status', ['available', 'on_delivery'])->get();
         $carriersList = $services->pluck('name')->filter()->sort()->values();
 
         if ($request->ajax()) {
@@ -321,12 +321,106 @@ class OrderController extends Controller
             'billingAddress.village',
             'shipments.events',
             'invoice',
-            'payments'
+            'payments',
+            'verificationLogs.user'
         ])->findOrFail($id);
 
         $services = \App\Models\Service::active()->get();
 
         return view('orders.show', compact('order', 'services'));
+    }
+
+    public function storeVerification(Request $request, string $id, InventoryService $inventoryService, OrderService $orderService)
+    {
+        $order = Order::with('shipments')->findOrFail($id);
+        $outcomes = array_keys(\App\Models\OrderVerificationLog::OUTCOMES);
+
+        $validated = $request->validate([
+            'outcome'     => 'required|in:' . implode(',', $outcomes),
+            'remark'      => 'nullable|string|max:2000',
+            'follow_up_at'=> 'nullable|date',
+        ]);
+
+        $log = \App\Models\OrderVerificationLog::create([
+            'order_id'    => $order->id,
+            'outcome'     => $validated['outcome'],
+            'remark'      => $validated['remark'] ?? null,
+            'follow_up_at'=> $validated['follow_up_at'] ?? null,
+            'created_by'  => auth()->id(),
+        ]);
+
+        // ── Shipment tracking event ──────────────────────────────────────────
+        $shipment = $order->shipments->first();
+        if ($shipment) {
+            $parts = ['Order verification: ' . $log->outcome_label];
+            if (!empty($validated['remark'])) {
+                $parts[] = $validated['remark'];
+            }
+            if (!empty($validated['follow_up_at'])) {
+                $parts[] = 'Follow-up: ' . \Carbon\Carbon::parse($validated['follow_up_at'])->format('M d, Y h:i A');
+            }
+            $parts[] = 'By: ' . (auth()->user()->name ?? 'Staff');
+
+            \App\Models\ShipmentTrackingEvent::create([
+                'shipment_id' => $shipment->id,
+                'event_name'  => 'Order Verification',
+                'location'    => $order->warehouse ? $order->warehouse->name : 'Warehouse',
+                'description' => implode(' | ', $parts),
+                'occurred_at' => now(),
+            ]);
+        }
+
+        activity('orders')
+            ->performedOn($order)
+            ->causedBy(auth()->user())
+            ->withProperties(['outcome' => $log->outcome])
+            ->log("Order #{$order->order_no} verification call logged: {$log->outcome_label}");
+
+        // ── Outcome-driven status transitions ────────────────────────────────
+        $statusChangedMessage = '';
+
+        try {
+            switch ($validated['outcome']) {
+                case 'customer_confirmed':
+                    if ($order->status === 'pending') {
+                        $inventoryService->confirmOrder($order);
+                        $statusChangedMessage = ' Order confirmed and stock reserved.';
+                    }
+                    break;
+
+                case 'mark_processing':
+                    if ($order->status === 'confirmed') {
+                        $orderService->updateStatus($order, 'processing');
+                        $statusChangedMessage = ' Order moved to processing.';
+                    }
+                    break;
+
+                case 'dispatch_order':
+                    if ($order->status === 'ready_to_ship') {
+                        $inventoryService->dispatchOrder($order);
+                        $statusChangedMessage = ' Order dispatched and inventory updated.';
+                    }
+                    break;
+
+                case 'mark_delivered':
+                    if (in_array($order->status, Order::inTransitStatuses(), true)) {
+                        $inventoryService->deliverOrder($order);
+                        $statusChangedMessage = ' Order marked as delivered.';
+                    }
+                    break;
+
+                case 'cancel_order':
+                    if (!in_array($order->status, array_merge(['delivered', 'cancelled', 'returned'], Order::inTransitStatuses()), true)) {
+                        $inventoryService->cancelOrder($order);
+                        $statusChangedMessage = ' Order cancelled and stock released.';
+                    }
+                    break;
+            }
+        } catch (ValidationException $e) {
+            return back()->with('error', 'Call logged, but status transition failed: ' . (collect($e->errors())->flatten()->first() ?? 'Unknown error.'));
+        }
+
+        return back()->with('success', 'Verification call logged.' . $statusChangedMessage);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -952,6 +1046,15 @@ class OrderController extends Controller
     elseif (
         $targetStatus === 'processing' &&
         $order->status === 'ready_to_ship'
+    ) {
+
+        $inventoryService->revertOrderToProcessing($order);
+    }
+
+    // dispatched -> ready_to_ship  (was previously missing — bug fix)
+    elseif (
+        $targetStatus === 'ready_to_ship' &&
+        in_array($order->status, Order::inTransitStatuses(), true)
     ) {
 
         $inventoryService->revertOrderToProcessing($order);

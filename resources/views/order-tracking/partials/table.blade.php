@@ -19,7 +19,10 @@
                 <tr class="group hover:bg-muted/5 transition-all" :class="selectedShipments.includes({{ $shipment->id }}) ? 'bg-primary/5' : ''">
                     <td class="px-6 py-6">
                         <input type="checkbox" value="{{ $shipment->id }}" x-model="selectedShipments"
-                            class="rounded border-border/60 bg-background/50 text-primary focus:ring-primary/20">
+                            data-shipment-no="{{ $shipment->shipment_no }}"
+                            data-order-no="{{ $shipment->order->order_no }}"
+                            data-party="{{ addslashes($shipment->order->party->name ?? '') }}"
+                            class="shipment-checkbox rounded border-border/60 bg-background/50 text-primary focus:ring-primary/20">
                     </td>
                     <td class="px-6 py-6">
                         <div class="flex items-center gap-4">
@@ -101,6 +104,12 @@
                     </td>
                     <td class="px-6 py-6 text-right">
                         <div class="flex items-center justify-end gap-2">
+                            @if($shipment->status === 'pending')
+                                <x-ui.button variant="outline" size="sm" class="rounded-xl border-blue-500/60 text-blue-500 hover:border-blue-500 hover:bg-blue-500/10 transition-all h-9 px-3 group/assign"
+                                    @click="openAssignModal([{ id: {{ $shipment->id }}, no: '{{ $shipment->shipment_no }}', order: '{{ $shipment->order->order_no }}', party: '{{ addslashes($shipment->order->party->name ?? '') }}' }])">
+                                    <x-ui.icon name="truck" size="3.5" />
+                                </x-ui.button>
+                            @endif
                             <a href="{{ route('order.tracking.show', $shipment->id) }}">
                                 <x-ui.button variant="outline" size="sm" class="rounded-xl border-border/60 hover:border-primary/40 hover:bg-primary/5 transition-all group/btn h-9 px-4">
                                     <span class="text-[9px] font-black uppercase tracking-widest mr-2">Track Detail</span>

@@ -446,9 +446,9 @@ class InventoryService
             /** @var Order $order */
             $order = Order::with('items')->lockForUpdate()->findOrFail($order->id);
 
-            if ($order->status !== 'pending') {
+            if ($order->status !== 'pending' || $order->is_draft) {
                 throw ValidationException::withMessages([
-                    'status' => 'Only pending orders can be confirmed.',
+                    'status' => 'Only active pending orders can be confirmed. Future orders must become pending first.',
                 ]);
             }
 
@@ -645,6 +645,18 @@ class InventoryService
                 }
             }
 
+            // SSOT: Release any active deliveries if they exist
+            foreach ($order->shipments as $shipment) {
+                $activeDeliveries = \App\Models\Delivery::where('shipment_id', $shipment->id)
+                    ->whereIn('status', ['pending', 'out_for_delivery'])
+                    ->get();
+                foreach ($activeDeliveries as $delivery) {
+                    $delivery->update(['status' => 'failed']);
+                    if ($delivery->driver) $delivery->driver->update(['status' => 'available']);
+                    if ($delivery->transport) $delivery->transport->update(['status' => 'available']);
+                }
+            }
+
             $order->update(['status' => 'cancelled', 'updated_by' => auth()->id()]);
 
             // Sync status for all items in the order
@@ -822,6 +834,18 @@ class InventoryService
                 }
             }
 
+            // SSOT: Release any active deliveries if they exist
+            foreach ($order->shipments as $shipment) {
+                $activeDeliveries = \App\Models\Delivery::where('shipment_id', $shipment->id)
+                    ->whereIn('status', ['pending', 'out_for_delivery'])
+                    ->get();
+                foreach ($activeDeliveries as $delivery) {
+                    $delivery->update(['status' => 'failed']);
+                    if ($delivery->driver) $delivery->driver->update(['status' => 'available']);
+                    if ($delivery->transport) $delivery->transport->update(['status' => 'available']);
+                }
+            }
+
             if (in_array($order->status, ['confirmed', 'processing', 'ready_to_ship'], true)
                 && $order->type === 'sale'
                 && $order->warehouse_id) {
@@ -881,6 +905,18 @@ class InventoryService
                 foreach ($order->shipments as $shp) {
                     $shp->events()->delete();
                     $shp->delete();
+                }
+            }
+
+            // SSOT: Release any active deliveries since it's going back from dispatched
+            foreach ($order->shipments as $shipment) {
+                $activeDeliveries = \App\Models\Delivery::where('shipment_id', $shipment->id)
+                    ->whereIn('status', ['pending', 'out_for_delivery'])
+                    ->get();
+                foreach ($activeDeliveries as $delivery) {
+                    $delivery->update(['status' => 'failed']);
+                    if ($delivery->driver) $delivery->driver->update(['status' => 'available']);
+                    if ($delivery->transport) $delivery->transport->update(['status' => 'available']);
                 }
             }
 
