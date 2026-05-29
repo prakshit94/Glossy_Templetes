@@ -54,8 +54,19 @@
         returnOrderId: null,
         returnOrderNo: '',
         returnItems: [],
+        verifyOrderId: '',
+        verifyOrderNo: '',
+        verifyOutcome: '',
+        verifyActionUrl: '',
         get returnRefundTotal() {
             return this.returnItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.price)), 0);
+        },
+        openVerificationModal(orderId, orderNo, outcome) {
+            this.verifyOrderId = orderId;
+            this.verifyOrderNo = orderNo;
+            this.verifyOutcome = outcome;
+            this.verifyActionUrl = `{{ route('orders.verification.store', ':id') }}`.replace(':id', orderId);
+            this.$dispatch('open-modal', { name: 'index-verification-modal' });
         },
         openShipModal(orderId, orderNo) {
             this.shipOrderId = orderId;
@@ -696,6 +707,80 @@
                 </x-ui.button>
             </div>
         </form>
+    </x-ui.modal>
+
+    <!-- Index Verification Modal -->
+    @php
+        $verificationOutcomes = \App\Models\OrderVerificationLog::OUTCOMES ?? [
+            'customer_confirmed' => 'Customer Confirmed',
+            'customer_cancelled' => 'Customer Cancelled',
+            'no_response' => 'No Response',
+            'call_back' => 'Requested Call Back',
+            'number_busy' => 'Number Busy',
+            'number_unreachable' => 'Number Unreachable',
+            'wrong_number' => 'Wrong Number',
+            'mark_processing' => 'Marked Processing',
+            'dispatch_order' => 'Dispatched Order',
+            'mark_delivered' => 'Marked Delivered',
+            'cancel_order' => 'Cancelled by Staff'
+        ];
+    @endphp
+    <x-ui.modal id="index-verification-modal" maxWidth="lg">
+        <div class="p-6 lg:p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between mb-6 sticky top-0 bg-card/95 backdrop-blur-md z-10 pb-4 border-b border-border/40">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
+                        <x-ui.icon name="phone" size="5" />
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-foreground uppercase tracking-widest">Order Verification</h3>
+                        <p class="text-[10px] text-muted-foreground font-bold tracking-tight">
+                            Order <span x-text="verifyOrderNo"></span>
+                        </p>
+                    </div>
+                </div>
+                <button type="button" @click="$dispatch('close-modal', { name: 'index-verification-modal' })" class="size-8 rounded-lg hover:bg-muted flex items-center justify-center transition-colors">
+                    <x-ui.icon name="x" size="4" />
+                </button>
+            </div>
+
+            <form method="POST" :action="verifyActionUrl" class="space-y-4 mb-4 p-5 rounded-2xl border border-primary/20 bg-primary/5">
+                @csrf
+                <h4 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <x-ui.icon name="phone" size="3.5" /> Log Verification Call
+                </h4>
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Call Outcome</label>
+                        <select name="outcome" x-model="verifyOutcome" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/80 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                            <option value="" disabled selected>Select outcome...</option>
+                            @foreach($verificationOutcomes as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Remarks</label>
+                        <textarea name="remark" rows="3" placeholder="Add call notes, customer response..."
+                            class="w-full px-4 py-3 rounded-xl border border-border bg-background/80 text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none resize-none"></textarea>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Next Follow-up (optional)</label>
+                        <input type="datetime-local" name="follow_up_at"
+                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/80 text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none">
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-3 pt-2">
+                    <x-ui.button type="button" variant="outline" @click="$dispatch('close-modal', { name: 'index-verification-modal' })" class="rounded-xl font-black uppercase tracking-widest text-[10px]">Close</x-ui.button>
+                    <x-ui.button type="submit" class="rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/25" x-bind:disabled="!verifyOutcome">
+                        <x-ui.icon name="check" size="3" class="mr-1.5" /> Save Verification
+                    </x-ui.button>
+                </div>
+            </form>
+        </div>
     </x-ui.modal>
 
     <!-- Assign Shipment Modal -->

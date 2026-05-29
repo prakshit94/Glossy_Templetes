@@ -375,61 +375,43 @@
                             {{-- CONFIRM --}}
                             @elseif($t['status'] === 'confirmed')
                                 @can('orders.confirm')
-                                <form action="{{ route('orders.confirm', $order->id) }}"
-                                    method="POST"
-                                    class="m-0">
+                                <button type="button"
+                                    @click.prevent="openVerificationModal({{ $order->id }}, '{{ $order->order_no }}', 'customer_confirmed')"
+                                    class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
 
-                                    @csrf
+                                    <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
 
-                                    <button type="submit"
-                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+                                    {{ $t['label'] }}
 
-                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
-
-                                        {{ $t['label'] }}
-
-                                    </button>
-                                </form>
+                                </button>
                                 @endcan
 
                             {{-- PROCESSING --}}
                             @elseif($t['status'] === 'processing')
                                 @can('orders.processing')
-                                <form action="{{ route('orders.processing', $order->id) }}"
-                                    method="POST"
-                                    class="m-0">
+                                <button type="button"
+                                    @click.prevent="openVerificationModal({{ $order->id }}, '{{ $order->order_no }}', 'mark_processing')"
+                                    class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
 
-                                    @csrf
+                                    <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
 
-                                    <button type="submit"
-                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+                                    {{ $t['label'] }}
 
-                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
-
-                                        {{ $t['label'] }}
-
-                                    </button>
-                                </form>
+                                </button>
                                 @endcan
 
                             {{-- DISPATCH --}}
                             @elseif($t['status'] === 'dispatched')
                                 @can('orders.dispatch')
-                                <form action="{{ route('orders.dispatch', $order->id) }}"
-                                    method="POST"
-                                    class="m-0">
+                                <button type="button"
+                                    @click.prevent="openVerificationModal({{ $order->id }}, '{{ $order->order_no }}', 'dispatch_order')"
+                                    class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
 
-                                    @csrf
+                                    <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
 
-                                    <button type="submit"
-                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+                                    {{ $t['label'] }}
 
-                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
-
-                                        {{ $t['label'] }}
-
-                                    </button>
-                                </form>
+                                </button>
 
                                 @php
                                     $firstShipment = $order->shipments->first();
@@ -461,41 +443,29 @@
                             {{-- DELIVER --}}
                             @elseif($t['status'] === 'delivered')
                                 @can('orders.deliver')
-                                <form action="{{ route('orders.deliver', $order->id) }}"
-                                    method="POST"
-                                    class="m-0">
+                                <button type="button"
+                                    @click.prevent="openVerificationModal({{ $order->id }}, '{{ $order->order_no }}', 'mark_delivered')"
+                                    class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
 
-                                    @csrf
+                                    <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
 
-                                    <button type="submit"
-                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+                                    {{ $t['label'] }}
 
-                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
-
-                                        {{ $t['label'] }}
-
-                                    </button>
-                                </form>
+                                </button>
                                 @endcan
 
                             {{-- CANCEL --}}
                             @elseif($t['status'] === 'cancelled')
                                 @can('orders.cancel')
-                                <form action="{{ route('orders.cancel', $order->id) }}"
-                                    method="POST"
-                                    class="m-0">
+                                <button type="button"
+                                    @click.prevent="openVerificationModal({{ $order->id }}, '{{ $order->order_no }}', 'cancel_order')"
+                                    class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
 
-                                    @csrf
+                                    <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
 
-                                    <button type="submit"
-                                        class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
+                                    {{ $t['label'] }}
 
-                                        <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>
-
-                                        {{ $t['label'] }}
-
-                                    </button>
-                                </form>
+                                </button>
                                 @endcan
 
                             {{-- FALLBACK --}}
