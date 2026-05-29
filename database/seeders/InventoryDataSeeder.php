@@ -11,218 +11,127 @@ class InventoryDataSeeder extends Seeder
 {
     public function run(): void
     {
-        $warehouse = DB::table('warehouses')->first();
-        $user = DB::table('users')->first();
+        $warehouse = DB::table('warehouses')->where('is_default', true)->first()
+                  ?? DB::table('warehouses')->first();
+        $user      = DB::table('users')->where('username', 'admin')->first()
+                  ?? DB::table('users')->first();
 
         if (!$warehouse || !$user) {
-            $this->command->warn('Warehouse or User not found.');
+            $this->command->warn('⚠️  InventoryDataSeeder: Warehouse or User not found. Skipping.');
             return;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Real Product Catalog
-        |--------------------------------------------------------------------------
-        */
+        $products = DB::table('products')->get();
 
-        $products = [
-            [
-                'name' => 'Apple iPhone 15 Pro',
-                'sku' => 'IPH15PRO',
-                'price' => 129999,
-                'stock' => 40,
-                'category' => 'Electronics',
-            ],
-            [
-                'name' => 'Samsung Galaxy S24 Ultra',
-                'sku' => 'SGS24ULT',
-                'price' => 119999,
-                'stock' => 35,
-                'category' => 'Electronics',
-            ],
-            [
-                'name' => 'Sony WH-1000XM5 Headphones',
-                'sku' => 'SONYX5',
-                'price' => 29999,
-                'stock' => 60,
-                'category' => 'Accessories',
-            ],
-            [
-                'name' => 'Dell XPS 15 Laptop',
-                'sku' => 'DELLXPS15',
-                'price' => 189999,
-                'stock' => 20,
-                'category' => 'Computers',
-            ],
-            [
-                'name' => 'Apple Watch Series 9',
-                'sku' => 'AWS9',
-                'price' => 45999,
-                'stock' => 50,
-                'category' => 'Wearables',
-            ],
-            [
-                'name' => 'Logitech MX Master 3S Mouse',
-                'sku' => 'LOGIMX3S',
-                'price' => 9999,
-                'stock' => 80,
-                'category' => 'Accessories',
-            ],
-            [
-                'name' => 'Nike Air Max Running Shoes',
-                'sku' => 'NIKEAIRMAX',
-                'price' => 7999,
-                'stock' => 120,
-                'category' => 'Footwear',
-            ],
-            [
-                'name' => 'Boat Rockerz 450 Headphones',
-                'sku' => 'BOAT450',
-                'price' => 1999,
-                'stock' => 150,
-                'category' => 'Audio',
-            ],
-            [
-                'name' => 'HP LaserJet Pro Printer',
-                'sku' => 'HPLJPRO',
-                'price' => 17999,
-                'stock' => 25,
-                'category' => 'Office',
-            ],
-            [
-                'name' => 'Canon EOS R50 Camera',
-                'sku' => 'CANONR50',
-                'price' => 74999,
-                'stock' => 15,
-                'category' => 'Cameras',
-            ],
+        if ($products->isEmpty()) {
+            $this->command->warn('⚠️  InventoryDataSeeder: No products found. Run ProductDataSeeder first.');
+            return;
+        }
+
+        // Real stock quantities per product SKU
+        $stockData = [
+            'UPL-CON-200SL'    => ['qty' => 120, 'reserved' => 5],
+            'DPT-COR-20SC'     => ['qty' => 80,  'reserved' => 3],
+            'BAYER-ROG-30EC'   => ['qty' => 150, 'reserved' => 8],
+            'SYN-AMT-325SC'    => ['qty' => 90,  'reserved' => 4],
+            'BASF-CAB-60WG'    => ['qty' => 110, 'reserved' => 6],
+            'UPL-TAR-5EC'      => ['qty' => 70,  'reserved' => 2],
+            'IFFCO-NPK-2020'   => ['qty' => 200, 'reserved' => 10],
+            'COR-FER-1345'     => ['qty' => 180, 'reserved' => 7],
+            'IFFCO-NANO-UREA'  => ['qty' => 350, 'reserved' => 15],
+            'MHC-COT-7918'     => ['qty' => 500, 'reserved' => 20],
+            'NUZ-PAD-VNCL112'  => ['qty' => 300, 'reserved' => 12],
+            'HW-SPR-NEPT16L'   => ['qty' => 40,  'reserved' => 2],
+            'RAL-BIO-JODI'     => ['qty' => 160, 'reserved' => 5],
         ];
 
-        /*
-        |--------------------------------------------------------------------------
-        | Insert Products + Inventory Data
-        |--------------------------------------------------------------------------
-        */
+        foreach ($products as $product) {
+            $stock   = $stockData[$product->sku] ?? ['qty' => rand(50, 200), 'reserved' => rand(2, 10)];
+            $qty     = $stock['qty'];
+            $resQty  = $stock['reserved'];
 
-        foreach ($products as $item) {
+            // ── Stock record ─────────────────────────────────────────────────
+            DB::table('stocks')->updateOrInsert(
+                ['product_id' => $product->id, 'warehouse_id' => $warehouse->id],
+                [
+                    'quantity'       => $qty,
+                    'reserved_qty'   => $resQty,
+                    'committed_qty'  => 0,
+                    'in_transit_qty' => 0,
+                    'dispatched_qty' => 0,
+                    'status'         => 'active',
+                    'created_at'     => now(),
+                    'updated_at'     => now(),
+                ]
+            );
 
-            /*
-            |--------------------------------------------------------------------------
-            | Product
-            |--------------------------------------------------------------------------
-            */
-
-            $productId = DB::table('products')->insertGetId([
-                'name' => $item['name'],
-                'slug' => Str::slug($item['name']),
-                'sku' => $item['sku'],
-                'selling_price' => $item['price'],
-                'mrp' => $item['price'] + rand(1000, 5000),
-                'manage_stock' => true,
-                'allow_overselling' => false,
-                'status' => 'active',
-                'weight' => rand(1, 5) . ' Kg',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Stock
-            |--------------------------------------------------------------------------
-            */
-
-            DB::table('stocks')->insert([
-                'product_id' => $productId,
-                'warehouse_id' => $warehouse->id,
-                'quantity' => $item['stock'],
-                'reserved_qty' => rand(0, 5),
-                'committed_qty' => rand(0, 3),
-                'in_transit_qty' => rand(0, 2),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Stock Batch
-            |--------------------------------------------------------------------------
-            */
+            // ── Stock batch (batch & expiry tracking) ─────────────────────────
+            $mfgDate    = Carbon::now()->subMonths(rand(1, 4));
+            $expiryDate = Carbon::now()->addMonths(rand(12, 24));
 
             DB::table('stock_batches')->insert([
-                'product_id' => $productId,
-                'warehouse_id' => $warehouse->id,
-                'batch_number' => 'BAT-' . strtoupper(Str::random(6)),
-                'quantity' => $item['stock'],
-                'manufacturing_date' => Carbon::now()->subMonths(rand(1, 6)),
-                'expiry_date' => Carbon::now()->addYear(),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'product_id'         => $product->id,
+                'warehouse_id'       => $warehouse->id,
+                'batch_number'       => 'BAT-' . strtoupper(Str::random(4)) . '-' . $mfgDate->format('mY'),
+                'quantity'           => $qty,
+                'manufacturing_date' => $mfgDate->format('Y-m-d'),
+                'expiry_date'        => $expiryDate->format('Y-m-d'),
+                'created_at'         => now(),
+                'updated_at'         => now(),
             ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Stock Movement
-            |--------------------------------------------------------------------------
-            */
-
+            // ── Initial stock movement (GRN / Opening Stock) ──────────────────
             DB::table('stock_movements')->insert([
-                'product_id' => $productId,
-                'warehouse_id' => $warehouse->id,
-                'reference_type' => 'Initial Stock Entry',
-                'reference_id' => null,
-                'quantity' => $item['stock'],
-                'type' => 'in',
-                'created_at' => now(),
-                'updated_at' => now(),
+                'product_id'     => $product->id,
+                'warehouse_id'   => $warehouse->id,
+                'reference_type' => 'Opening Stock Entry',
+                'reference_id'   => null,
+                'quantity'       => $qty,
+                'type'           => 'in',
+                'created_at'     => now()->subDays(30),
+                'updated_at'     => now()->subDays(30),
             ]);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Inventory Adjustment
-        |--------------------------------------------------------------------------
-        */
-
+        // ─── Inventory Adjustment (Monthly Audit) ─────────────────────────────
         $firstProduct = DB::table('products')->first();
+        if ($firstProduct) {
+            $adjustmentId = DB::table('inventory_adjustments')->insertGetId([
+                'reference_no' => 'ADJ-' . now()->format('Ym') . '-001',
+                'warehouse_id' => $warehouse->id,
+                'adjusted_by'  => $user->id,
+                'reason'       => 'Monthly Physical Stock Verification – May 2026',
+                'status'       => 'approved',
+                'created_at'   => now()->subDays(5),
+                'updated_at'   => now()->subDays(5),
+            ]);
 
-        $adjustmentId = DB::table('inventory_adjustments')->insertGetId([
-            'reference_no' => 'ADJ-' . strtoupper(Str::random(6)),
-            'warehouse_id' => $warehouse->id,
-            'adjusted_by' => $user->id,
-            'reason' => 'Monthly Stock Audit',
-            'status' => 'approved',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+            DB::table('inventory_adjustment_items')->insert([
+                'adjustment_id' => $adjustmentId,
+                'product_id'    => $firstProduct->id,
+                'current_qty'   => 120,
+                'new_qty'       => 118,
+                'difference'    => -2,
+                'created_at'    => now()->subDays(5),
+                'updated_at'    => now()->subDays(5),
+            ]);
+        }
 
-        DB::table('inventory_adjustment_items')->insert([
-            'adjustment_id' => $adjustmentId,
-            'product_id' => $firstProduct->id,
-            'current_qty' => 40,
-            'new_qty' => 45,
-            'difference' => 5,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // ─── Stock Reservation (Pre-booked by a sales order) ──────────────────
+        $reserveProduct = DB::table('products')->skip(1)->first() ?? $firstProduct;
+        if ($reserveProduct) {
+            DB::table('stock_reservations')->insert([
+                'product_id'  => $reserveProduct->id,
+                'warehouse_id'=> $warehouse->id,
+                'order_id'    => null,
+                'quantity'    => 5,
+                'expires_at'  => now()->addDays(3),
+                'status'      => 'active',
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ]);
+        }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Stock Reservation
-        |--------------------------------------------------------------------------
-        */
-
-        DB::table('stock_reservations')->insert([
-            'product_id' => $firstProduct->id,
-            'warehouse_id' => $warehouse->id,
-            'order_id' => null,
-            'quantity' => 3,
-            'expires_at' => now()->addDays(2),
-            'status' => 'active',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $this->command->info('Inventory demo data seeded successfully.');
+        $this->command->info('✅ InventoryDataSeeder: Stock, batches, movements & adjustments seeded for ' . $products->count() . ' products.');
     }
 }

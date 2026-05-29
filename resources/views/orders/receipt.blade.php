@@ -11,7 +11,7 @@
                         <div class="size-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30">
                             <x-ui.icon name="package" size="6" />
                         </div>
-                        <h2 class="text-2xl font-black tracking-tight">AGROSTAR</h2>
+                        <h2 class="text-2xl font-black tracking-tight">FLIPKART</h2>
                     </div>
                     
                     <div class="space-y-1">
