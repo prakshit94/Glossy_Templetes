@@ -39,7 +39,7 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::with(['party', 'warehouse', 'invoice', 'items.product', 'shipments','creator'])->withCount('items');
+        $query = Order::with(['party', 'warehouse', 'invoice', 'items.product', 'shipments', 'creator', 'shippingAddress.village.services'])->withCount('items');
 
         $user = auth()->user();
         if ($user && !$user->hasAnyRole(['Super Admin', 'Admin']) && !$user->can('view_all_order')) {
@@ -971,7 +971,7 @@ class OrderController extends Controller
         }
 
         $normalized = array_map(fn($v) => strtolower(trim((string)$v)), $firstRow);
-        $hasHeader = in_array('order_no', $normalized, true);
+        $hasHeader = in_array('order_no', $normalized, true) || in_array('order_id', $normalized, true);
 
         $updated = 0;
         $skipped = 0;
@@ -991,7 +991,7 @@ class OrderController extends Controller
         try {
             while (($row = fgetcsv($handle)) !== false) {
                 if ($hasHeader) {
-                    $orderNo = $extractByHeader($row, $normalized, ['order_no']);
+                    $orderNo = $extractByHeader($row, $normalized, ['order_id', 'order_no']);
                     $carrierName = $extractByHeader($row, $normalized, ['carrier_name']);
                     $trackingNo = $extractByHeader($row, $normalized, ['tracking_no']);
                 } else {
@@ -1004,7 +1004,7 @@ class OrderController extends Controller
                     continue;
                 }
 
-                $order = Order::with(['party', 'shipments'])->where('order_no', $orderNo)->first();
+                $order = Order::with(['party', 'shipments'])->where('order_no', $orderNo)->orWhere('id', $orderNo)->first();
 
                 if ($isPreview) {
                     $shipment = $order ? $order->shipments->first() : null;
@@ -1061,8 +1061,8 @@ class OrderController extends Controller
     {
         return response()->streamDownload(function () {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['order_no', 'carrier_name', 'tracking_no']);
-            fputcsv($out, ['ORD-000001', 'FedEx', 'FDX123456789']);
+            fputcsv($out, ['order_id', 'carrier_name', 'tracking_no']);
+            fputcsv($out, ['1', 'FedEx', 'FDX123456789']);
             fclose($out);
         }, 'orders-shipping-import-template.csv', [
             'Content-Type' => 'text/csv',

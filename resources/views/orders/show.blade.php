@@ -602,6 +602,19 @@
 
     <!-- Create Shipment Modal -->
     @can('orders.ship')
+        @php
+            $suggestedCarrier = '';
+            if (!empty($order->shippingAddress) && !empty($order->shippingAddress->village)) {
+                $service = $order->shippingAddress->village->services
+                    ->where('is_active', true)
+                    ->where('pivot.is_available', true)
+                    ->sortBy('pivot.priority')
+                    ->first();
+                if ($service) {
+                    $suggestedCarrier = $service->name;
+                }
+            }
+        @endphp
         <x-ui.modal id="create-shipment-modal" maxWidth="md">
             <form action="{{ route('orders.ship', $order) }}" method="POST" class="p-6 space-y-4">
                 @csrf
@@ -618,7 +631,7 @@
                     <select id="carrier_name" name="carrier_name" class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 appearance-none cursor-pointer">
                         <option value="">-- Select Shipping Option --</option>
                         @foreach($services as $svc)
-                            <option value="{{ $svc->name }}">{{ $svc->name }} ({{ $svc->code }})</option>
+                            <option value="{{ $svc->name }}" {{ $svc->name == $suggestedCarrier ? 'selected' : '' }}>{{ $svc->name }} ({{ $svc->code }})</option>
                         @endforeach
                     </select>
                 </div>

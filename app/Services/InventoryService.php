@@ -552,6 +552,21 @@ class InventoryService
                 }
             }
 
+            if (empty($carrierName)) {
+                $order->loadMissing('shippingAddress.village.services');
+                if ($order->shippingAddress && $order->shippingAddress->village) {
+                    $service = $order->shippingAddress->village->services
+                        ->where('is_active', true)
+                        ->where('pivot.is_available', true)
+                        ->sortBy('pivot.priority')
+                        ->first();
+                    
+                    if ($service) {
+                        $carrierName = $service->name;
+                    }
+                }
+            }
+
             // Create Shipment record automatically
             $shipment = \App\Models\Shipment::create([
                 'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
@@ -971,6 +986,21 @@ class InventoryService
                 throw ValidationException::withMessages([
                     'status' => 'Only confirmed or processing orders can be marked as ready to ship.',
                 ]);
+            }
+
+            if (empty($carrierName)) {
+                $order->loadMissing('shippingAddress.village.services');
+                if ($order->shippingAddress && $order->shippingAddress->village) {
+                    $service = $order->shippingAddress->village->services
+                        ->where('is_active', true)
+                        ->where('pivot.is_available', true)
+                        ->sortBy('pivot.priority')
+                        ->first();
+                    
+                    if ($service) {
+                        $carrierName = $service->name;
+                    }
+                }
             }
 
             // Create Shipment record in pending status

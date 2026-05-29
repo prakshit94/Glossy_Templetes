@@ -50,6 +50,7 @@
         isLoading: false,
         shipOrderNo: '',
         shipOrderId: '',
+        shipCarrierName: '',
         shipActionUrl: '',
         returnOrderId: null,
         returnOrderNo: '',
@@ -75,9 +76,10 @@
             this.bulkVerifyOutcome = outcome;
             this.$dispatch('open-modal', { name: 'bulk-verification-modal' });
         },
-        openShipModal(orderId, orderNo) {
+        openShipModal(orderId, orderNo, carrierName = '') {
             this.shipOrderId = orderId;
             this.shipOrderNo = orderNo;
+            this.shipCarrierName = carrierName;
             this.shipActionUrl = `{{ route('orders.ship', ':id') }}`.replace(':id', orderId);
             this.$dispatch('open-modal', { name: 'create-shipment-modal' });
         },
@@ -660,7 +662,7 @@
             <div class="space-y-4">
                 <div class="space-y-2">
                     <label for="carrier_name" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Shipping Company / Carrier</label>
-                    <select id="carrier_name" name="carrier_name" class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 appearance-none cursor-pointer">
+                    <select id="carrier_name" name="carrier_name" x-model="shipCarrierName" class="h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 appearance-none cursor-pointer">
                         <option value="">-- Select Shipping Option --</option>
                         @foreach($services as $svc)
                             <option value="{{ $svc->name }}">{{ $svc->name }} ({{ $svc->code }})</option>

@@ -176,9 +176,14 @@ class PaymentController extends Controller
         if ($paymentNoIdx === false) {
             $paymentNoIdx = array_search('payment reference', $header);
         }
+        
+        $orderIdIdx = array_search('order_id', $header);
+        $orderNoIdx = array_search('order_no', $header);
+        $invoiceIdIdx = array_search('invoice_id', $header);
+        $invoiceNoIdx = array_search('invoice_no', $header);
 
-        if ($paymentNoIdx === false) {
-            return back()->with('error', 'CSV must contain a "payment_no" or "payment reference" column to identify payments.');
+        if ($paymentNoIdx === false && $orderIdIdx === false && $orderNoIdx === false && $invoiceIdIdx === false && $invoiceNoIdx === false) {
+            return back()->with('error', 'CSV must contain a "payment_no", "order_id", "order_no", "invoice_id", or "invoice_no" column to identify payments.');
         }
 
         $updatedCount = 0;
@@ -189,13 +194,90 @@ class PaymentController extends Controller
             foreach ($data as $rowIndex => $row) {
                 if (empty(array_filter($row))) continue; // Skip empty rows
 
-                $paymentNo = trim($row[$paymentNoIdx] ?? '');
-                if (!$paymentNo) continue;
+                $payment = null;
+                $order = null;
+                $invoice = null;
 
-                $payment = Payment::where('payment_no', $paymentNo)->first();
+                if ($paymentNoIdx !== false) {
+                    $paymentNo = trim($row[$paymentNoIdx] ?? '');
+                    if ($paymentNo) {
+                        $payment = Payment::where('payment_no', $paymentNo)->first();
+                    }
+                }
+
+                if (!$payment && ($invoiceIdIdx !== false || $invoiceNoIdx !== false)) {
+                    $val = null;
+                    if ($invoiceIdIdx !== false && trim($row[$invoiceIdIdx] ?? '')) {
+                        $val = trim($row[$invoiceIdIdx]);
+                    } elseif ($invoiceNoIdx !== false && trim($row[$invoiceNoIdx] ?? '')) {
+                        $val = trim($row[$invoiceNoIdx]);
+                    }
+
+                    if ($val) {
+                        $invoice = \App\Models\Invoice::with('order')->where('invoice_no', $val)->orWhere('id', $val)->first();
+                        if ($invoice && !$order) {
+                            $order = $invoice->order;
+                        }
+                    }
+                }
+
+                if (!$payment && !$order && ($orderIdIdx !== false || $orderNoIdx !== false)) {
+                    $val = null;
+                    if ($orderIdIdx !== false && trim($row[$orderIdIdx] ?? '')) {
+                        $val = trim($row[$orderIdIdx]);
+                    } elseif ($orderNoIdx !== false && trim($row[$orderNoIdx] ?? '')) {
+                        $val = trim($row[$orderNoIdx]);
+                    }
+
+                    if ($val) {
+                        $order = Order::with('invoice')->where('order_no', $val)->orWhere('id', $val)->first();
+                    }
+                }
+
+                if (!$payment && $order) {
+                    // Resolve the transaction_id from the CSV row (if provided)
+                    $csvTxnId = null;
+                    $txnColIdx = array_search('transaction_id', $header);
+                    if ($txnColIdx !== false && trim($row[$txnColIdx] ?? '') !== '') {
+                        $csvTxnId = trim($row[$txnColIdx]);
+                    }
+
+                    if ($csvTxnId) {
+                        // Same order + same transaction_id → update that exact payment
+                        // Same order + different/new transaction_id → create a new payment record
+                        $payment = Payment::where('order_id', $order->id)
+                                          ->where('transaction_id', $csvTxnId)
+                                          ->first();
+                        // No match on transaction_id → this is a new distinct payment; leave $payment null so a new one is created below
+                    } else {
+                        // No transaction_id provided → fall back to updating pending / latest payment
+                        $payment = Payment::where('order_id', $order->id)->where('status', 'pending')->first()
+                                ?? Payment::where('order_id', $order->id)->latest()->first();
+                    }
+
+                    if (!$payment) {
+                        $payment = new Payment([
+                            'payment_no'  => 'PAY-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                            'order_id'    => $order->id,
+                            'invoice_id'  => isset($invoice) && $invoice ? $invoice->id : $order->invoice?->id,
+                            'amount'      => $order->net_amount,
+                            'payment_method' => 'Bank Transfer',
+                            'transaction_id' => $csvTxnId ?? ('TXN-' . strtoupper(\Illuminate\Support\Str::random(10))),
+                            'payment_date' => now(),
+                            'status'      => 'completed',
+                        ]);
+                    }
+                }
                 
                 if (!$payment) {
-                    $errors[] = "Row " . ($rowIndex + 2) . ": Payment {$paymentNo} not found.";
+                    $identifier = [];
+                    if ($paymentNoIdx !== false) $identifier[] = "Payment No: " . trim($row[$paymentNoIdx] ?? '');
+                    if ($orderIdIdx !== false) $identifier[] = "Order ID: " . trim($row[$orderIdIdx] ?? '');
+                    if ($orderNoIdx !== false) $identifier[] = "Order No: " . trim($row[$orderNoIdx] ?? '');
+                    if ($invoiceIdIdx !== false) $identifier[] = "Invoice ID: " . trim($row[$invoiceIdIdx] ?? '');
+                    if ($invoiceNoIdx !== false) $identifier[] = "Invoice No: " . trim($row[$invoiceNoIdx] ?? '');
+                    
+                    $errors[] = "Row " . ($rowIndex + 2) . ": Payment not found for " . implode(', ', array_filter($identifier));
                     continue;
                 }
 
@@ -222,7 +304,13 @@ class PaymentController extends Controller
                         continue;
                     }
 
-                    $payment->update($updateData);
+                    $payment->fill($updateData);
+                    $payment->save();
+                    $updatedCount++;
+                } elseif (!$payment->exists) {
+                    // New payment (no existing record found) with no override columns in CSV –
+                    // save it using the defaults we already seeded (amount = net_amount, status = completed, etc.)
+                    $payment->save();
                     $updatedCount++;
                 }
             }

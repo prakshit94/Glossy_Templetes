@@ -358,11 +358,23 @@
 
                         @foreach($upcomming as $t)
 
-                            {{-- READY TO SHIP --}}
                             @if($t['status'] === 'ready_to_ship')
                                 @can('orders.ship')
+                                @php
+                                    $suggestedCarrier = '';
+                                    if (!empty($order->shippingAddress) && !empty($order->shippingAddress->village)) {
+                                        $service = $order->shippingAddress->village->services
+                                            ->where('is_active', true)
+                                            ->where('pivot.is_available', true)
+                                            ->sortBy('pivot.priority')
+                                            ->first();
+                                        if ($service) {
+                                            $suggestedCarrier = $service->name;
+                                        }
+                                    }
+                                @endphp
                                 <button type="button"
-                                    @click.prevent="openShipModal({{ $order->id }}, '{{ $order->order_no }}')"
+                                    @click.prevent="openShipModal({{ $order->id }}, '{{ $order->order_no }}', '{{ addslashes($suggestedCarrier) }}')"
                                     class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
 
                                     <span class="size-2 rounded-full bg-{{ $t['color'] }}-500"></span>

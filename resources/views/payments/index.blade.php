@@ -97,10 +97,14 @@
             // Validate expected columns
             const paymentNoIdx = headers.indexOf('payment_no');
             const refIdx = headers.indexOf('payment reference');
-            const targetIdx = paymentNoIdx !== -1 ? paymentNoIdx : refIdx;
+            const orderIdIdx = headers.indexOf('order_id');
+            const orderNoIdx = headers.indexOf('order_no');
+            const invoiceIdIdx = headers.indexOf('invoice_id');
+            const invoiceNoIdx = headers.indexOf('invoice_no');
+            const targetIdx = Math.max(paymentNoIdx, refIdx, orderIdIdx, orderNoIdx, invoiceIdIdx, invoiceNoIdx);
             
             if (targetIdx === -1) {
-                this.csvError = 'CSV must contain a payment_no or payment reference column.';
+                this.csvError = 'CSV must contain a payment_no, order_id, order_no, invoice_id, or invoice_no column.';
                 this.showPreview = false;
                 return;
             }
@@ -121,9 +125,9 @@
         },
         
         downloadTemplate() {
-            const headers = ['payment_no', 'amount', 'payment_method', 'transaction_id', 'payment_date', 'status'];
-            const row1 = ['PAY-0001', '500.00', 'Cash', 'TXN123456789', '2026-05-19 12:00:00', 'completed'];
-            const row2 = ['PAY-0002', '1250.00', 'UPI', 'TXN987654321', '2026-05-19 12:30:00', 'completed'];
+            const headers = ['invoice_no', 'order_id', 'amount', 'payment_method', 'transaction_id', 'payment_date', 'status'];
+            const row1 = ['INV-0001', '1', '500.00', 'Cash', 'TXN123456789', '2026-05-19 12:00:00', 'completed'];
+            const row2 = ['INV-0002', '2', '1250.00', 'UPI', 'TXN987654321', '2026-05-19 12:30:00', 'completed'];
             const csvContent = [headers.join(','), row1.join(','), row2.join(',')].join('\n');
             
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -556,7 +560,7 @@
                     @csrf
                     <div>
                         <p class="text-xs text-muted-foreground font-semibold leading-relaxed mb-4">
-                            Upload a CSV file to update multiple payments at once. The CSV must contain a <strong>payment_no</strong> column to identify the payment. You can optionally include columns for <strong>transaction_id</strong>, <strong>status</strong>, <strong>amount</strong>, <strong>payment_method</strong>, and <strong>payment_date</strong>.
+                            Upload a CSV file to update multiple payments at once. The CSV must contain an <strong>invoice_no</strong>, <strong>order_id</strong>, <strong>order_no</strong>, or <strong>payment_no</strong> column to identify the payment. You can optionally include columns for <strong>transaction_id</strong>, <strong>status</strong>, <strong>amount</strong>, <strong>payment_method</strong>, and <strong>payment_date</strong>.
                         </p>
                         
                         <div class="flex items-center justify-between mb-2">
@@ -608,8 +612,8 @@
                                                         <span :class="getStatusColor(val)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider" x-text="val"></span>
                                                     </template>
                                                     
-                                                    <!-- Payment No or Transaction ID (Monospace font code block) -->
-                                                    <template x-if="isHeaderType(previewHeaders[colIdx], 'payment_no') || isHeaderType(previewHeaders[colIdx], 'transaction_id')">
+                                                    <!-- Payment No, Order ID, Invoice ID or Transaction ID (Monospace font code block) -->
+                                                    <template x-if="isHeaderType(previewHeaders[colIdx], 'payment_no') || isHeaderType(previewHeaders[colIdx], 'order_id') || isHeaderType(previewHeaders[colIdx], 'order_no') || isHeaderType(previewHeaders[colIdx], 'invoice_id') || isHeaderType(previewHeaders[colIdx], 'invoice_no') || isHeaderType(previewHeaders[colIdx], 'transaction_id')">
                                                         <span class="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border/50 text-muted-foreground" x-text="val"></span>
                                                     </template>
 
@@ -619,7 +623,7 @@
                                                     </template>
 
                                                     <!-- Other fields -->
-                                                    <template x-if="!isHeaderType(previewHeaders[colIdx], 'status') && !isHeaderType(previewHeaders[colIdx], 'payment_no') && !isHeaderType(previewHeaders[colIdx], 'transaction_id') && !isHeaderType(previewHeaders[colIdx], 'amount')">
+                                                    <template x-if="!isHeaderType(previewHeaders[colIdx], 'status') && !isHeaderType(previewHeaders[colIdx], 'payment_no') && !isHeaderType(previewHeaders[colIdx], 'order_id') && !isHeaderType(previewHeaders[colIdx], 'order_no') && !isHeaderType(previewHeaders[colIdx], 'invoice_id') && !isHeaderType(previewHeaders[colIdx], 'invoice_no') && !isHeaderType(previewHeaders[colIdx], 'transaction_id') && !isHeaderType(previewHeaders[colIdx], 'amount')">
                                                         <span class="text-muted-foreground font-semibold" x-text="val"></span>
                                                     </template>
                                                 </td>
