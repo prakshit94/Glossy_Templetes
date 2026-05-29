@@ -287,6 +287,15 @@
         ];
 
         $colorClasses = $statusColors[$lifecycleStatus] ?? ['bg' => 'bg-muted/40', 'text' => 'text-muted-foreground', 'border' => 'border-border/50'];
+        $canUseLifecycleDropdown = auth()->user()?->canAny([
+            'orders.confirm',
+            'orders.processing',
+            'orders.ship',
+            'orders.dispatch',
+            'orders.deliver',
+            'orders.cancel',
+            'orders.revert_status',
+        ]);
 
         $missingFields = [];
         if ($lifecycleStatus === 'future_order') {
@@ -295,6 +304,13 @@
         }
     @endphp
 
+    @if(!$canUseLifecycleDropdown)
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 {{ $colorClasses['bg'] }} {{ $colorClasses['text'] }} {{ $colorClasses['border'] }}">
+            <span class="uppercase text-[9px] font-black tracking-[0.12em]">
+                {{ $order->statusLabel() }}
+            </span>
+        </span>
+    @else
     <div x-data="{ open: false }"
         @click.away="open = false"
         class="relative inline-block text-left">
@@ -583,6 +599,7 @@
 
         </div>
     </div>
+    @endif
 
     @if($lifecycleStatus === 'future_order')
         <div class="mt-2 flex flex-col items-center gap-1.5 w-full">

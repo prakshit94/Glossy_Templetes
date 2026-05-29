@@ -45,6 +45,7 @@ class OrderController extends Controller
         if ($user && !$user->hasAnyRole(['Super Admin', 'Admin']) && !$user->can('view_all_order')) {
             $query->where('created_by', $user->id);
         }
+        $this->applyOrderActionPermissionScope($query, $user);
 
         if ($request->filled('search')) {
 
@@ -185,7 +186,7 @@ class OrderController extends Controller
         }
         $orders  = $query->orderBy('order_date', $sortDate)->paginate($perPage)->withQueryString();
 
-        $statusesList = ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'delivered', 'cancelled', 'returned', 'future_order'];
+        $statusesList = $this->allowedOrderFilterStatuses($user);
 
         $productsList = Product::where('status', 'active')->orderBy('name')->get(['id', 'name', 'sku']);
 
@@ -833,6 +834,117 @@ class OrderController extends Controller
         return array_values(array_unique($statuses));
     }
 
+    /**
+     * Limit visible orders to statuses the user can actually act on.
+     */
+    private function applyOrderActionPermissionScope($query, $user): void
+    {
+        if (!$user) {
+            $query->whereRaw('1 = 0');
+            return;
+        }
+
+        $today = now()->toDateString();
+
+        $query->where(function ($q) use ($user, $today) {
+            $hasScope = false;
+
+            $addScope = function (callable $callback) use ($q, &$hasScope) {
+                $method = $hasScope ? 'orWhere' : 'where';
+                $q->{$method}($callback);
+                $hasScope = true;
+            };
+
+            if ($user->can('orders.confirm')) {
+                $addScope(function ($sub) {
+                    $sub->where('status', 'pending')
+                        ->where(function ($draft) {
+                            $draft->where('is_draft', false)->orWhereNull('is_draft');
+                        });
+                });
+            }
+
+            if ($user->can('orders.processing')) {
+                $addScope(fn($sub) => $sub->where('status', 'confirmed'));
+            }
+
+            if ($user->can('orders.ship')) {
+                $addScope(fn($sub) => $sub->whereIn('status', ['confirmed', 'processing']));
+            }
+
+            if ($user->can('orders.dispatch')) {
+                $addScope(fn($sub) => $sub->where('status', 'ready_to_ship'));
+            }
+
+            if ($user->can('orders.deliver')) {
+                $addScope(fn($sub) => $sub->whereIn('status', Order::inTransitStatuses()));
+            }
+
+            if ($user->can('orders.cancel')) {
+                $addScope(fn($sub) => $sub->whereIn('status', ['pending', 'confirmed', 'processing', 'ready_to_ship']));
+            }
+
+            if ($user->can('orders.revert_status')) {
+                $addScope(fn($sub) => $sub->whereIn('status', ['confirmed', 'processing', 'ready_to_ship', 'dispatched', 'shipped', 'delivered', 'cancelled']));
+            }
+
+            $addScope(function ($sub) use ($user, $today) {
+                $sub->where('created_by', $user->id)
+                    ->whereDate('order_date', $today);
+            });
+
+            if (!$hasScope) {
+                $q->whereRaw('1 = 0');
+            }
+        });
+    }
+
+    /**
+     * Status options shown in the filter dropdown for the current user's actions.
+     *
+     * @return list<string>
+     */
+    private function allowedOrderFilterStatuses($user): array
+    {
+        if (!$user) {
+            return [];
+        }
+
+        $statuses = [];
+
+        if ($user->can('orders.confirm')) {
+            $statuses[] = 'pending';
+        }
+
+        if ($user->can('orders.processing')) {
+            $statuses[] = 'confirmed';
+        }
+
+        if ($user->can('orders.ship')) {
+            array_push($statuses, 'confirmed', 'processing');
+        }
+
+        if ($user->can('orders.dispatch')) {
+            $statuses[] = 'ready_to_ship';
+        }
+
+        if ($user->can('orders.deliver')) {
+            $statuses[] = 'dispatched';
+        }
+
+        if ($user->can('orders.cancel')) {
+            array_push($statuses, 'future_order', 'pending', 'confirmed', 'processing', 'ready_to_ship');
+        }
+
+        if ($user->can('orders.revert_status')) {
+            array_push($statuses, 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'delivered', 'cancelled');
+        }
+
+        $orderedStatuses = ['future_order', 'pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'delivered', 'cancelled'];
+
+        return array_values(array_intersect($orderedStatuses, array_unique($statuses)));
+    }
+
     public function bulkExport(Request $request)
     {
         $query = Order::with(['party', 'warehouse', 'items.product', 'shipments']);
@@ -841,6 +953,7 @@ class OrderController extends Controller
         if ($user && !$user->hasAnyRole(['Super Admin', 'Admin']) && !$user->can('view_all_order')) {
             $query->where('created_by', $user->id);
         }
+        $this->applyOrderActionPermissionScope($query, $user);
 
         if ($request->filled('search')) {
             $s = trim($request->search);
