@@ -28,6 +28,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'orders.confirm', 'orders.processing', 'orders.ship', 'orders.dispatch', 'orders.deliver', 'orders.cancel','orders.revert_status',
                 'orders.generate_invoice', 'orders.invoice_pdf', 'orders.cod', 'orders.receipt',
                 'orders.bulk_status', 'orders.bulk_print',
+                'orders.filter_product', 'orders.filter_fulfillment', 'orders.filter_status', 'orders.filter_state',
+                'orders.filter_district', 'orders.filter_taluka', 'orders.filter_carrier', 'orders.filter_sort', 'orders.filter_date',
 
                 'villages.view', 'villages.create', 'villages.edit', 'villages.delete', 'villages.import',
                 'services.view', 'services.create', 'services.edit', 'services.delete',

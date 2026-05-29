@@ -68,7 +68,7 @@ class OrderController extends Controller
     });
 }
 
-        if ($request->filled('status')) {
+        if ($request->filled('status') && auth()->user()->can('orders.filter_status')) {
             $requestedStatuses = array_filter(array_map('trim', explode(',', $request->status)));
             $hasFutureOrder = in_array('future_order', $requestedStatuses, true);
             $hasPending     = in_array('pending', $requestedStatuses, true);
@@ -108,7 +108,7 @@ class OrderController extends Controller
             });
         }
 
-        if ($request->filled('product')) {
+        if ($request->filled('product') && auth()->user()->can('orders.filter_product')) {
             $productIds = array_filter(array_map('intval', explode(',', $request->product)));
             if (!empty($productIds)) {
                 $query->whereHas('items', function ($q) use ($productIds) {
@@ -117,7 +117,7 @@ class OrderController extends Controller
             }
         }
 
-        if ($request->filled('fulfillment')) {
+        if ($request->filled('fulfillment') && auth()->user()->can('orders.filter_fulfillment')) {
             if ($request->fulfillment === 'unfulfillable') {
                 $query->where('status', 'pending')
                       ->whereHas('items', function ($q) {
@@ -138,19 +138,19 @@ class OrderController extends Controller
 
         if ($request->filled('state') || $request->filled('district') || $request->filled('taluka')) {
             $query->whereHas('shippingAddress.village', function ($q) use ($request) {
-                if ($request->filled('state')) {
+                if ($request->filled('state') && auth()->user()->can('orders.filter_state')) {
                     $q->whereIn('state_name', array_map('trim', explode(',', $request->state)));
                 }
-                if ($request->filled('district')) {
+                if ($request->filled('district') && auth()->user()->can('orders.filter_district')) {
                     $q->whereIn('district_name', array_map('trim', explode(',', $request->district)));
                 }
-                if ($request->filled('taluka')) {
+                if ($request->filled('taluka') && auth()->user()->can('orders.filter_taluka')) {
                     $q->whereIn('taluka_name', array_map('trim', explode(',', $request->taluka)));
                 }
             });
         }
 
-        if ($request->filled('carrier')) {
+        if ($request->filled('carrier') && auth()->user()->can('orders.filter_carrier')) {
             $carriers = array_filter(array_map('trim', explode(',', $request->carrier)));
             if (!empty($carriers)) {
                 $query->whereHas('shipments', function ($q) use ($carriers) {
@@ -159,10 +159,10 @@ class OrderController extends Controller
             }
         }
 
-        if ($request->filled('from_date')) {
+        if ($request->filled('from_date') && auth()->user()->can('orders.filter_date')) {
             $query->whereDate('order_date', '>=', $request->from_date);
         }
-        if ($request->filled('to_date')) {
+        if ($request->filled('to_date') && auth()->user()->can('orders.filter_date')) {
             $query->whereDate('order_date', '<=', $request->to_date);
         }
 
@@ -179,7 +179,10 @@ class OrderController extends Controller
         ];
 
         $perPage = (int) $request->get('perPage', 15);
-        $sortDate = $request->get('sort_date', 'desc') === 'asc' ? 'asc' : 'desc';
+        $sortDate = 'desc';
+        if (auth()->user()->can('orders.filter_sort')) {
+            $sortDate = $request->get('sort_date', 'desc') === 'asc' ? 'asc' : 'desc';
+        }
         $orders  = $query->orderBy('order_date', $sortDate)->paginate($perPage)->withQueryString();
 
         $statusesList = ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'delivered', 'cancelled', 'returned', 'future_order'];

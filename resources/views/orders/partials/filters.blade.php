@@ -8,6 +8,7 @@
     <!-- PRODUCT FILTER -->
     <!-- ===================================================== -->
 
+    @can('orders.filter_product')
     <div class="relative" x-data="{ open: false, filter: '' }">
 
         <button
@@ -82,11 +83,13 @@
         </div>
 
     </div>
+    @endcan
 
     <!-- ===================================================== -->
     <!-- FULFILLMENT FILTER -->
     <!-- ===================================================== -->
 
+    @can('orders.filter_fulfillment')
     <div class="relative">
 
         <select
@@ -107,11 +110,13 @@
         </select>
 
     </div>
+    @endcan
 
     <!-- ===================================================== -->
     <!-- STATUS FILTER -->
     <!-- ===================================================== -->
 
+    @can('orders.filter_status')
     <div class="relative" x-data="{ open: false, filter: '' }">
 
         <button
@@ -185,11 +190,13 @@
         </div>
 
     </div>
+    @endcan
 
     <!-- ===================================================== -->
     <!-- STATE FILTER -->
     <!-- ===================================================== -->
 
+    @can('orders.filter_state')
     <div class="relative" x-data="{ open: false, filter: '' }">
 
         <button
@@ -263,11 +270,13 @@
         </div>
 
     </div>
+    @endcan
 
     <!-- ===================================================== -->
     <!-- DISTRICT FILTER -->
     <!-- ===================================================== -->
 
+    @can('orders.filter_district')
     <div class="relative" x-data="{ open: false, filter: '' }">
 
         <button
@@ -341,11 +350,13 @@
         </div>
 
     </div>
+    @endcan
 
     <!-- ===================================================== -->
     <!-- TALUKA FILTER -->
     <!-- ===================================================== -->
 
+    @can('orders.filter_taluka')
     <div class="relative" x-data="{ open: false, filter: '' }">
 
         <button
@@ -419,11 +430,13 @@
         </div>
 
     </div>
+    @endcan
 
     <!-- ===================================================== -->
     <!-- CARRIER FILTER -->
     <!-- ===================================================== -->
 
+    @can('orders.filter_carrier')
     <div class="relative" x-data="{ open: false, filter: '' }">
 
         <button
@@ -501,10 +514,12 @@
         </div>
 
     </div>
+    @endcan
 
     <!-- ===================================================== -->
     <!-- PLACED DATE SORT -->
     <!-- ===================================================== -->
+    @can('orders.filter_sort')
     <div class="relative">
         <select
             x-model="sortDate"
@@ -514,10 +529,12 @@
             <option value="asc">📅 Oldest First</option>
         </select>
     </div>
+    @endcan
 
     <!-- ===================================================== -->
     <!-- DATE RANGE FILTER -->
     <!-- ===================================================== -->
+    @can('orders.filter_date')
     <div class="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border bg-background/50 text-[11px] font-bold text-muted-foreground shadow-sm hover:bg-background transition-all">
         <span class="text-muted-foreground/80">From:</span>
         <input 
@@ -540,5 +557,6 @@
             <x-ui.icon name="x-circle" size="3" />
         </button>
     </div>
+    @endcan
 
 </div>
