@@ -113,32 +113,75 @@
 
         <div class="border-t border-border/50 bg-card" x-show="cart.length > 0" x-cloak>
             <div class="px-5 pt-4 pb-3 border-b border-border/40 space-y-3">
-                <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <x-ui.icon name="tag" size="3" class="text-primary" /> Backend Offers
-                </p>
-                <div class="rounded-2xl border border-border bg-background/50 p-3 space-y-2">
-                    <template x-if="bestOrderOffer">
-                        <div class="flex items-center justify-between gap-3">
-                            <div>
-                                <p class="text-xs font-black text-foreground" x-text="bestOrderOffer.name"></p>
-                                <p class="text-[10px] text-muted-foreground" x-text="orderDiscountLabel"></p>
-                            </div>
-                            <span class="text-xs font-black text-emerald-500" x-text="'- ₹' + Number(orderDiscountAmount).toFixed(2)"></span>
-                        </div>
-                    </template>
-                    <template x-if="!bestOrderOffer">
-                        <p class="text-xs font-semibold text-muted-foreground">No active backend order discount for this cart.</p>
-                    </template>
-                    <template x-if="bogoDiscountTotal > 0">
-                        <div class="flex items-center justify-between gap-3 border-t border-border/60 pt-2">
-                            <div>
-                                <p class="text-xs font-black text-foreground">BOGO Savings</p>
-                                <p class="text-[10px] text-muted-foreground">Applied automatically from backend offer rules.</p>
-                            </div>
-                            <span class="text-xs font-black text-emerald-500" x-text="'- ₹' + Number(bogoDiscountTotal).toFixed(2)"></span>
-                        </div>
+                {{-- ── Offer Picker ── --}}
+                <div class="flex items-center justify-between">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                        <x-ui.icon name="tag" size="3" class="text-primary" /> Backend Offers
+                    </p>
+                    <template x-if="availableOrderOffers.length > 0">
+                        <span class="text-[9px] font-black bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20"
+                              x-text="availableOrderOffers.length + ' available'"></span>
                     </template>
                 </div>
+
+                {{-- No offer applied --}}
+                <template x-if="!bestOrderOffer">
+                    <div class="rounded-2xl border border-dashed border-border bg-background/30 p-3">
+                        <template x-if="availableOrderOffers.length > 0">
+                            <button type="button" @click.prevent="isOffersModalOpen = true"
+                                class="w-full flex items-center justify-between gap-3 group">
+                                <div class="flex items-center gap-2">
+                                    <div class="size-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                                        <x-ui.icon name="gift" size="4" />
+                                    </div>
+                                    <div class="text-left">
+                                        <p class="text-xs font-black text-foreground group-hover:text-primary transition-colors">Apply an Offer</p>
+                                        <p class="text-[10px] text-muted-foreground" x-text="availableOrderOffers.length + ' offer(s) available for this cart'"></p>
+                                    </div>
+                                </div>
+                                <x-ui.icon name="chevron-right" size="4" class="text-muted-foreground group-hover:text-primary transition-colors" />
+                            </button>
+                        </template>
+                        <template x-if="availableOrderOffers.length === 0">
+                            <p class="text-xs font-semibold text-muted-foreground text-center py-1">No offers available for this cart.</p>
+                        </template>
+                    </div>
+                </template>
+
+                {{-- Offer applied --}}
+                <template x-if="bestOrderOffer">
+                    <div class="flex items-center justify-between gap-3 px-3 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
+                        <div class="flex items-center gap-2">
+                            <div class="size-7 rounded-lg bg-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0">
+                                <x-ui.icon name="check" size="3" />
+                            </div>
+                            <div>
+                                <p class="text-xs font-black text-emerald-700" x-text="bestOrderOffer.name"></p>
+                                <p class="text-[10px] font-semibold text-emerald-600" x-text="'Saving ₹' + Number(orderDiscountAmount).toFixed(2)"></p>
+                            </div>
+                        </div>
+                        <button type="button" @click.prevent="removeOrderOffer()"
+                            class="size-6 rounded-lg bg-emerald-500/20 hover:bg-destructive/20 text-emerald-700 hover:text-destructive flex items-center justify-center transition-all">
+                            <x-ui.icon name="x" size="3" />
+                        </button>
+                    </div>
+                </template>
+
+                {{-- BOGO (always auto-applied, shown separately) --}}
+                <template x-if="bogoDiscountTotal > 0">
+                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-muted/40 border border-border/40">
+                        <div class="flex items-center gap-2">
+                            <div class="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <x-ui.icon name="zap" size="3" />
+                            </div>
+                            <div>
+                                <p class="text-xs font-black text-foreground">BOGO Savings</p>
+                                <p class="text-[10px] text-muted-foreground">Auto-applied</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-black text-emerald-500" x-text="'- ₹' + Number(bogoDiscountTotal).toFixed(2)"></span>
+                    </div>
+                </template>
 
                 <div class="flex items-center gap-2" x-show="!couponApplied">
                     <input type="text" x-model="couponCode" @keydown.enter.prevent="applyCoupon()"

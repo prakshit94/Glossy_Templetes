@@ -124,12 +124,15 @@
             localStorage.removeItem('customer_cart_{{ $customer->id }}');
             localStorage.removeItem('customer_active_tab_{{ $customer->id }}');
             localStorage.removeItem('customer_same_as_billing_{{ $customer->id }}');
+            localStorage.removeItem('customer_applied_offer_{{ $customer->id }}');
             this.editingOrderId = null;
             this.editingOrderDetails = null;
             this.cart = [];
+            this.appliedOrderOfferId = null;
             // Force a slight delay to ensure watchers don't override this with stale data
             setTimeout(() => {
                 localStorage.removeItem('customer_cart_{{ $customer->id }}');
+                localStorage.removeItem('customer_applied_offer_{{ $customer->id }}');
             }, 100);
         @endif
 
@@ -143,11 +146,29 @@
             }
         }
         
+        const savedOfferId = localStorage.getItem('customer_applied_offer_{{ $customer->id }}');
+        if (savedOfferId) {
+            this.appliedOrderOfferId = parseInt(savedOfferId, 10);
+        }
+        
         // Watch cart for changes and save to localStorage
         this.$watch('cart', (value) => {
             localStorage.setItem('customer_cart_{{ $customer->id }}', JSON.stringify(value));
+            // If offer becomes invalid because of subtotal drop, it will naturally yield 0 discount, but let's clear it if availableOrderOffers doesn't have it
+            setTimeout(() => {
+                if (this.appliedOrderOfferId && !this.availableOrderOffers.find(o => o.id === this.appliedOrderOfferId)) {
+                    this.appliedOrderOfferId = null;
+                }
+            }, 50);
         });
         
+        this.$watch('appliedOrderOfferId', (value) => {
+            if (value) {
+                localStorage.setItem('customer_applied_offer_{{ $customer->id }}', value);
+            } else {
+                localStorage.removeItem('customer_applied_offer_{{ $customer->id }}');
+            }
+        });
         
         // Watch activeTab and save to localStorage
         this.$watch('activeTab', (val) => {
@@ -342,13 +363,30 @@
 
         return Math.min(discount, this.subtotal);
     },
-    get bestOrderOffer() {
-        const offers = this.activeOrderOffers
+    appliedOrderOfferId: null,
+    isOffersModalOpen: false,
+    
+    get availableOrderOffers() {
+        return this.activeOrderOffers
             .map(offer => ({ ...offer, computed_discount: this.orderOfferDiscount(offer) }))
             .filter(offer => offer.computed_discount > 0)
-            .sort((a, b) => (b.priority - a.priority) || (b.computed_discount - a.computed_discount) || (a.id - b.id));
-
-        return offers[0] || null;
+            .sort((a, b) => (b.computed_discount - a.computed_discount) || (a.id - b.id));
+    },
+    
+    get bestOrderOffer() {
+        if (!this.appliedOrderOfferId) return null;
+        return this.availableOrderOffers.find(o => o.id === this.appliedOrderOfferId) || null;
+    },
+    
+    applyOrderOffer(offerId) {
+        this.appliedOrderOfferId = offerId;
+        this.isOffersModalOpen = false;
+        this.notify('success', 'Offer applied successfully');
+    },
+    
+    removeOrderOffer() {
+        this.appliedOrderOfferId = null;
+        this.notify('info', 'Offer removed');
     },
     get orderDiscountAmount() {
         return this.bestOrderOffer ? this.bestOrderOffer.computed_discount : 0;

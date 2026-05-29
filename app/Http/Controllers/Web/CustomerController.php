@@ -433,32 +433,36 @@ class CustomerController extends Controller
     
     public function placeOrder(Request $request, Customer $customer, OrderService $orderService)
     {
-        $data = $request->validate([
-            'order_id'              => 'nullable|exists:orders,id',
-            'cart'                  => 'required|string',
-            'order_discount_amount' => 'nullable|numeric',
-            'coupon_code'           => 'nullable|string',
-            'coupon_discount'       => 'nullable|numeric',
-            'tax_amount'            => 'required|numeric',
-            'subtotal'              => 'required|numeric',
-            'grand_total'           => 'required|numeric',
-            'warehouse_id'          => 'required|exists:warehouses,id',
-            // SECURITY FIX: address must belong to this customer, not any address in the system
-            'address_id'            => [
-                'required',
-                \Illuminate\Validation\Rule::exists('party_addresses', 'id')->where('party_id', $customer->id),
-            ],
-            'billing_address_id'    => [
-                'nullable',
-                \Illuminate\Validation\Rule::exists('party_addresses', 'id')->where('party_id', $customer->id),
-            ],
-            'is_draft'              => 'nullable|boolean',
-            'future_order_date'     => 'required_if:is_draft,1|nullable|date_format:Y-m-d',
-        ]);
-
         try {
+            $data = $request->validate([
+                'order_id'              => [
+                    'nullable',
+                    \Illuminate\Validation\Rule::exists('orders', 'id')->where('party_id', $customer->id)
+                ],
+                'cart'                  => 'required|string',
+                'applied_offer_id'      => 'nullable|exists:offers,id',
+                'order_discount_amount' => 'nullable|numeric',
+                'coupon_code'           => 'nullable|string',
+                'coupon_discount'       => 'nullable|numeric',
+                'tax_amount'            => 'required|numeric',
+                'subtotal'              => 'required|numeric',
+                'grand_total'           => 'required|numeric',
+                'warehouse_id'          => 'required|exists:warehouses,id',
+                // SECURITY FIX: address must belong to this customer, not any address in the system
+                'address_id'            => [
+                    'required',
+                    \Illuminate\Validation\Rule::exists('party_addresses', 'id')->where('party_id', $customer->id),
+                ],
+                'billing_address_id'    => [
+                    'nullable',
+                    \Illuminate\Validation\Rule::exists('party_addresses', 'id')->where('party_id', $customer->id),
+                ],
+                'is_draft'              => 'nullable|boolean',
+                'future_order_date'     => 'required_if:is_draft,1|nullable|date_format:Y-m-d',
+            ]);
+
             if (!empty($data['order_id'])) {
-                $order = Order::findOrFail($data['order_id']);
+                $order = Order::where('party_id', $customer->id)->findOrFail($data['order_id']);
                 $orderService->updateCustomerOrder($order, $data);
                 $msg = 'Order updated successfully!';
             } else {
@@ -469,6 +473,9 @@ class CustomerController extends Controller
             return redirect()->route('customers.show', $customer)
                 ->with('success', $msg)
                 ->with('active_tab', 'history');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first() ?? $e->getMessage();
+            return back()->with('error', $firstError);
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to process order: ' . $e->getMessage());
         }

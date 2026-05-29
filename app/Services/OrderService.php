@@ -299,17 +299,19 @@ class OrderService
             $couponCode = $coupon->code;
         }
 
+        $appliedOfferId = !empty($data['applied_offer_id']) ? (int) $data['applied_offer_id'] : null;
         $bestOrderOffer = null;
         $orderDiscount = 0.0;
-        foreach ($orderOffers as $offer) {
-            $discount = $this->calculateOfferDiscount($subtotal, $offer);
-            if ($discount <= 0) {
-                continue;
-            }
 
-            if (!$bestOrderOffer || (int) $offer->priority > (int) $bestOrderOffer->priority) {
-                $bestOrderOffer = $offer;
-                $orderDiscount = $discount;
+        if ($appliedOfferId) {
+            $bestOrderOffer = $orderOffers->firstWhere('id', $appliedOfferId);
+            if ($bestOrderOffer) {
+                $discount = $this->calculateOfferDiscount($subtotal, $bestOrderOffer);
+                if ($discount > 0) {
+                    $orderDiscount = $discount;
+                } else {
+                    $bestOrderOffer = null;
+                }
             }
         }
 

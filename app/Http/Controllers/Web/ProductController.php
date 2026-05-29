@@ -92,6 +92,9 @@ class ProductController extends Controller
             ->withSum(['orderItems as pending_orders_qty' => function ($q) use ($request) {
                 $q->whereHas('order', function ($o) use ($request) {
                     $o->where('status', 'pending');
+                    $o->where(function ($query) {
+                        $query->where('is_draft', false)->orWhereNull('is_draft');
+                    });
                     if ($request->filled('exclude_order_id')) {
                         $o->where('id', '!=', $request->exclude_order_id);
                     }
@@ -130,12 +133,12 @@ class ProductController extends Controller
 
         if ($stockFilter === 'available') {
             $query->where(function ($q) use ($excludeSql, $bindings) {
-                $q->whereRaw('(IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = products.id AND stocks.deleted_at IS NULL), 0) - IFNULL((SELECT SUM(quantity) FROM order_items JOIN orders ON orders.id = order_items.order_id WHERE order_items.product_id = products.id AND orders.status = \'pending\' AND orders.deleted_at IS NULL' . $excludeSql . '), 0)) > 0', $bindings)
+                $q->whereRaw('(IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = products.id AND stocks.deleted_at IS NULL), 0) - IFNULL((SELECT SUM(quantity) FROM order_items JOIN orders ON orders.id = order_items.order_id WHERE order_items.product_id = products.id AND orders.status = \'pending\' AND (orders.is_draft = 0 OR orders.is_draft IS NULL) AND orders.deleted_at IS NULL' . $excludeSql . '), 0)) > 0', $bindings)
                   ->orWhere('allow_overselling', true);
             });
         } elseif ($stockFilter === 'out_of_stock') {
             $query->where(function ($q) use ($excludeSql, $bindings) {
-                $q->whereRaw('(IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = products.id AND stocks.deleted_at IS NULL), 0) - IFNULL((SELECT SUM(quantity) FROM order_items JOIN orders ON orders.id = order_items.order_id WHERE order_items.product_id = products.id AND orders.status = \'pending\' AND orders.deleted_at IS NULL' . $excludeSql . '), 0)) <= 0', $bindings)
+                $q->whereRaw('(IFNULL((SELECT SUM(quantity - reserved_qty) FROM stocks WHERE stocks.product_id = products.id AND stocks.deleted_at IS NULL), 0) - IFNULL((SELECT SUM(quantity) FROM order_items JOIN orders ON orders.id = order_items.order_id WHERE order_items.product_id = products.id AND orders.status = \'pending\' AND (orders.is_draft = 0 OR orders.is_draft IS NULL) AND orders.deleted_at IS NULL' . $excludeSql . '), 0)) <= 0', $bindings)
                   ->where('allow_overselling', false);
             });
         }

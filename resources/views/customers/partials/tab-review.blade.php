@@ -389,15 +389,37 @@
                                     <span class="font-black" x-text="'- ₹' + Number(bogoDiscountTotal).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
                                 </div>
                             </template>
-                            <template x-if="orderDiscountAmount > 0">
-                                <div class="flex justify-between items-center text-xs text-emerald-600">
-                                    <div class="flex flex-col">
-                                        <span class="font-black uppercase tracking-widest">Order Adjustment</span>
-                                        <span class="text-[9px] text-muted-foreground font-semibold" x-text="orderDiscountLabel"></span>
+                            {{-- Order Offer row --}}
+                            <div class="flex justify-between items-center text-xs">
+                                <div class="flex flex-col gap-0.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-black uppercase tracking-widest"
+                                              :class="orderDiscountAmount > 0 ? 'text-emerald-600' : 'text-muted-foreground/60'">
+                                            Order Offer
+                                        </span>
+                                        <button type="button" @click.prevent="isOffersModalOpen = true"
+                                            class="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border transition-all"
+                                            :class="orderDiscountAmount > 0
+                                                ? 'border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10'
+                                                : 'border-primary/30 text-primary hover:bg-primary/10'"
+                                            x-text="orderDiscountAmount > 0 ? 'Change' : 'Apply Offer'">
+                                        </button>
                                     </div>
-                                    <span class="font-black" x-text="'- ₹' + Number(orderDiscountAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                                    <template x-if="orderDiscountAmount > 0">
+                                        <span class="text-[9px] text-muted-foreground font-semibold" x-text="orderDiscountLabel"></span>
+                                    </template>
+                                    <template x-if="orderDiscountAmount === 0 && availableOrderOffers.length > 0">
+                                        <span class="text-[9px] text-amber-600 font-semibold"
+                                              x-text="availableOrderOffers.length + ' offer(s) available'"></span>
+                                    </template>
                                 </div>
-                            </template>
+                                <template x-if="orderDiscountAmount > 0">
+                                    <span class="font-black text-emerald-600" x-text="'- ₹' + Number(orderDiscountAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
+                                </template>
+                                <template x-if="orderDiscountAmount === 0">
+                                    <span class="font-black text-muted-foreground/40 text-[10px]">—</span>
+                                </template>
+                            </div>
                             <template x-if="couponDiscount > 0">
                                 <div class="flex justify-between items-center text-xs text-emerald-600">
                                     <div class="flex flex-col">
@@ -423,6 +445,7 @@
                                     @csrf
                                     <input type="hidden" name="order_id" :value="editingOrderId" :disabled="!editingOrderId">
                                     <input type="hidden" name="cart" :value="JSON.stringify(cart)">
+                                    <input type="hidden" name="applied_offer_id" :value="appliedOrderOfferId ?? ''">
                                     <input type="hidden" name="order_discount_amount" :value="orderDiscountAmount">
                                     <input type="hidden" name="coupon_code" :value="couponApplied ? couponCode : ''">
                                     <input type="hidden" name="coupon_discount" :value="couponDiscount">

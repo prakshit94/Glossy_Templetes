@@ -153,6 +153,164 @@
     </div>
 </x-ui.modal>
 
+{{-- ══ Offers Picker Modal ══ --}}
+{{-- Backdrop --}}
+<div x-show="isOffersModalOpen" x-cloak
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     @click="isOffersModalOpen = false"
+     class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110]">
+</div>
+
+{{-- Panel --}}
+<div x-show="isOffersModalOpen" x-cloak
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+     x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+     x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+     class="fixed inset-0 z-[115] flex items-center justify-center p-4">
+
+    <div class="w-full max-w-lg bg-card border border-border/50 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+
+        {{-- Header --}}
+        <div class="flex items-center justify-between px-6 py-5 border-b border-border/40 bg-gradient-to-r from-amber-500/10 via-card to-card shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="size-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shadow-inner">
+                    <x-ui.icon name="gift" size="5" />
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-foreground tracking-tight">Available Offers</h3>
+                    <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest"
+                       x-text="availableOrderOffers.length + ' offer(s) for your cart'"></p>
+                </div>
+            </div>
+            <button type="button" @click="isOffersModalOpen = false"
+                class="size-9 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all">
+                <x-ui.icon name="x" size="4" />
+            </button>
+        </div>
+
+        {{-- Offer List --}}
+        <div class="flex-1 overflow-y-auto p-5 space-y-3" style="scrollbar-width:thin;">
+
+            {{-- Empty State --}}
+            <template x-if="availableOrderOffers.length === 0">
+                <div class="flex flex-col items-center justify-center h-48 text-center gap-3 opacity-50">
+                    <div class="size-16 rounded-3xl bg-muted flex items-center justify-center">
+                        <x-ui.icon name="tag" size="8" class="text-muted-foreground" />
+                    </div>
+                    <p class="text-sm font-black uppercase tracking-widest text-foreground">No offers available</p>
+                    <p class="text-xs text-muted-foreground">Add more items to unlock backend offers.</p>
+                </div>
+            </template>
+
+            {{-- Offers list --}}
+            <template x-for="offer in availableOrderOffers" :key="offer.id">
+                <div class="relative rounded-2xl border-2 p-5 transition-all duration-200 cursor-pointer group"
+                     :class="appliedOrderOfferId === offer.id
+                         ? 'border-emerald-500 bg-emerald-500/5'
+                         : 'border-border/50 bg-muted/10 hover:border-primary/40 hover:bg-primary/[0.02]'">
+
+                    <div class="flex items-start gap-4">
+                        {{-- Icon --}}
+                        <div class="size-10 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+                             :class="appliedOrderOfferId === offer.id ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/10 text-amber-600'">
+                            <x-ui.icon name="percent" size="5" />
+                        </div>
+
+                        {{-- Details --}}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <p class="text-sm font-black text-foreground" x-text="offer.name"></p>
+                                <template x-if="offer.priority > 0">
+                                    <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 uppercase tracking-widest"
+                                          x-text="'Priority ' + offer.priority"></span>
+                                </template>
+                                <template x-if="appliedOrderOfferId === offer.id">
+                                    <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 border border-emerald-500/30 uppercase tracking-widest flex items-center gap-1">
+                                        <x-ui.icon name="check" size="2.5" /> Applied
+                                    </span>
+                                </template>
+                            </div>
+
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                                {{-- Discount value --}}
+                                <p class="text-xs text-muted-foreground font-medium">
+                                    <span class="font-black text-foreground"
+                                          x-text="offer.discount_type === 'percentage'
+                                              ? offer.value + '% off'
+                                              : '₹' + Number(offer.value).toFixed(2) + ' flat off'">
+                                    </span>
+                                </p>
+                                {{-- Min spend --}}
+                                <template x-if="(parseFloat(offer.min_spend) || 0) > 0">
+                                    <p class="text-xs text-muted-foreground font-medium">
+                                        Min spend: <span class="font-black" x-text="'₹' + Number(offer.min_spend).toFixed(2)"></span>
+                                    </p>
+                                </template>
+                                {{-- Max discount --}}
+                                <template x-if="(parseFloat(offer.max_discount) || 0) > 0">
+                                    <p class="text-xs text-muted-foreground font-medium">
+                                        Max discount: <span class="font-black" x-text="'₹' + Number(offer.max_discount).toFixed(2)"></span>
+                                    </p>
+                                </template>
+                            </div>
+
+                            {{-- Computed saving for THIS cart --}}
+                            <div class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl"
+                                 :class="appliedOrderOfferId === offer.id ? 'bg-emerald-500/20' : 'bg-amber-500/10'">
+                                <x-ui.icon name="zap" size="3" class="text-amber-500" />
+                                <span class="text-xs font-black"
+                                      :class="appliedOrderOfferId === offer.id ? 'text-emerald-700' : 'text-amber-700'"
+                                      x-text="'You save ₹' + Number(offer.computed_discount).toFixed(2) + ' on this order'">
+                                </span>
+                            </div>
+                        </div>
+
+                        {{-- Apply / Remove button --}}
+                        <div class="shrink-0">
+                            <template x-if="appliedOrderOfferId !== offer.id">
+                                <button type="button" @click.stop="applyOrderOffer(offer.id)"
+                                    class="h-9 px-4 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all">
+                                    Apply
+                                </button>
+                            </template>
+                            <template x-if="appliedOrderOfferId === offer.id">
+                                <button type="button" @click.stop="removeOrderOffer()"
+                                    class="h-9 px-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 text-[10px] font-black uppercase tracking-widest hover:bg-destructive/20 transition-all">
+                                    Remove
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        {{-- Footer --}}
+        <div class="px-6 py-4 border-t border-border/40 bg-muted/10 flex items-center justify-between shrink-0">
+            <div x-show="bestOrderOffer" x-cloak class="flex items-center gap-2 text-emerald-600">
+                <x-ui.icon name="check-circle" size="4" />
+                <span class="text-xs font-black" x-text="'Applied: ' + (bestOrderOffer?.name ?? '')"></span>
+                <span class="text-xs font-semibold text-emerald-700" x-text="'(- ₹' + Number(orderDiscountAmount).toFixed(2) + ')'"></span>
+            </div>
+            <div x-show="!bestOrderOffer" class="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
+                No offer selected
+            </div>
+            <button type="button" @click="isOffersModalOpen = false"
+                class="h-10 px-5 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all">
+                Done
+            </button>
+        </div>
+    </div>
+</div>
+
 {{-- Edit Profile Modal --}}
 <x-ui.modal id="edit-profile-modal" maxWidth="5xl">
     <div class="p-0 overflow-hidden" x-data="{
