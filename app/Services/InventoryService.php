@@ -305,13 +305,10 @@ class InventoryService
             $product      = Product::find($productId);
             $rawAvailable = (float) $stock->quantity - (float) $stock->reserved_qty;
             $maxReservable = $rawAvailable;
-            if ($product?->allow_overselling) {
-                $maxReservable += (float) ($product->overselling_qty ?: 999);
-            }
 
             if ($maxReservable < $quantity) {
                 throw ValidationException::withMessages([
-                    'quantity' => "Not enough stock (including oversell allowance) to reserve. Available: {$maxReservable}, Requested: {$quantity}.",
+                    'quantity' => "Not enough stock to reserve. Available: {$maxReservable}, Requested: {$quantity}.",
                 ]);
             }
 

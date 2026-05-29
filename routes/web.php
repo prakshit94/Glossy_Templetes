@@ -89,6 +89,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('stock-adjustments/{adjustment}/approve', [\App\Http\Controllers\Web\StockAdjustmentController::class, 'approve'])->name('adjustments.approve');
     Route::post('stock-adjustments/{adjustment}/reject', [\App\Http\Controllers\Web\StockAdjustmentController::class, 'reject'])->name('adjustments.reject');
     Route::post('orders/bulk-status', [OrderController::class, 'bulkStatus'])->name('orders.bulk-status');
+    Route::post('orders/bulk-verification', [OrderController::class, 'bulkStoreVerification'])->name('orders.bulk-verification');
     Route::get('orders/bulk-print', [OrderController::class, 'bulkPrint'])->name('orders.bulk-print');
     Route::get('orders/export', [OrderController::class, 'bulkExport'])->name('orders.export');
     Route::post('orders/import', [OrderController::class, 'bulkImport'])->name('orders.import');

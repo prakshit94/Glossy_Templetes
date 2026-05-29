@@ -32,7 +32,7 @@ class OrderController extends Controller
         $this->middleware('permission:orders.generate_invoice')->only(['generateInvoice']);
         $this->middleware('permission:orders.cod')->only(['downloadReceipt']);
         $this->middleware('permission:orders.receipt')->only(['receipt']);
-        $this->middleware('permission:orders.bulk_status')->only(['bulkStatus']);
+        $this->middleware('permission:orders.bulk_status')->only(['bulkStatus', 'bulkStoreVerification']);
         $this->middleware('permission:orders.bulk_print')->only(['bulkPrint']);
         $this->middleware('permission:orders.revert_status')->only(['revertStatus']);
     }
@@ -619,13 +619,7 @@ class OrderController extends Controller
                             ->causedBy(auth()->user())
                             ->log("Order #{$order->order_no} reverted to processing");
                         $count++;
-                    } elseif ($targetStatus === 'ready_to_ship' && $order->status === 'delivered') {
-                        $order->update(['status' => 'ready_to_ship', 'updated_by' => auth()->id()]);
-                        activity('orders')
-                            ->performedOn($order)
-                            ->causedBy(auth()->user())
-                            ->log("Order #{$order->order_no} reverted to ready to ship");
-                        $count++;
+
                     } elseif ($targetStatus === 'dispatched' && $order->status === 'delivered') {
                         $inventoryService->revertDeliveredToDispatched($order);
                         $count++;
@@ -644,6 +638,78 @@ class OrderController extends Controller
         }
 
         return back()->with($count > 0 ? 'success' : 'error', $msg);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Bulk Verification + Status
+    //  Logs a verification call for EVERY selected order, then delegates the
+    //  actual status transitions to the existing bulkStatus() SSOT.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function bulkStoreVerification(Request $request, InventoryService $inventoryService, OrderService $orderService)
+    {
+        $outcomes = array_keys(\App\Models\OrderVerificationLog::OUTCOMES);
+
+        $validated = $request->validate([
+            'ids'          => 'required|json',
+            'status'       => 'required|string|in:pending,confirmed,processing,ready_to_ship,dispatched,delivered,cancelled,returned',
+            'outcome'      => 'required|in:' . implode(',', $outcomes),
+            'remark'       => 'nullable|string|max:2000',
+            'follow_up_at' => 'nullable|date',
+        ]);
+
+        $rawIds = json_decode($validated['ids'], true);
+        if (!is_array($rawIds) || empty($rawIds)) {
+            return back()->with('error', 'No orders selected.');
+        }
+        $ids = array_values(array_filter(array_map('intval', $rawIds), fn($id) => $id > 0));
+        if (empty($ids)) {
+            return back()->with('error', 'No valid order IDs provided.');
+        }
+
+        $orders = Order::with(['items', 'shipments', 'warehouse'])->whereIn('id', $ids)->get();
+
+        // ── Log a verification call for every selected order ─────────────────
+        foreach ($orders as $order) {
+            $log = \App\Models\OrderVerificationLog::create([
+                'order_id'     => $order->id,
+                'outcome'      => $validated['outcome'],
+                'remark'       => $validated['remark'] ?? null,
+                'follow_up_at' => $validated['follow_up_at'] ?? null,
+                'created_by'   => auth()->id(),
+            ]);
+
+            // Attach to shipment tracking if a shipment exists
+            $shipment = $order->shipments->first();
+            if ($shipment) {
+                $parts = ['Bulk verification: ' . $log->outcome_label];
+                if (!empty($validated['remark'])) {
+                    $parts[] = $validated['remark'];
+                }
+                if (!empty($validated['follow_up_at'])) {
+                    $parts[] = 'Follow-up: ' . \Carbon\Carbon::parse($validated['follow_up_at'])->format('M d, Y h:i A');
+                }
+                $parts[] = 'By: ' . (auth()->user()->name ?? 'Staff');
+
+                \App\Models\ShipmentTrackingEvent::create([
+                    'shipment_id' => $shipment->id,
+                    'event_name'  => 'Order Verification',
+                    'location'    => $order->warehouse ? $order->warehouse->name : 'Warehouse',
+                    'description' => implode(' | ', $parts),
+                    'occurred_at' => now(),
+                ]);
+            }
+
+            activity('orders')
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->withProperties(['outcome' => $log->outcome])
+                ->log("Order #{$order->order_no} bulk verification call logged: {$log->outcome_label}");
+        }
+
+        // ── Delegate the actual status transitions to the existing bulkStatus ─
+        // We re-use the same request so all validation and SSOT logic is identical.
+        return $this->bulkStatus($request, $inventoryService, $orderService);
     }
 
     public function destroy(Order $order)
