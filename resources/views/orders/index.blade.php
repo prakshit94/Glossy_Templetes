@@ -388,31 +388,33 @@
                                 </div>
                             </div>
                             <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto lg:justify-end">
-                                <form id="import-form" action="{{ route('orders.import') }}" method="POST" enctype="multipart/form-data" class="hidden">
-                                    @csrf
-                                    <input type="file" name="file" id="import-file" accept=".csv,.txt" @change="handleImportFileSelect($event)">
-                                </form>
-                                <x-ui.dropdown>
-                                    <x-slot name="trigger">
-                                        <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm">
-                                            <x-ui.icon name="upload" size="3" class="mr-2" />
-                                            Import
-                                            <x-ui.icon name="chevron-down" size="3" class="ml-2 opacity-50" />
-                                        </x-ui.button>
-                                    </x-slot>
-                                    <x-slot name="content">
-                                        <div class="p-1 space-y-1">
-                                            <a href="{{ route('orders.import-template') }}" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                <x-ui.icon name="file-text" size="3.5" class="mr-2 text-muted-foreground" />
-                                                Download Template
-                                            </a>
-                                            <button type="button" onclick="document.getElementById('import-file').click()" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                <x-ui.icon name="upload-cloud" size="3.5" class="mr-2 text-muted-foreground" />
-                                                Upload CSV
-                                            </button>
-                                        </div>
-                                    </x-slot>
-                                </x-ui.dropdown>
+                                @can('orders.create')
+                                    <form id="import-form" action="{{ route('orders.import') }}" method="POST" enctype="multipart/form-data" class="hidden">
+                                        @csrf
+                                        <input type="file" name="file" id="import-file" accept=".csv,.txt" @change="handleImportFileSelect($event)">
+                                    </form>
+                                    <x-ui.dropdown>
+                                        <x-slot name="trigger">
+                                            <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm">
+                                                <x-ui.icon name="upload" size="3" class="mr-2" />
+                                                Import
+                                                <x-ui.icon name="chevron-down" size="3" class="ml-2 opacity-50" />
+                                            </x-ui.button>
+                                        </x-slot>
+                                        <x-slot name="content">
+                                            <div class="p-1 space-y-1">
+                                                <a href="{{ route('orders.import-template') }}" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
+                                                    <x-ui.icon name="file-text" size="3.5" class="mr-2 text-muted-foreground" />
+                                                    Download Template
+                                                </a>
+                                                <button type="button" onclick="document.getElementById('import-file').click()" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
+                                                    <x-ui.icon name="upload-cloud" size="3.5" class="mr-2 text-muted-foreground" />
+                                                    Upload CSV
+                                                </button>
+                                            </div>
+                                        </x-slot>
+                                    </x-ui.dropdown>
+                                @endcan
                                 <x-ui.dropdown>
                                     <x-slot name="trigger">
                                         <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm">
@@ -438,10 +440,12 @@
                                     </x-slot>
                                 </x-ui.dropdown>
 
-                                <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm" onclick="window.location.href = '{{ route('orders.export') }}' + window.location.search">
-                                    <x-ui.icon name="download" size="3" class="mr-2" />
-                                    Export
-                                </x-ui.button>
+                                @can('orders.view')
+                                    <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border-border/60 bg-background/40 backdrop-blur-sm" onclick="window.location.href = '{{ route('orders.export') }}' + window.location.search">
+                                        <x-ui.icon name="download" size="3" class="mr-2" />
+                                        Export
+                                    </x-ui.button>
+                                @endcan
                                 @can('orders.create')
                                     <a href="{{ route('orders.create') }}" class="flex-1 sm:flex-none">
                                         <x-ui.button size="sm" class="w-full rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-lg shadow-primary/25 ring-1 ring-primary/20">

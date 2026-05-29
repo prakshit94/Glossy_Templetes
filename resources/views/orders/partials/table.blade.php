@@ -336,7 +336,19 @@
                 @endphp
 
                 {{-- UPCOMING ACTIONS --}}
-                @if(count($upcomming) > 0)
+                @php
+                    $hasAnyUpcomingPermission = false;
+                    foreach ($upcomming as $ut) {
+                        if ($ut['status'] === 'confirmed' && auth()->user()?->can('orders.confirm')) { $hasAnyUpcomingPermission = true; break; }
+                        if ($ut['status'] === 'processing' && auth()->user()?->can('orders.processing')) { $hasAnyUpcomingPermission = true; break; }
+                        if ($ut['status'] === 'ready_to_ship' && auth()->user()?->can('orders.ship')) { $hasAnyUpcomingPermission = true; break; }
+                        if ($ut['status'] === 'dispatched' && auth()->user()?->can('orders.dispatch')) { $hasAnyUpcomingPermission = true; break; }
+                        if ($ut['status'] === 'delivered' && auth()->user()?->can('orders.deliver')) { $hasAnyUpcomingPermission = true; break; }
+                        if ($ut['status'] === 'cancelled' && auth()->user()?->can('orders.cancel')) { $hasAnyUpcomingPermission = true; break; }
+                    }
+                @endphp
+
+                @if(count($upcomming) > 0 && $hasAnyUpcomingPermission)
 
                     <div class="py-1">
 
@@ -348,7 +360,7 @@
 
                             {{-- READY TO SHIP --}}
                             @if($t['status'] === 'ready_to_ship')
-
+                                @can('orders.ship')
                                 <button type="button"
                                     @click.prevent="openShipModal({{ $order->id }}, '{{ $order->order_no }}')"
                                     class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-primary/5 hover:text-primary rounded-lg transition-colors">
@@ -358,10 +370,11 @@
                                     {{ $t['label'] }}
 
                                 </button>
+                                @endcan
 
                             {{-- CONFIRM --}}
                             @elseif($t['status'] === 'confirmed')
-
+                                @can('orders.confirm')
                                 <form action="{{ route('orders.confirm', $order->id) }}"
                                     method="POST"
                                     class="m-0">
@@ -377,10 +390,11 @@
 
                                     </button>
                                 </form>
+                                @endcan
 
                             {{-- PROCESSING --}}
                             @elseif($t['status'] === 'processing')
-
+                                @can('orders.processing')
                                 <form action="{{ route('orders.processing', $order->id) }}"
                                     method="POST"
                                     class="m-0">
@@ -396,10 +410,11 @@
 
                                     </button>
                                 </form>
+                                @endcan
 
                             {{-- DISPATCH --}}
                             @elseif($t['status'] === 'dispatched')
-
+                                @can('orders.dispatch')
                                 <form action="{{ route('orders.dispatch', $order->id) }}"
                                     method="POST"
                                     class="m-0">
@@ -441,10 +456,11 @@
                                     </button>
 
                                 @endif
+                                @endcan
 
                             {{-- DELIVER --}}
                             @elseif($t['status'] === 'delivered')
-
+                                @can('orders.deliver')
                                 <form action="{{ route('orders.deliver', $order->id) }}"
                                     method="POST"
                                     class="m-0">
@@ -460,10 +476,11 @@
 
                                     </button>
                                 </form>
+                                @endcan
 
                             {{-- CANCEL --}}
                             @elseif($t['status'] === 'cancelled')
-
+                                @can('orders.cancel')
                                 <form action="{{ route('orders.cancel', $order->id) }}"
                                     method="POST"
                                     class="m-0">
@@ -479,10 +496,11 @@
 
                                     </button>
                                 </form>
+                                @endcan
 
                             {{-- FALLBACK --}}
                             @else
-
+                                @can('orders.bulk_status')
                                 <form action="{{ route('orders.bulk-status') }}"
                                     method="POST"
                                     class="m-0">
@@ -506,6 +524,7 @@
 
                                     </button>
                                 </form>
+                                @endcan
 
                             @endif
 
@@ -565,9 +584,18 @@
 
             @else
 
-                <div class="px-2.5 py-2 text-[10px] font-bold text-muted-foreground text-center">
-                    No actions available
-                </div>
+                @php
+                    $canDoAnything = auth()->user()?->canAny([
+                        'orders.confirm','orders.processing','orders.ship',
+                        'orders.dispatch','orders.deliver','orders.cancel','orders.revert_status'
+                    ]);
+                @endphp
+
+                @if(!$canDoAnything)
+                    <div class="px-2.5 py-2 text-[10px] font-bold text-muted-foreground text-center">
+                        No actions available
+                    </div>
+                @endif
 
             @endif
 
