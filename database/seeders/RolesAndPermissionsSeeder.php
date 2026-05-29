@@ -13,7 +13,7 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $permissions = array_merge(
+        $permissions = array_unique(array_merge(
             [
                 'users.view', 'users.create', 'users.edit', 'users.delete',
                 'roles.view', 'roles.create', 'roles.edit', 'roles.delete',
@@ -32,8 +32,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'villages.view', 'villages.create', 'villages.edit', 'villages.delete', 'villages.import',
                 'services.view', 'services.create', 'services.edit', 'services.delete',
             ],
-            $this->moduleViewPermissions()
-        );
+            $this->modulePermissions()
+        ));
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
@@ -74,65 +74,76 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /**
-     * One "view" permission per sidebar module (index / read access).
+     * All CRUD permissions per sidebar module.
      *
      * @return list<string>
      */
-    private function moduleViewPermissions(): array
+    private function modulePermissions(): array
     {
-        return [
-            'customers.view',
-            'customer-groups.view',
-            'reviews.view',
-            'support-tickets.view',
+        $modules = [
+            'customers',
+            'customer-groups',
+            'reviews',
+            'support-tickets',
 
-            'products.view',
-            'categories.view',
-            'brands.view',
-            'attributes.view',
-            'uoms.view',
-            'tax-rates.view',
-            'hsn-codes.view',
+            'products',
+            'categories',
+            'brands',
+            'attributes',
+            'uoms',
+            'tax-rates',
+            'hsn-codes',
 
-            'inventory.view',
-            'warehouses.view',
-            'stock-transfers.view',
-            'stock-adjustments.view',
+            'inventory',
+            'warehouses',
+            'stock-transfers',
+            'stock-adjustments',
 
-            'orders.view',
-            'invoices.view',
-            'payments.view',
-            'order-tracking.view',
-            'returns.view',
-            'refunds.view',
-            'replacement.view',
+            'orders',
+            'invoices',
+            'payments',
+            'order-tracking',
+            'returns',
+            'refunds',
+            'replacement',
 
-            'purchase-orders.view',
-            'suppliers.view',
-            'vendors.view',
+            'purchase-orders',
+            'suppliers',
+            'vendors',
 
-            'transport.view',
-            'delivery.view',
-            'shipment-tracking.view',
-            'drivers.view',
+            'transport',
+            'delivery',
+            'shipment-tracking',
+            'drivers',
 
-            'accounts.view',
-            'expenses.view',
-            'transactions.view',
-            'financial-reports.view',
-            'sales-reports.view',
-            'inventory-reports.view',
-            'customer-analytics.view',
-            'performance-reports.view',
+            'accounts',
+            'expenses',
+            'transactions',
+            'financial-reports',
+            'sales-reports',
+            'inventory-reports',
+            'customer-analytics',
+            'performance-reports',
 
-            'employees.view',
-            'attendance.view',
-            'payroll.view',
-            'departments.view',
+            'employees',
+            'attendance',
+            'payroll',
+            'departments',
 
-            'campaigns.view',
-            'coupons.view',
-            'email-marketing.view',
+            'campaigns',
+            'coupons',
+            'offers',
+            'email-marketing',
         ];
+
+        $permissions = [];
+        foreach ($modules as $module) {
+            $permissions[] = "{$module}.view";
+            $permissions[] = "{$module}.create";
+            $permissions[] = "{$module}.edit";
+            $permissions[] = "{$module}.delete";
+        }
+
+        return $permissions;
     }
 }

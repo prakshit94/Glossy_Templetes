@@ -9,6 +9,11 @@ use Illuminate\Http\Request;
 
 class CustomerAddressController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:customers.edit');
+    }
+
     public function store(Request $request, Customer $customer)
     {
         $validated = $request->validate([

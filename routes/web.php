@@ -29,11 +29,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/users/bulk-status', [UserController::class, 'bulkStatus'])->name('users.bulk-status');
     Route::post('/users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
     Route::delete('/users/{id}/force-delete', [UserController::class, 'forceDelete'])->name('users.force-delete');
-    Route::resource('users', UserController::class);
+    Route::resource('users', UserController::class)->middleware('permission:users.view');
     Route::post('/roles/bulk-delete', [\App\Http\Controllers\Web\RoleController::class, 'bulkDelete'])->name('roles.bulk-delete');
-    Route::resource('roles', \App\Http\Controllers\Web\RoleController::class);
+    Route::resource('roles', \App\Http\Controllers\Web\RoleController::class)->middleware('permission:roles.view');
     Route::post('/teams/bulk-delete', [\App\Http\Controllers\Web\TeamController::class, 'bulkDelete'])->name('teams.bulk-delete');
-    Route::resource('teams', \App\Http\Controllers\Web\TeamController::class);
+    Route::resource('teams', \App\Http\Controllers\Web\TeamController::class)->middleware('permission:teams.view');
     
     // System Activity
     Route::get('/activities', [\App\Http\Controllers\Web\ActivityController::class, 'index'])->name('activities.index');
@@ -52,32 +52,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/villages/bulk-delete', [\App\Http\Controllers\Web\VillageController::class, 'bulkDelete'])->name('villages.bulk-delete');
     Route::post('/villages/bulk-service', [\App\Http\Controllers\Web\VillageController::class, 'bulkServiceUpdate'])->name('villages.bulk-service');
     Route::get('/villages-search', [\App\Http\Controllers\Web\VillageController::class, 'search'])->name('villages.search');
-    Route::resource('villages', \App\Http\Controllers\Web\VillageController::class);
+    Route::resource('villages', \App\Http\Controllers\Web\VillageController::class)->middleware('permission:villages.view');
     Route::post('/services/bulk-delete', [ServiceController::class, 'bulkDelete'])->name('services.bulk-delete');
     Route::post('/services/bulk-status', [ServiceController::class, 'bulkStatusUpdate'])->name('services.bulk-status');
     Route::get('/services/{service}/villages', [ServiceController::class, 'getVillages'])->name('services.villages');
-    Route::resource('services', ServiceController::class);
+    Route::resource('services', ServiceController::class)->middleware('permission:services.view');
 
     // Catalog & Inventory
     Route::get('/products-search-api', [ProductController::class, 'searchApi'])->name('products.search.api');
     Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
     Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore');
     Route::delete('/products/{id}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force-delete');
-    Route::resource('products', ProductController::class);
+    Route::resource('products', ProductController::class)->middleware('permission:products.view');
     Route::post('/categories/bulk-delete', [CategoryController::class, 'bulkDelete'])->name('categories.bulk-delete');
-    Route::resource('categories', CategoryController::class);
+    Route::resource('categories', CategoryController::class)->middleware('permission:categories.view');
     Route::post('/brands/bulk-delete', [BrandController::class, 'bulkDelete'])->name('brands.bulk-delete');
-    Route::resource('brands', BrandController::class);
-    Route::resource('attributes', ProductAttributeController::class);
+    Route::resource('brands', BrandController::class)->middleware('permission:brands.view');
+    Route::resource('attributes', ProductAttributeController::class)->middleware('permission:attributes.view');
     Route::post('attributes/{attribute}/values', [ProductAttributeController::class, 'storeValue'])->name('attributes.values.store');
     Route::delete('attribute-values/{value}', [ProductAttributeController::class, 'destroyValue'])->name('attribute-values.destroy');
-    Route::resource('uoms', UnitOfMeasureController::class);
-    Route::resource('tax-rates', TaxRateController::class);
-    Route::resource('hsn-codes', HsnCodeController::class);
+    Route::resource('uoms', UnitOfMeasureController::class)->middleware('permission:uoms.view');
+    Route::resource('tax-rates', TaxRateController::class)->middleware('permission:tax-rates.view');
+    Route::resource('hsn-codes', HsnCodeController::class)->middleware('permission:hsn-codes.view');
     Route::get('inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
     Route::post('inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
-    Route::resource('inventory', InventoryController::class);
-    Route::resource('warehouses', \App\Http\Controllers\Web\WarehouseController::class);
+    Route::resource('inventory', InventoryController::class)->middleware('permission:inventory.view');
+    Route::resource('warehouses', \App\Http\Controllers\Web\WarehouseController::class)->middleware('permission:warehouses.view');
     Route::get('warehouses/{warehouse}/stock', [\App\Http\Controllers\Web\WarehouseController::class, 'getStock'])->name('warehouses.stock');
     
     Route::resource('stock-transfers', \App\Http\Controllers\Web\StockTransferController::class)->names('transfers');
@@ -106,18 +106,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('orders/{order}/revert-status', [OrderController::class, 'revertStatus'])->name('orders.revert-status');
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
     Route::post('orders/{order}/verification', [OrderController::class, 'storeVerification'])->name('orders.verification.store');
-    Route::resource('orders', OrderController::class);
+    Route::resource('orders', OrderController::class)->middleware('permission:orders.view');
 
-    Route::resource('returns', OrderReturnController::class);
+    Route::resource('returns', OrderReturnController::class)->middleware('permission:returns.view');
     Route::post('returns/{return}/status', [OrderReturnController::class, 'updateStatus'])->name('returns.status');
 
     Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('payments/search-orders', [\App\Http\Controllers\Web\PaymentController::class, 'searchOrders'])->name('payments.search-orders');
     Route::post('payments/bulk-upload', [\App\Http\Controllers\Web\PaymentController::class, 'bulkUpload'])->name('payments.bulk-upload');
-    Route::resource('payments', \App\Http\Controllers\Web\PaymentController::class);
+    Route::resource('payments', \App\Http\Controllers\Web\PaymentController::class)->middleware('permission:payments.view');
 
     Route::post('refunds/{refund}/status', [\App\Http\Controllers\Web\RefundController::class, 'updateStatus'])->name('refunds.status');
-    Route::resource('refunds', \App\Http\Controllers\Web\RefundController::class)->except(['edit', 'update', 'destroy']);
+    Route::resource('refunds', \App\Http\Controllers\Web\RefundController::class)->except(['edit', 'update', 'destroy'])->middleware('permission:refunds.view');
 
     // Order / Shipment Tracking URLs mapped to OrderTrackingController
     Route::get('shipment-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index'])->name('order.tracking.index');
@@ -150,7 +150,7 @@ Route::post(
 Route::resource(
     'coupons',
     App\Http\Controllers\Web\CouponController::class
-);
+)->middleware('permission:coupons.view');
 
 // Offers
 
@@ -167,25 +167,25 @@ Route::post(
 Route::resource(
     'offers',
     App\Http\Controllers\Web\OfferController::class
-)->except(['show']);
+)->except(['show'])->middleware('permission:offers.view');
 
 
     // Transport Management
     Route::post('/transport/bulk-delete', [\App\Http\Controllers\Web\TransportController::class, 'bulkDelete'])->name('transport.bulk-delete');
     Route::post('/transport/store', [\App\Http\Controllers\Web\TransportController::class, 'store'])->name('transport.store');
-    Route::resource('transport', \App\Http\Controllers\Web\TransportController::class)->except(['create', 'edit', 'store']);
+    Route::resource('transport', \App\Http\Controllers\Web\TransportController::class)->except(['create', 'edit', 'store'])->middleware('permission:transport.view');
 
     // Drivers Management
     Route::post('/drivers/bulk-delete', [\App\Http\Controllers\Web\DriverController::class, 'bulkDelete'])->name('drivers.bulk-delete');
     Route::post('/drivers/store', [\App\Http\Controllers\Web\DriverController::class, 'store'])->name('drivers.store');
-    Route::resource('drivers', \App\Http\Controllers\Web\DriverController::class)->except(['create', 'edit', 'store']);
+    Route::resource('drivers', \App\Http\Controllers\Web\DriverController::class)->except(['create', 'edit', 'store'])->middleware('permission:drivers.view');
 
     // Delivery Management
     Route::post('/delivery/bulk-delete', [\App\Http\Controllers\Web\DeliveryController::class, 'bulkDelete'])->name('delivery.bulk-delete');
     Route::post('/delivery/assign', [\App\Http\Controllers\Web\DeliveryController::class, 'assign'])->name('delivery.assign');
     Route::post('/delivery/{delivery}/deliver', [\App\Http\Controllers\Web\DeliveryController::class, 'markDelivered'])->name('delivery.deliver');
     Route::post('/delivery/{delivery}/verification', [\App\Http\Controllers\Web\DeliveryController::class, 'storeVerification'])->name('delivery.verification.store');
-    Route::resource('delivery', \App\Http\Controllers\Web\DeliveryController::class)->except(['create', 'edit']);
+    Route::resource('delivery', \App\Http\Controllers\Web\DeliveryController::class)->except(['create', 'edit'])->middleware('permission:delivery.view');
 
     $sidebarScaffoldModules = [
         'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
@@ -212,13 +212,11 @@ Route::resource(
     ];
 
     foreach ($sidebarScaffoldModules as $uri => $meta) {
-        Route::get($uri, function () use ($uri, $meta) {
-            return view("{$uri}.index", [
-                'moduleKey' => $uri,
-                'moduleTitle' => $meta['title'],
-                'moduleIcon' => $meta['icon'],
-            ]);
-        })->name(str_replace('-', '.', $uri) . '.index');
+        Route::get($uri, [\App\Http\Controllers\Web\ScaffoldController::class, 'show'])
+             ->defaults('uri', $uri)
+             ->defaults('title', $meta['title'])
+             ->defaults('icon', $meta['icon'])
+             ->name(str_replace('-', '.', $uri) . '.index');
     }
 
     // Customer Management
@@ -229,7 +227,7 @@ Route::resource(
     Route::post('/customers/bulk-status', [\App\Http\Controllers\Web\CustomerController::class, 'bulkStatus'])->name('customers.bulk-status');
     Route::post('/customers/{id}/restore', [\App\Http\Controllers\Web\CustomerController::class, 'restore'])->name('customers.restore');
     Route::delete('/customers/{id}/force-delete', [\App\Http\Controllers\Web\CustomerController::class, 'forceDelete'])->name('customers.force-delete');
-    Route::resource('customers', \App\Http\Controllers\Web\CustomerController::class);
+    Route::resource('customers', \App\Http\Controllers\Web\CustomerController::class)->middleware('permission:customers.view');
 
     // Customer Addresses
     Route::post('/customers/{customer}/orders/place', [\App\Http\Controllers\Web\CustomerController::class, 'placeOrder'])->name('customers.orders.place');
