@@ -375,6 +375,7 @@
                                             <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Pincode</span>
                                             <span class="text-xs font-bold font-mono text-foreground">{{ $order->shippingAddress->village?->pincode ?? $order->shippingAddress->pincode ?: '—' }}</span>
                                         </div>
+                                        @include('customers.partials._service-badges', ['addrModel' => $order->shippingAddress])
                                     </div>
                                 </div>
                             @elseif($order->shipping_address)
@@ -414,6 +415,7 @@
                                             <span class="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Pincode</span>
                                             <span class="text-xs font-bold font-mono text-foreground">{{ $order->billingAddress->village?->pincode ?? $order->billingAddress->pincode ?: '—' }}</span>
                                         </div>
+                                        @include('customers.partials._service-badges', ['addrModel' => $order->billingAddress])
                                     </div>
                                 </div>
                             @elseif($order->billing_address)
