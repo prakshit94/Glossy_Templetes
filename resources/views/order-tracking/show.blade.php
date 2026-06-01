@@ -1,443 +1,416 @@
 <x-layouts.app pageTitle="Shipment Tracking: #{{ $shipment->shipment_no }}">
+    @php
+        $order = $shipment->order;
+        $party = $order?->party;
+        $warehouse = $order?->warehouse;
+        $tracking = $tracking ?? $shipment->deliveryTracking;
 
-    <div class="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
-        <!-- Header Card: Modern Identity -->
-        <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-3xl rounded-[2rem] ring-1 ring-white/10">
-            <div class="p-8 flex flex-col md:flex-row md:items-center justify-between gap-8 relative">
-                <!-- Status Glow Background -->
-                @php
-                    $statusColors = [
-                        'pending' => 'amber',
-                        'shipped' => 'blue',
-                        'in_transit' => 'indigo',
-                        'delivered' => 'emerald',
-                        'failed' => 'red',
-                    ];
-                    $color = $statusColors[$shipment->status] ?? 'primary';
-                @endphp
-                <div class="absolute top-0 right-0 -mr-20 -mt-20 size-80 bg-{{ $color }}-500/10 blur-[80px] rounded-full pointer-events-none animate-pulse"></div>
+        $statusStyles = [
+            'pending' => [
+                'badge' => 'bg-amber-500/10 text-amber-600 border-amber-500/25',
+                'icon' => 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+                'dot' => 'bg-amber-500',
+            ],
+            'shipped' => [
+                'badge' => 'bg-blue-500/10 text-blue-600 border-blue-500/25',
+                'icon' => 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+                'dot' => 'bg-blue-500',
+            ],
+            'in_transit' => [
+                'badge' => 'bg-indigo-500/10 text-indigo-600 border-indigo-500/25',
+                'icon' => 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
+                'dot' => 'bg-indigo-500',
+            ],
+            'delivered' => [
+                'badge' => 'bg-emerald-500/10 text-emerald-600 border-emerald-500/25',
+                'icon' => 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+                'dot' => 'bg-emerald-500',
+            ],
+            'failed' => [
+                'badge' => 'bg-red-500/10 text-red-600 border-red-500/25',
+                'icon' => 'bg-red-500/10 text-red-600 border-red-500/20',
+                'dot' => 'bg-red-500',
+            ],
+        ];
+        $statusStyle = $statusStyles[$shipment->status] ?? [
+            'badge' => 'bg-muted text-muted-foreground border-border',
+            'icon' => 'bg-muted text-muted-foreground border-border',
+            'dot' => 'bg-muted-foreground',
+        ];
 
-                <div class="flex items-center gap-6 relative z-10">
-                    <div class="size-20 rounded-3xl bg-{{ $color }}-500/10 border border-{{ $color }}-500/20 text-{{ $color }}-500 flex items-center justify-center shadow-2xl ring-1 ring-{{ $color }}-500/20 group hover:rotate-3 transition-transform duration-500">
-                        <x-ui.icon name="target" size="10" class="group-hover:scale-110 transition-transform" />
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-4 mb-2">
-                            <h3 class="text-3xl font-black text-foreground tracking-tighter">{{ $shipment->shipment_no }}</h3>
-                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-{{ $color }}-500/10 border border-{{ $color }}-500/20 text-{{ $color }}-500 shadow-sm">
-                                <span class="size-2 rounded-full bg-current animate-ping"></span>
-                                <span class="text-[10px] font-black uppercase tracking-[0.2em]">{{ $shipment->status }}</span>
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-bold text-muted-foreground/60 uppercase tracking-widest">
-                            <div class="flex items-center gap-2">
-                                <x-ui.icon name="calendar" size="3.5" class="text-{{ $color }}-500/60" />
-                                <span>Init: {{ $shipment->created_at->format('M d, Y') }}</span>
-                            </div>
-                            <span class="size-1 rounded-full bg-border"></span>
-                            <div class="flex items-center gap-2">
-                                <x-ui.icon name="hash" size="3.5" class="text-{{ $color }}-500/60" />
-                                <span class="font-mono tracking-tighter text-foreground">{{ $shipment->tracking_no ?? 'Awaiting AWB' }}</span>
-                            </div>
-                        </div>
-                    </div>
+        $deliveryStartedAt = $shipment->shipped_at ?? $shipment->created_at;
+        $deliveryEndedAt = $shipment->delivered_at;
+        $durationLabel = $deliveryEndedAt
+            ? $deliveryStartedAt->diffForHumans($deliveryEndedAt, true)
+            : $deliveryStartedAt->diffForHumans(null, true) . ' active';
+    @endphp
+
+    <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex items-start gap-4">
+                <div class="size-14 rounded-2xl border flex items-center justify-center shadow-sm {{ $statusStyle['icon'] }}">
+                    <x-ui.icon name="target" size="7" />
                 </div>
-
-                <div class="flex flex-wrap items-center gap-3 relative z-10">
-                    <a href="{{ route('order.tracking.index') }}">
-                        <x-ui.button variant="outline" size="sm" class="rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 px-8 border-border/40 bg-background/20 backdrop-blur-md hover:bg-background/40 transition-all">
-                            <x-ui.icon name="arrow-left" size="3.5" class="mr-2" /> Back to Dashboard
-                        </x-ui.button>
-                    </a>
-                    <a href="{{ route('orders.show', $shipment->order->id) }}">
-                        <x-ui.button variant="outline" size="sm" class="rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 px-8 border-border/40 bg-primary/10 text-primary hover:bg-primary/20 backdrop-blur-md transition-all">
-                            <x-ui.icon name="external-link" size="3.5" class="mr-2" /> View Order #{{ $shipment->order->order_no }}
-                        </x-ui.button>
-                    </a>
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <h1 class="text-2xl font-black tracking-tight text-foreground">#{{ $shipment->shipment_no }}</h1>
+                        <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest {{ $statusStyle['badge'] }}">
+                            <span class="size-1.5 rounded-full {{ $statusStyle['dot'] }}"></span>
+                            {{ str_replace('_', ' ', $shipment->status) }}
+                        </span>
+                    </div>
+                    <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                        <span class="inline-flex items-center gap-1.5"><x-ui.icon name="calendar" size="3" /> Created {{ $shipment->created_at->format('M d, Y') }}</span>
+                        <span class="inline-flex items-center gap-1.5"><x-ui.icon name="hash" size="3" /> {{ $shipment->tracking_no ?: 'Tracking number pending' }}</span>
+                        <span class="inline-flex items-center gap-1.5"><x-ui.icon name="clock" size="3" /> {{ $durationLabel }}</span>
+                    </div>
                 </div>
             </div>
-        </x-ui.card>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Route Visualizer -->
-            <x-ui.card class="lg:col-span-2 overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-2xl rounded-[2rem]">
-                <div class="p-6 border-b border-border/40 bg-muted/10 flex items-center gap-3">
-                    <x-ui.icon name="map" size="4" class="text-primary" />
-                    <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Logistics Infrastructure & Route</h4>
-                </div>
-                <div class="p-10 flex flex-col md:flex-row items-center justify-between gap-8 relative">
-                    {{-- Connector Path --}}
-                    <div class="absolute left-1/2 md:left-24 right-1/2 md:right-24 top-24 md:top-1/2 h-px bg-gradient-to-r from-primary/10 via-primary/40 to-emerald-500/20 -translate-y-1/2 z-0 hidden md:block">
-                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-shimmer" style="background-size: 200% 100%"></div>
-                    </div>
-
-                    <div class="flex flex-col items-center gap-4 z-10 group">
-                        <div class="size-20 rounded-3xl bg-background border-2 border-primary/20 flex items-center justify-center shadow-2xl group-hover:border-primary transition-all duration-500 ring-8 ring-primary/5">
-                            <x-ui.icon name="warehouse" size="8" class="text-primary/80 group-hover:scale-110 transition-transform" />
-                        </div>
-                        <div class="text-center max-w-[200px]">
-                            <p class="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1.5 opacity-60">Source Origin</p>
-                            <p class="text-lg font-black text-foreground tracking-tight truncate" title="{{ $shipment->order->warehouse->name ?? 'Regional Hub' }}">{{ $shipment->order->warehouse->name ?? 'Regional Hub' }}</p>
-                            <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1 truncate" title="{{ $shipment->order->warehouse->address_line_1 ?? $shipment->order->warehouse->address ?? '' }} {{ $shipment->order->warehouse->village_name ?? $shipment->order->warehouse->city ?? '' }}">{{ $shipment->order->warehouse->address_line_1 ?? $shipment->order->warehouse->address ?? '' }} {{ $shipment->order->warehouse->village_name ?? $shipment->order->warehouse->city ?? '' }}</p>
-                            <p class="text-[10px] font-bold text-primary tracking-[0.2em] uppercase mt-1">{{ $shipment->order->warehouse->code ?? 'H-01' }}</p>
-                        </div>
-                    </div>
-
-                    <div class="flex-1 flex flex-col items-center gap-4 py-8 md:py-0 relative">
-                        <div class="size-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-inner relative z-10 group cursor-help">
-                            <x-ui.icon name="truck" size="6" class="text-primary animate-bounce-slow" />
-                            <div class="absolute -top-12 left-1/2 -translate-x-1/2 bg-foreground text-background px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
-                                {{ $shipment->carrier_name ?? 'In Dispatch' }}
-                            </div>
-                        </div>
-                        <div class="flex flex-col items-center text-center">
-                            <span class="text-[9px] font-black uppercase tracking-[0.3em] text-primary/60 animate-pulse">Live Transit</span>
-                            @if($shipment->delivered_at)
-                                <span class="text-[9px] font-bold text-muted-foreground mt-1">Completed in {{ $shipment->created_at->diffInDays($shipment->delivered_at) }} Days</span>
-                            @endif
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col items-center gap-4 z-10 group">
-                        <div class="size-20 rounded-3xl bg-background border-2 border-emerald-500/20 flex items-center justify-center shadow-2xl group-hover:border-emerald-500 transition-all duration-500 ring-8 ring-emerald-500/5">
-                            <x-ui.icon name="map-pin" size="8" class="text-emerald-500 group-hover:scale-110 transition-transform" />
-                        </div>
-                        <div class="text-center max-w-[200px]">
-                            <p class="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1.5 opacity-60">Final Destination</p>
-                            <p class="text-lg font-black text-foreground tracking-tight truncate" title="{{ $shipment->order->party->name ?? 'Customer' }}">{{ $shipment->order->party->name ?? 'Customer' }}</p>
-                            <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1 truncate" title="{{ $shipment->order->shipping_address ?? 'N/A' }}">{{ $shipment->order->shipping_address ?? 'N/A' }}</p>
-                            <p class="text-[10px] font-bold text-emerald-500 tracking-[0.2em] uppercase mt-1">Order {{ $shipment->order->order_no }}</p>
-                        </div>
-                    </div>
-                </div>
-            </x-ui.card>
-
-            <!-- Shipment Details Control Panel -->
-            <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/40 backdrop-blur-3xl rounded-[2rem] border-dashed">
-                <div class="p-6 border-b border-border/40 bg-muted/10 flex items-center gap-3">
-                    <x-ui.icon name="settings-2" size="4" class="text-primary" />
-                    <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Shipment Details & Control</h4>
-                </div>
-                <div class="p-8">
-                    <form action="{{ route('order.tracking.status.update', $shipment->id) }}" method="POST" class="space-y-4">
-                        @csrf
-                        @method('PUT')
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
-                                <x-ui.icon name="activity" size="3" /> State Transition
-                            </label>
-                            <select name="status" class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-black uppercase tracking-widest focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer hover:bg-background/60">
-                                @foreach(['pending', 'shipped', 'in_transit', 'delivered', 'failed'] as $st)
-                                    <option value="{{ $st }}" {{ $shipment->status === $st ? 'selected' : '' }}>{{ strtoupper($st) }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
-                                <x-ui.icon name="truck" size="3" /> Carrier / Company
-                            </label>
-                            <select name="carrier_name" class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer hover:bg-background/60">
-                                <option value="">-- Select Shipping Option --</option>
-                                @foreach($services as $svc)
-                                    <option value="{{ $svc->name }}" {{ $shipment->carrier_name === $svc->name ? 'selected' : '' }}>
-                                        {{ $svc->name }} ({{ $svc->code }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
-                                <x-ui.icon name="hash" size="3" /> AWB / Air Waybill
-                            </label>
-                            <input type="text" name="tracking_no" value="{{ $shipment->tracking_no }}" placeholder="Enter Tracking Number" 
-                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-black font-mono tracking-widest focus:ring-4 focus:ring-primary/10 transition-all outline-none hover:bg-background/60">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
-                                <x-ui.icon name="calendar" size="3" /> Shipped Date
-                            </label>
-                            <input type="datetime-local" name="shipped_at" value="{{ $shipment->shipped_at ? $shipment->shipped_at->format('Y-m-d\TH:i') : '' }}" 
-                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-black focus:ring-4 focus:ring-primary/10 transition-all outline-none hover:bg-background/60">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
-                                <x-ui.icon name="check-circle" size="3" /> Delivered Date
-                            </label>
-                            <input type="datetime-local" name="delivered_at" value="{{ $shipment->delivered_at ? $shipment->delivered_at->format('Y-m-d\TH:i') : '' }}" 
-                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-black focus:ring-4 focus:ring-primary/10 transition-all outline-none hover:bg-background/60">
-                        </div>
-                        <x-ui.button type="submit" class="w-full h-12 rounded-xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mt-2">
-                            Commit Updates
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('order.tracking.index') }}">
+                    <x-ui.button variant="outline" size="sm" class="rounded-xl h-10 text-[10px] font-black uppercase tracking-widest">
+                        <x-ui.icon name="arrow-left" size="3.5" class="mr-2" /> Back
+                    </x-ui.button>
+                </a>
+                @if($order)
+                    <a href="{{ route('orders.show', $order->id) }}">
+                        <x-ui.button size="sm" class="rounded-xl h-10 text-[10px] font-black uppercase tracking-widest">
+                            <x-ui.icon name="external-link" size="3.5" class="mr-2" /> Order {{ $order->order_no }}
                         </x-ui.button>
-                    </form>
-                </div>
+                    </a>
+                @endif
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <x-ui.card class="p-5 border-border/60 bg-card/50 rounded-2xl">
+                <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Carrier</p>
+                <p class="mt-2 text-sm font-black text-foreground">{{ $shipment->carrier_name ?: 'Not assigned' }}</p>
+                <p class="mt-1 text-[11px] font-mono font-bold text-muted-foreground">{{ $shipment->tracking_no ?: 'AWB pending' }}</p>
+            </x-ui.card>
+            <x-ui.card class="p-5 border-border/60 bg-card/50 rounded-2xl">
+                <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Customer</p>
+                <p class="mt-2 text-sm font-black text-foreground truncate">{{ $party?->name ?? $party?->company_name ?? 'Unknown customer' }}</p>
+                <p class="mt-1 text-[11px] font-bold text-muted-foreground">{{ $party?->phone ?? $party?->email ?? 'No contact' }}</p>
+            </x-ui.card>
+            <x-ui.card class="p-5 border-border/60 bg-card/50 rounded-2xl">
+                <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Handler</p>
+                <p class="mt-2 text-sm font-black text-foreground truncate">{{ $tracking?->assigned_name ?? 'Not synced' }}</p>
+                <p class="mt-1 text-[11px] font-bold text-muted-foreground">{{ $tracking?->vehicle_number ?? str_replace('_', ' ', $tracking?->dispatch_type ?? 'Unassigned') }}</p>
+            </x-ui.card>
+            <x-ui.card class="p-5 border-border/60 bg-card/50 rounded-2xl">
+                <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Delivered</p>
+                <p class="mt-2 text-sm font-black text-foreground">{{ $shipment->delivered_at?->format('M d, Y') ?? 'Pending' }}</p>
+                <p class="mt-1 text-[11px] font-bold text-muted-foreground">{{ $shipment->delivered_at?->format('h:i A') ?? 'Awaiting completion' }}</p>
             </x-ui.card>
         </div>
 
-        <!-- Package Contents Card -->
-        <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-[2rem]">
-            <div class="p-6 border-b border-border/40 bg-muted/10 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <x-ui.icon name="box" size="4" class="text-primary" />
-                    <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Consignment Contents</h4>
-                </div>
-                <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{{ $shipment->order->items->count() }} line items</span>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-border/40 bg-muted/5">
-                            <th class="px-8 py-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Product</th>
-                            <th class="px-8 py-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Qty</th>
-                            <th class="px-8 py-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 text-right">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border/20">
-                        @foreach($shipment->order->items as $item)
-                            <tr class="hover:bg-primary/[0.02] transition-colors">
-                                <td class="px-8 py-5">
-                                    <div class="flex items-center gap-4">
-                                        <div class="size-10 rounded-xl bg-background border border-border flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-                                            @if($item->product?->image_url)
-                                                <img src="{{ $item->product->image_url }}" class="size-full object-cover">
-                                            @else
-                                                <x-ui.icon name="image" size="4" class="text-muted-foreground/20" />
-                                            @endif
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-black text-foreground tracking-tight">{{ $item->product?->name ?? 'Consignment Item' }}</p>
-                                            <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{{ $item->product?->sku ?? 'N/A' }}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-8 py-5 text-center">
-                                    <span class="inline-flex items-center justify-center size-8 rounded-lg bg-muted text-foreground text-xs font-black">{{ (int) $item->quantity }}</span>
-                                </td>
-                                <td class="px-8 py-5 text-right">
-                                    <span class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{{ str_replace('_', ' ', $shipment->status) }}</span>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </x-ui.card>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Timeline Visualizer -->
-            <x-ui.card class="lg:col-span-2 overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-2xl rounded-[2.5rem] relative">
-                <div class="p-8 border-b border-border/40 bg-muted/5 flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="size-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                            <x-ui.icon name="list" size="5" />
-                        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <x-ui.card class="overflow-hidden border-border/60 bg-card/40 rounded-2xl shadow-sm">
+                    <div class="p-5 border-b border-border/50 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <h4 class="text-xl font-black text-foreground tracking-tight">Milestone Chronology</h4>
-                            <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1 italic">Verified logistics checkpoints</p>
+                            <h2 class="text-sm font-black uppercase tracking-widest text-foreground">Route Overview</h2>
+                            <p class="text-xs text-muted-foreground mt-1">Warehouse to customer delivery path</p>
+                        </div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{{ $shipment->events->count() }} milestones</span>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-6 items-stretch">
+                            <div class="rounded-2xl border border-border/60 bg-background/40 p-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                                        <x-ui.icon name="warehouse" size="5" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Origin</p>
+                                        <p class="text-sm font-black text-foreground truncate">{{ $warehouse?->name ?? 'Regional Hub' }}</p>
+                                    </div>
+                                </div>
+                                <p class="mt-4 text-xs font-medium text-muted-foreground leading-relaxed">{{ $warehouse?->address_line_1 ?? $warehouse?->address ?? 'Warehouse address not available' }}</p>
+                            </div>
+
+                            <div class="hidden md:flex items-center justify-center text-muted-foreground">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-10 h-px bg-border"></span>
+                                    <x-ui.icon name="truck" size="5" />
+                                    <span class="w-10 h-px bg-border"></span>
+                                </div>
+                            </div>
+
+                            <div class="rounded-2xl border border-border/60 bg-background/40 p-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="size-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                                        <x-ui.icon name="map-pin" size="5" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Destination</p>
+                                        <p class="text-sm font-black text-foreground truncate">{{ $party?->name ?? $party?->company_name ?? 'Customer' }}</p>
+                                    </div>
+                                </div>
+                                <p class="mt-4 text-xs font-medium text-muted-foreground leading-relaxed">{{ $order?->shipping_address ?: 'Shipping address not available' }}</p>
+                            </div>
                         </div>
                     </div>
-                    <span class="px-4 py-2 rounded-2xl bg-primary/5 border border-primary/10 text-[10px] font-black text-primary uppercase tracking-widest shadow-inner">
-                        {{ $shipment->events->count() }} Data Points
-                    </span>
-                </div>
-                
-                <div class="p-10 relative overflow-y-auto max-h-[650px] custom-scrollbar">
-                    <div class="relative space-y-12 before:content-[''] before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-[3px] before:bg-gradient-to-b before:from-primary/60 before:via-primary/20 before:to-transparent">
-                        @forelse($shipment->events as $event)
-                            <div x-data="{ editing: false }" class="relative pl-14 group">
-                                <div class="absolute left-0 top-1 size-10 rounded-full bg-background border-[6px] border-muted/30 flex items-center justify-center text-primary shadow-2xl z-10 group-hover:scale-125 group-hover:border-primary/20 transition-all duration-500">
-                                    <div class="size-2.5 rounded-full bg-primary group-hover:animate-ping"></div>
-                                </div>
-                                
-                                {{-- Read View --}}
-                                <div x-show="!editing" class="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                                    <div class="flex-1 space-y-3">
-                                        <div class="flex items-center gap-3">
-                                            <h4 class="text-base font-black text-foreground tracking-tight group-hover:text-primary transition-colors duration-500">{{ $event->event_name }}</h4>
-                                            <span class="text-[10px] font-black text-primary/40 uppercase tracking-widest">{{ $event->occurred_at->format('H:i') }}</span>
-                                        </div>
-                                        <div class="flex items-center gap-4">
-                                            <div class="px-3 py-1 rounded-lg bg-muted/20 border border-border/40 flex items-center gap-2 group-hover:border-primary/30 transition-colors">
-                                                <x-ui.icon name="map-pin" size="3" class="text-primary/60" />
-                                                <span class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{{ $event->location ?? 'Logistics Node' }}</span>
-                                            </div>
-                                            <div class="px-3 py-1 rounded-lg bg-primary/5 border border-primary/10 flex items-center gap-2">
-                                                <x-ui.icon name="calendar" size="3" class="text-primary/60" />
-                                                <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{ $event->occurred_at->format('M d, Y') }}</span>
-                                            </div>
-                                        </div>
-                                        @if($event->description)
-                                            <div class="relative p-5 rounded-[1.5rem] bg-background/40 border border-border/40 backdrop-blur-sm group-hover:bg-background/60 transition-all duration-500 overflow-hidden">
-                                                <div class="absolute top-0 left-0 w-1 h-full bg-primary/20"></div>
-                                                <p class="text-[13px] text-muted-foreground leading-relaxed italic font-medium">"{{ $event->description }}"</p>
-                                            </div>
+                </x-ui.card>
+
+                @if($tracking)
+                    <x-ui.card class="overflow-hidden border-border/60 bg-card/40 rounded-2xl shadow-sm">
+                        <div class="p-5 border-b border-border/50 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <h2 class="text-sm font-black uppercase tracking-widest text-foreground">Order Delivery Tracking</h2>
+                                <p class="text-xs text-muted-foreground mt-1">Order-level sync and immutable status history</p>
+                            </div>
+                            <span class="inline-flex w-fit rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest {{ $statusStyle['badge'] }}">
+                                {{ str_replace('_', ' ', $tracking->current_status) }}
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 p-5 border-b border-border/40">
+                            <div><p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Dispatch</p><p class="text-sm font-black mt-1">{{ strtoupper($tracking->dispatch_type) }}</p></div>
+                            <div><p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Handler</p><p class="text-sm font-black mt-1 truncate">{{ $tracking->assigned_name }}</p></div>
+                            <div><p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Tracking</p><p class="text-sm font-mono font-black mt-1 truncate">{{ $tracking->tracking_number ?? '—' }}</p></div>
+                            <div><p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Vehicle</p><p class="text-sm font-black mt-1 truncate">{{ $tracking->vehicle_number ?? '—' }}</p></div>
+                            <div><p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Last Update</p><p class="text-sm font-black mt-1">{{ $tracking->last_status_at?->format('M d, h:i A') ?? '—' }}</p></div>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            @forelse($tracking->histories as $history)
+                                <div class="flex gap-3 rounded-xl border border-border/50 bg-background/35 p-4">
+                                    <div class="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                        <x-ui.icon name="activity" size="4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-black text-foreground">
+                                            {{ $history->previous_status ? str_replace('_', ' ', $history->previous_status) . ' to ' : '' }}{{ str_replace('_', ' ', $history->new_status) }}
+                                        </p>
+                                        <p class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
+                                            {{ $history->changed_at->format('M d, Y h:i A') }} · {{ $history->user?->name ?? 'System' }}
+                                        </p>
+                                        @if($history->remarks)
+                                            <p class="text-xs text-muted-foreground mt-2">{{ $history->remarks }}</p>
                                         @endif
                                     </div>
-                                    <div class="shrink-0 pt-1 flex flex-col items-end gap-3">
-                                        <div class="flex items-center gap-2 relative z-20">
-                                            <button @click="editing = true" class="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white transition-all shadow-sm">
-                                                <x-ui.icon name="edit-3" size="3" />
-                                            </button>
-                                            <form action="{{ route('order.tracking.events.destroy', $event->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this checkpoint?')" class="m-0 inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm">
-                                                    <x-ui.icon name="trash" size="3" />
+                                </div>
+                            @empty
+                                <p class="text-sm text-muted-foreground py-4">No tracking history entries yet.</p>
+                            @endforelse
+                        </div>
+                    </x-ui.card>
+                @endif
+
+                <x-ui.card class="overflow-hidden border-border/60 bg-card/40 rounded-2xl shadow-sm">
+                    <div class="p-5 border-b border-border/50 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-sm font-black uppercase tracking-widest text-foreground">Consignment Contents</h2>
+                            <p class="text-xs text-muted-foreground mt-1">{{ $order?->items?->count() ?? 0 }} order line items</p>
+                        </div>
+                        <x-ui.icon name="box" size="5" class="text-primary" />
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-muted/5 border-b border-border/40">
+                                <tr>
+                                    <th class="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product</th>
+                                    <th class="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">Qty</th>
+                                    <th class="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border/30">
+                                @forelse($order?->items ?? [] as $item)
+                                    <tr class="hover:bg-muted/5">
+                                        <td class="px-5 py-4">
+                                            <p class="text-sm font-black text-foreground">{{ $item->product?->name ?? 'Consignment item' }}</p>
+                                            <p class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{{ $item->product?->sku ?? 'N/A' }}</p>
+                                        </td>
+                                        <td class="px-5 py-4 text-center">
+                                            <span class="inline-flex min-w-8 justify-center rounded-lg bg-muted px-2 py-1 text-xs font-black">{{ (int) $item->quantity }}</span>
+                                        </td>
+                                        <td class="px-5 py-4 text-right">
+                                            <span class="text-[10px] font-black uppercase tracking-widest {{ str_contains($statusStyle['badge'], 'emerald') ? 'text-emerald-600' : 'text-muted-foreground' }}">{{ str_replace('_', ' ', $shipment->status) }}</span>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="px-5 py-10 text-center text-sm text-muted-foreground">No order items found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </x-ui.card>
+
+                <x-ui.card class="overflow-hidden border-border/60 bg-card/40 rounded-2xl shadow-sm">
+                    <div class="p-5 border-b border-border/50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 class="text-sm font-black uppercase tracking-widest text-foreground">Milestone Timeline</h2>
+                            <p class="text-xs text-muted-foreground mt-1">Shipment tracking events and edits</p>
+                        </div>
+                        <span class="rounded-full bg-primary/10 text-primary px-3 py-1 text-[10px] font-black uppercase tracking-widest">{{ $shipment->events->count() }} events</span>
+                    </div>
+                    <div class="p-5">
+                        <div class="relative space-y-5 before:absolute before:left-4 before:top-2 before:bottom-2 before:w-px before:bg-border">
+                            @forelse($shipment->events as $event)
+                                <div x-data="{ editing: false }" class="relative pl-10">
+                                    <div class="absolute left-0 top-1 size-8 rounded-full bg-background border border-border flex items-center justify-center text-primary">
+                                        <span class="size-2 rounded-full bg-primary"></span>
+                                    </div>
+
+                                    <div x-show="!editing" class="rounded-xl border border-border/50 bg-background/35 p-4">
+                                        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                            <div class="min-w-0">
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    <h3 class="text-sm font-black text-foreground">{{ $event->event_name }}</h3>
+                                                    <span class="text-[10px] font-bold text-muted-foreground">{{ $event->occurred_at->format('M d, Y h:i A') }}</span>
+                                                </div>
+                                                <p class="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                                    <x-ui.icon name="map-pin" size="3" /> {{ $event->location ?: 'Logistics node' }}
+                                                </p>
+                                                @if($event->description)
+                                                    <p class="mt-3 text-xs leading-relaxed text-muted-foreground">{{ $event->description }}</p>
+                                                @endif
+                                            </div>
+                                            <div class="flex items-center gap-2 shrink-0">
+                                                <button type="button" @click="editing = true" class="size-8 rounded-lg border border-border bg-background/50 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors">
+                                                    <x-ui.icon name="edit-3" size="3.5" class="mx-auto" />
                                                 </button>
-                                            </form>
+                                                <form action="{{ route('order.tracking.events.destroy', $event->id) }}" method="POST" onsubmit="return confirm('Delete this checkpoint?')" class="m-0">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="size-8 rounded-lg border border-border bg-background/50 text-muted-foreground hover:text-red-600 hover:border-red-500/40 transition-colors">
+                                                        <x-ui.icon name="trash" size="3.5" class="mx-auto" />
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
-                                        <span class="text-[10px] font-black text-foreground tracking-widest uppercase opacity-40">{{ $event->occurred_at->diffForHumans() }}</span>
+                                    </div>
+
+                                    <div x-show="editing" x-cloak class="rounded-xl border border-border/60 bg-background/60 p-4">
+                                        <form action="{{ route('order.tracking.events.update', $event->id) }}" method="POST" class="space-y-4">
+                                            @csrf
+                                            @method('PUT')
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div class="space-y-1.5">
+                                                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Milestone</label>
+                                                    <input type="text" name="event_name" value="{{ $event->event_name }}" required class="w-full h-10 px-3 rounded-lg border border-border bg-background text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
+                                                </div>
+                                                <div class="space-y-1.5">
+                                                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Location</label>
+                                                    <input type="text" name="location" value="{{ $event->location }}" class="w-full h-10 px-3 rounded-lg border border-border bg-background text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
+                                                </div>
+                                            </div>
+                                            <div class="space-y-1.5">
+                                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Time</label>
+                                                <input type="datetime-local" name="occurred_at" value="{{ $event->occurred_at->format('Y-m-d\TH:i') }}" required class="w-full h-10 px-3 rounded-lg border border-border bg-background text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
+                                            </div>
+                                            <div class="space-y-1.5">
+                                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Remarks</label>
+                                                <textarea name="description" rows="2" class="w-full px-3 py-2 rounded-lg border border-border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 resize-none">{{ $event->description }}</textarea>
+                                            </div>
+                                            <div class="flex justify-end gap-2">
+                                                <x-ui.button type="button" variant="outline" size="sm" @click="editing = false" class="rounded-lg text-[10px] font-black uppercase tracking-widest">Cancel</x-ui.button>
+                                                <x-ui.button type="submit" size="sm" class="rounded-lg text-[10px] font-black uppercase tracking-widest">Save</x-ui.button>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
-
-                                {{-- Edit View --}}
-                                <div x-show="editing" x-cloak class="bg-card/80 border border-border/50 rounded-[2rem] p-6 space-y-4">
-                                    <form action="{{ route('order.tracking.events.update', $event->id) }}" method="POST" class="space-y-4 m-0">
-                                        @csrf
-                                        @method('PUT')
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div class="space-y-2">
-                                                <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Milestone Title</label>
-                                                <input type="text" name="event_name" value="{{ $event->event_name }}" required 
-                                                    class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all">
-                                            </div>
-                                            <div class="space-y-2">
-                                                <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Node / Location</label>
-                                                <input type="text" name="location" value="{{ $event->location }}" 
-                                                    class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all">
-                                            </div>
-                                        </div>
-
-                                        <div class="space-y-2">
-                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Checkpoint Time</label>
-                                            <input type="datetime-local" name="occurred_at" value="{{ $event->occurred_at->format('Y-m-d\TH:i') }}" required 
-                                                class="w-full h-11 px-4 rounded-xl border border-border bg-background/40 text-xs font-black focus:ring-4 focus:ring-primary/10 outline-none transition-all">
-                                        </div>
-
-                                        <div class="space-y-2">
-                                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Remarks</label>
-                                            <textarea name="description" rows="2" 
-                                                class="w-full p-4 rounded-xl border border-border bg-background/40 text-xs font-medium focus:ring-4 focus:ring-primary/10 outline-none transition-all resize-none">{{ $event->description }}</textarea>
-                                        </div>
-
-                                        <div class="flex items-center justify-end gap-2 pt-2">
-                                            <button type="button" @click="editing = false" class="px-4 h-9 rounded-xl bg-card border border-border text-[10px] font-black uppercase tracking-widest hover:bg-muted transition-all">
-                                                Cancel
-                                            </button>
-                                            <button type="submit" class="px-6 h-9 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-102 transition-all">
-                                                Save Milestone
-                                            </button>
-                                        </div>
-                                    </form>
+                            @empty
+                                <div class="rounded-xl border border-dashed border-border p-10 text-center">
+                                    <x-ui.icon name="list" size="8" class="mx-auto text-muted-foreground/40 mb-3" />
+                                    <p class="text-sm font-black uppercase tracking-widest text-muted-foreground">No milestones yet</p>
                                 </div>
-                            </div>
-                        @empty
-                            <div class="text-center py-24 opacity-20">
-                                <x-ui.icon name="box" size="20" class="mx-auto mb-6 animate-pulse" />
-                                <p class="text-sm font-black uppercase tracking-[0.4em]">Awaiting Logistics Data</p>
-                            </div>
-                        @endforelse
-                    </div>
-                </div>
-            </x-ui.card>
-
-            <!-- Event Logging Sidebar -->
-            <div class="space-y-8">
-                <x-ui.card class="p-8 border-border/60 bg-card/40 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border-dashed relative overflow-hidden group">
-                    <div class="absolute -right-10 -bottom-10 size-40 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all"></div>
-                    
-                    <div class="flex items-center gap-4 mb-10">
-                        <div class="size-12 rounded-[1.25rem] bg-primary/10 text-primary flex items-center justify-center shadow-inner">
-                            <x-ui.icon name="plus-circle" size="6" />
-                        </div>
-                        <div>
-                            <h4 class="text-xl font-black text-foreground tracking-tight">Post Milestone</h4>
-                            <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Add verified checkpoint</p>
+                            @endforelse
                         </div>
                     </div>
+                </x-ui.card>
+            </div>
 
-                    <form action="{{ route('order.tracking.events.store', $shipment->id) }}" method="POST" class="space-y-6 relative z-10">
+            <div class="space-y-6">
+                <x-ui.card class="overflow-hidden border-border/60 bg-card/50 rounded-2xl shadow-sm">
+                    <div class="p-5 border-b border-border/50">
+                        <h2 class="text-sm font-black uppercase tracking-widest text-foreground">Shipment Control</h2>
+                        <p class="text-xs text-muted-foreground mt-1">Update carrier and delivery state</p>
+                    </div>
+                    <form action="{{ route('order.tracking.status.update', $shipment->id) }}" method="POST" class="p-5 space-y-4">
                         @csrf
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Milestone Title</label>
-                            <input type="text" name="event_name" placeholder="e.g. Cleared Customs" required 
-                                class="w-full h-14 px-5 rounded-[1.25rem] border border-border bg-background/40 text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all hover:bg-background/60">
+                        @method('PUT')
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</label>
+                            <select name="status" class="w-full h-11 px-3 rounded-xl border border-border bg-background text-xs font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-primary/20">
+                                @foreach(['pending', 'shipped', 'in_transit', 'delivered', 'failed'] as $st)
+                                    <option value="{{ $st }}" @selected($shipment->status === $st)>{{ str_replace('_', ' ', $st) }}</option>
+                                @endforeach
+                            </select>
                         </div>
-
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Node / Location</label>
-                            <input type="text" name="location" placeholder="e.g. Mumbai Hub-02" 
-                                class="w-full h-14 px-5 rounded-[1.25rem] border border-border bg-background/40 text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all hover:bg-background/60">
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Carrier</label>
+                            <select name="carrier_name" class="w-full h-11 px-3 rounded-xl border border-border bg-background text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
+                                <option value="">Select shipping option</option>
+                                @foreach($services as $svc)
+                                    <option value="{{ $svc->name }}" @selected($shipment->carrier_name === $svc->name)>{{ $svc->name }} ({{ $svc->code }})</option>
+                                @endforeach
+                            </select>
                         </div>
-
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Checkpoint Time</label>
-                            <input type="datetime-local" name="occurred_at" value="{{ now()->format('Y-m-d\TH:i') }}" required 
-                                class="w-full h-14 px-5 rounded-[1.25rem] border border-border bg-background/40 text-xs font-black uppercase tracking-widest focus:ring-4 focus:ring-primary/10 outline-none transition-all hover:bg-background/60">
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tracking Number</label>
+                            <input type="text" name="tracking_no" value="{{ $shipment->tracking_no }}" placeholder="Enter AWB or tracking number" class="w-full h-11 px-3 rounded-xl border border-border bg-background text-xs font-mono font-bold outline-none focus:ring-2 focus:ring-primary/20">
                         </div>
-
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Data Integrity Remark</label>
-                            <textarea name="description" rows="3" placeholder="Additional logistics context..." 
-                                class="w-full p-5 rounded-[1.5rem] border border-border bg-background/40 text-sm font-medium focus:ring-4 focus:ring-primary/10 outline-none transition-all hover:bg-background/60 resize-none"></textarea>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Shipped At</label>
+                                <input type="datetime-local" name="shipped_at" value="{{ $shipment->shipped_at?->format('Y-m-d\TH:i') }}" class="w-full h-11 px-3 rounded-xl border border-border bg-background text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Delivered At</label>
+                                <input type="datetime-local" name="delivered_at" value="{{ $shipment->delivered_at?->format('Y-m-d\TH:i') }}" class="w-full h-11 px-3 rounded-xl border border-border bg-background text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
+                            </div>
                         </div>
-
-                        <div class="pt-4">
-                            <x-ui.button type="submit" class="w-full h-16 rounded-[1.25rem] font-black uppercase tracking-[0.3em] text-xs shadow-2xl shadow-primary/20 hover:scale-[1.03] active:scale-95 transition-all duration-300">
-                                Register Checkpoint
-                            </x-ui.button>
-                        </div>
+                        <x-ui.button type="submit" class="w-full h-11 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                            <x-ui.icon name="save" size="3.5" class="mr-2" /> Update Shipment
+                        </x-ui.button>
                     </form>
                 </x-ui.card>
 
-                <!-- Data Integrity Notification -->
-                <x-ui.card class="p-6 border-border/60 bg-emerald-500/5 rounded-[2rem] border-l-[6px] border-l-emerald-500 shadow-lg relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform">
-                        <x-ui.icon name="shield-check" size="16" />
+                <x-ui.card class="overflow-hidden border-border/60 bg-card/50 rounded-2xl shadow-sm">
+                    <div class="p-5 border-b border-border/50">
+                        <h2 class="text-sm font-black uppercase tracking-widest text-foreground">Add Milestone</h2>
+                        <p class="text-xs text-muted-foreground mt-1">Create a new tracking event</p>
                     </div>
-                    <div class="flex items-start gap-4 relative z-10">
-                        <div class="size-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                            <x-ui.icon name="info" size="5" />
+                    <form action="{{ route('order.tracking.events.store', $shipment->id) }}" method="POST" class="p-5 space-y-4">
+                        @csrf
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Milestone</label>
+                            <input type="text" name="event_name" placeholder="e.g. Out for delivery" required class="w-full h-11 px-3 rounded-xl border border-border bg-background text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Location</label>
+                            <input type="text" name="location" placeholder="e.g. Pune Hub" class="w-full h-11 px-3 rounded-xl border border-border bg-background text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Occurred At</label>
+                            <input type="datetime-local" name="occurred_at" value="{{ now()->format('Y-m-d\TH:i') }}" required class="w-full h-11 px-3 rounded-xl border border-border bg-background text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Remarks</label>
+                            <textarea name="description" rows="3" placeholder="Additional logistics context" class="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 resize-none"></textarea>
+                        </div>
+                        <x-ui.button type="submit" variant="outline" class="w-full h-11 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                            <x-ui.icon name="plus" size="3.5" class="mr-2" /> Add Milestone
+                        </x-ui.button>
+                    </form>
+                </x-ui.card>
+
+                <x-ui.card class="p-5 border-emerald-500/20 bg-emerald-500/5 rounded-2xl">
+                    <div class="flex items-start gap-3">
+                        <div class="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                            <x-ui.icon name="shield-check" size="5" />
                         </div>
                         <div>
-                            <h5 class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-2">Automated State Sync</h5>
-                            <p class="text-[12px] font-bold text-foreground/60 leading-relaxed italic">
-                                Transitioning to <span class="text-emerald-600 font-black">Delivered</span> will immediately finalize the parent order record. This action is audited and irreversible.
-                            </p>
+                            <h3 class="text-[10px] font-black uppercase tracking-widest text-emerald-700">Delivery Sync</h3>
+                            <p class="mt-2 text-xs font-medium leading-relaxed text-muted-foreground">Changing status to delivered finalizes the related order using the existing order status workflow.</p>
                         </div>
                     </div>
                 </x-ui.card>
             </div>
         </div>
     </div>
-
-    <style>
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-        .animate-shimmer {
-            animation: shimmer 3s infinite linear;
-        }
-        @keyframes bounce-slow {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        .animate-bounce-slow {
-            animation: bounce-slow 3s infinite ease-in-out;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(var(--primary), 0.1);
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(var(--primary), 0.2);
-        }
-    </style>
 </x-layouts.app>

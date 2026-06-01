@@ -257,33 +257,7 @@ class DeliveryController extends Controller
         }
 
         try {
-            \Illuminate\Support\Facades\DB::transaction(function () use ($delivery, $shipment, $order, $inventoryService) {
-                // Complete delivery
-                $delivery->update([
-                    'status' => 'delivered',
-                    'delivered_at' => now(),
-                ]);
-
-                // Release driver and transport
-                if ($delivery->driver) {
-                    $delivery->driver->update(['status' => 'available']);
-                }
-                if ($delivery->transport) {
-                    $delivery->transport->update(['status' => 'available']);
-                }
-
-                // Add tracking event
-                ShipmentTrackingEvent::create([
-                    'shipment_id' => $shipment->id,
-                    'event_name' => 'Delivered',
-                    'location' => $delivery->destination,
-                    'description' => "Order delivered successfully by driver {$delivery->driver_name}.",
-                    'occurred_at' => now(),
-                ]);
-
-                // Transition Order and Shipment to delivered status
-                $inventoryService->deliverOrder($order);
-            });
+            $this->completeDelivery($delivery, $shipment, $order, $inventoryService);
         } catch (\Exception $e) {
             return back()->with('error', 'Error marking delivery as completed: ' . $e->getMessage());
         }
@@ -305,7 +279,7 @@ class DeliveryController extends Controller
         return back()->with('success', 'Delivery assignment deleted successfully.');
     }
 
-    public function storeVerification(Request $request, Delivery $delivery)
+    public function storeVerification(Request $request, Delivery $delivery, InventoryService $inventoryService)
     {
         $outcomes = array_keys(DeliveryVerificationLog::OUTCOMES);
 
@@ -376,11 +350,71 @@ class DeliveryController extends Controller
         }
 
         $message = 'Verification call logged successfully.';
+
+        if ($validated['outcome'] === 'customer_confirmed') {
+            $order = $shipment?->order;
+            if (!$shipment || !$order) {
+                return back()->with('error', 'Verification logged, but shipment or order was not found for delivery completion.');
+            }
+
+            try {
+                if ($delivery->status !== 'delivered') {
+                    $this->completeDelivery(
+                        $delivery,
+                        $shipment,
+                        $order,
+                        $inventoryService,
+                        'Customer confirmed delivery via verification call.'
+                    );
+                }
+                $message = 'Verification logged and order marked as delivered.';
+            } catch (\Exception $e) {
+                return back()->with('error', 'Verification logged, but delivery completion failed: ' . $e->getMessage());
+            }
+        }
+
         if ($returnNo) {
             $message = "Verification logged and return request {$returnNo} created (visible on Returns).";
         }
 
         return back()->with('success', $message);
+    }
+
+    private function completeDelivery(
+        Delivery $delivery,
+        Shipment $shipment,
+        $order,
+        InventoryService $inventoryService,
+        ?string $note = null
+    ): void {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($delivery, $shipment, $order, $inventoryService, $note) {
+            $delivery->update([
+                'status' => 'delivered',
+                'delivered_at' => $delivery->delivered_at ?? now(),
+            ]);
+
+            if ($delivery->driver) {
+                $delivery->driver->update(['status' => 'available']);
+            }
+            if ($delivery->transport) {
+                $delivery->transport->update(['status' => 'available']);
+            }
+
+            $description = "Order delivered successfully by driver {$delivery->driver_name}.";
+            if ($note) {
+                $description .= " {$note}";
+            }
+
+            ShipmentTrackingEvent::create([
+                'shipment_id' => $shipment->id,
+                'event_name' => 'Delivered',
+                'location' => $delivery->destination,
+                'description' => $description,
+                'occurred_at' => now(),
+            ]);
+
+            $inventoryService->deliverOrder($order);
+        });
     }
 
     public function bulkDelete(Request $request)

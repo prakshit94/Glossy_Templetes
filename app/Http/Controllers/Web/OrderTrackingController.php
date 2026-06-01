@@ -11,7 +11,9 @@ class OrderTrackingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Shipment::with(['order.party', 'events'])->latest();
+        app(\App\Services\OrderDeliveryTrackingService::class)->backfillMissing();
+
+        $query = Shipment::with(['order.party', 'events', 'deliveryTracking.driver.user', 'deliveryTracking.transport'])->latest();
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -74,13 +76,15 @@ class OrderTrackingController extends Controller
 
     public function show($id)
     {
-        $shipment = Shipment::with(['order.party', 'order.items.product', 'events' => function($q) {
+        $shipment = Shipment::with(['order.party', 'order.warehouse', 'order.items.product', 'events' => function($q) {
             $q->latest('occurred_at');
-        }])->findOrFail($id);
+        }, 'deliveryTracking.histories.user', 'deliveryTracking.driver.user', 'deliveryTracking.transport'])->findOrFail($id);
+
+        $tracking = app(\App\Services\OrderDeliveryTrackingService::class)->syncShipment($shipment);
 
         $services = \App\Models\Service::active()->get();
 
-        return view('order-tracking.show', compact('shipment', 'services'));
+        return view('order-tracking.show', compact('shipment', 'services', 'tracking'));
     }
 
     public function storeEvent(Request $request, $id)

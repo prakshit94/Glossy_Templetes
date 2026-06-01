@@ -119,4 +119,9 @@ class Order extends Model
     {
         return $this->hasMany(OrderVerificationLog::class)->latest();
     }
+
+    public function deliveryTracking()
+    {
+        return $this->hasOne(OrderDeliveryTracking::class);
+    }
 }

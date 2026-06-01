@@ -76,7 +76,7 @@ class DatabaseSeeder extends Seeder
 
         // ── Layer 8: Orders (Sale & Purchase) ────────────────────────────────
         $this->call([
-            OrderDataSeeder::class,
+            //OrderDataSeeder::class,
         ]);
 
         // ── Layer 9: Logistics ────────────────────────────────────────────────

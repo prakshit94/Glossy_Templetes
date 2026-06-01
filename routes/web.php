@@ -122,6 +122,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Order / Shipment Tracking URLs mapped to OrderTrackingController
     Route::get('shipment-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index'])->name('order.tracking.index');
+    Route::get('shipment-tracking/performance', [\App\Http\Controllers\Web\DeliveryPerformanceController::class, 'index'])->name('delivery.performance.index');
+    Route::get('shipment-tracking/performance/partners/{driver}', [\App\Http\Controllers\Web\DeliveryPerformanceController::class, 'partner'])->name('delivery.performance.partner');
+    Route::get('shipment-tracking/performance/couriers/{provider}', [\App\Http\Controllers\Web\DeliveryPerformanceController::class, 'courier'])->name('delivery.performance.courier');
     Route::get('shipment-tracking/{shipment}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'show'])->name('order.tracking.show');
     Route::post('shipment-tracking/{shipment}/events', [\App\Http\Controllers\Web\OrderTrackingController::class, 'storeEvent'])->name('order.tracking.events.store');
     Route::put('shipment-tracking/{shipment}/status', [\App\Http\Controllers\Web\OrderTrackingController::class, 'updateStatus'])->name('order.tracking.status.update');
@@ -129,6 +132,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('shipment-tracking/events/{event}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'destroyEvent'])->name('order.tracking.events.destroy');
 
     Route::get('order-tracking', [\App\Http\Controllers\Web\OrderTrackingController::class, 'index']);
+    Route::get('order-tracking/performance', [\App\Http\Controllers\Web\DeliveryPerformanceController::class, 'index']);
+    Route::get('order-tracking/performance/partners/{driver}', [\App\Http\Controllers\Web\DeliveryPerformanceController::class, 'partner']);
+    Route::get('order-tracking/performance/couriers/{provider}', [\App\Http\Controllers\Web\DeliveryPerformanceController::class, 'courier']);
     Route::get('order-tracking/{shipment}', [\App\Http\Controllers\Web\OrderTrackingController::class, 'show']);
 
     // Promo Codes / Coupons
@@ -188,6 +194,16 @@ Route::resource(
     Route::post('/delivery/{delivery}/verification', [\App\Http\Controllers\Web\DeliveryController::class, 'storeVerification'])->name('delivery.verification.store');
     Route::resource('delivery', \App\Http\Controllers\Web\DeliveryController::class)->except(['create', 'edit'])->middleware('permission:delivery.view');
 
+    Route::get('accounts', [\App\Http\Controllers\Web\AccountController::class, 'index'])->name('accounts.index')->middleware('permission:accounts.view');
+    Route::get('expenses', [\App\Http\Controllers\Web\ExpenseController::class, 'index'])->name('expenses.index')->middleware('permission:expenses.view');
+    Route::get('transactions', [\App\Http\Controllers\Web\AccountingTransactionController::class, 'index'])->name('transactions.index')->middleware('permission:transactions.view');
+    Route::get('financial-reports', [\App\Http\Controllers\Web\FinancialReportController::class, 'index'])->name('financial.reports.index')->middleware('permission:financial-reports.view');
+
+    Route::get('departments', [\App\Http\Controllers\Web\DepartmentController::class, 'index'])->name('departments.index')->middleware('permission:departments.view');
+    Route::get('employees', [\App\Http\Controllers\Web\EmployeeController::class, 'index'])->name('employees.index')->middleware('permission:employees.view');
+    Route::get('attendance', [\App\Http\Controllers\Web\AttendanceController::class, 'index'])->name('attendance.index')->middleware('permission:attendance.view');
+    Route::get('payroll', [\App\Http\Controllers\Web\PayrollController::class, 'index'])->name('payroll.index')->middleware('permission:payroll.view');
+
     $sidebarScaffoldModules = [
         'customer-groups' => ['title' => 'Customer Groups', 'icon' => 'users-2'],
         'reviews' => ['title' => 'Reviews & Ratings', 'icon' => 'star'],
@@ -196,18 +212,10 @@ Route::resource(
         'purchase-orders' => ['title' => 'Purchase Orders', 'icon' => 'purchase'],
         'suppliers' => ['title' => 'Suppliers', 'icon' => 'building'],
         'vendors' => ['title' => 'Vendors', 'icon' => 'building'],
-        'accounts' => ['title' => 'Accounts', 'icon' => 'finance'],
-        'expenses' => ['title' => 'Expenses', 'icon' => 'activity'],
-        'transactions' => ['title' => 'Transactions', 'icon' => 'credit-card'],
-        'financial-reports' => ['title' => 'Financial Reports', 'icon' => 'bar-chart'],
         'sales-reports' => ['title' => 'Sales Reports', 'icon' => 'reports'],
         'inventory-reports' => ['title' => 'Inventory Reports', 'icon' => 'inventory'],
         'customer-analytics' => ['title' => 'Customer Analytics', 'icon' => 'users'],
         'performance-reports' => ['title' => 'Performance Reports', 'icon' => 'activity'],
-        'employees' => ['title' => 'Employees', 'icon' => 'employees'],
-        'attendance' => ['title' => 'Attendance', 'icon' => 'calendar'],
-        'payroll' => ['title' => 'Payroll', 'icon' => 'finance'],
-        'departments' => ['title' => 'Departments', 'icon' => 'building'],
         'campaigns' => ['title' => 'Campaigns', 'icon' => 'marketing'],
         'email-marketing' => ['title' => 'Email Marketing', 'icon' => 'mail'],
     ];

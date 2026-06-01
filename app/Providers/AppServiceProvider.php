@@ -33,6 +33,10 @@ class AppServiceProvider extends ServiceProvider
     {
         \Illuminate\Support\Facades\Gate::policy(\Spatie\Permission\Models\Role::class, \App\Policies\RolePolicy::class);
 
+        \App\Models\Shipment::observe(\App\Observers\ShipmentObserver::class);
+        \App\Models\Delivery::observe(\App\Observers\DeliveryObserver::class);
+        \App\Models\OrderReturn::observe(\App\Observers\OrderReturnObserver::class);
+
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
             return $user->hasRole('Super Admin') ? true : null;
         });

@@ -84,4 +84,9 @@ class Delivery extends Model
     {
         return $this->hasMany(DeliveryVerificationLog::class)->latest();
     }
+
+    public function orderDeliveryTracking()
+    {
+        return $this->hasOne(OrderDeliveryTracking::class);
+    }
 }

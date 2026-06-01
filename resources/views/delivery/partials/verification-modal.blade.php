@@ -181,6 +181,15 @@
                             Saving with <strong>Return Order</strong> creates a return on the <strong>Returns</strong> page — all order items at full quantity, status <strong>requested</strong>, same as <a href="{{ route('returns.create') }}" class="text-primary font-bold hover:underline">Create Return</a>.
                         </p>
                     </div>
+                    <div class="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] px-4 py-3 space-y-1" x-show="outcome === 'customer_confirmed'" x-cloak>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-2">
+                            <x-ui.icon name="check-circle" size="3.5" />
+                            Mark delivered
+                        </p>
+                        <p class="text-xs text-foreground/90 leading-relaxed">
+                            Saving this verification will mark the delivery, shipment, and order as delivered while keeping the verification log.
+                        </p>
+                    </div>
                     <div class="space-y-2 md:col-span-2">
                         <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Remarks</label>
                         <textarea name="remark" x-model="remark" rows="3" placeholder="Add call notes, customer response, or return reason..."
@@ -195,7 +204,8 @@
                 <div class="flex justify-end gap-3 pt-2">
                     <x-ui.button type="button" variant="outline" @click="$dispatch('close-modal', { name: 'delivery-verification-modal' })" class="rounded-xl font-black uppercase tracking-widest text-[10px]">Close</x-ui.button>
                     <x-ui.button type="submit" class="rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/25" x-bind:disabled="!outcome">
-                        <x-ui.icon name="check" size="3" class="mr-1.5" /> Save Verification
+                        <x-ui.icon name="check" size="3" class="mr-1.5" />
+                        <span x-text="outcome === 'customer_confirmed' ? 'Save & Mark Delivered' : 'Save Verification'"></span>
                     </x-ui.button>
                 </div>
             </form>

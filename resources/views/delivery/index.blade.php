@@ -34,7 +34,7 @@
         selectedRecords: [],
         allSelected: false,
 
-        openDeliveryVerification(id) {
+        openDeliveryVerification(id, presetOutcome = '') {
             const d = this.verificationData[id];
             if (!d) return;
             this.deliveryId = d.id;
@@ -54,7 +54,7 @@
             this.billing = d.billing || {};
             this.legacyShipping = d.legacy_shipping || '';
             this.history = d.history || [];
-            this.outcome = '';
+            this.outcome = presetOutcome;
             this.remark = '';
             this.followUpAt = '';
             this.$dispatch('open-modal', { name: 'delivery-verification-modal' });

@@ -38,6 +38,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::get('/villages/search', [\App\Http\Controllers\Api\VillageApiController::class, 'search']);
             Route::get('/serviceability/check', [\App\Http\Controllers\Api\VillageApiController::class, 'checkServiceability']);
             Route::post('/village-services/bulk-import', [\App\Http\Controllers\Api\VillageApiController::class, 'bulkImport']);
+            Route::get('/order-trackings', [\App\Http\Controllers\Api\v1\OrderDeliveryTrackingController::class, 'index']);
+            Route::get('/order-trackings/performance', [\App\Http\Controllers\Api\v1\OrderDeliveryTrackingController::class, 'performance']);
+            Route::get('/order-trackings/{tracking}', [\App\Http\Controllers\Api\v1\OrderDeliveryTrackingController::class, 'show']);
         });
     });
 });

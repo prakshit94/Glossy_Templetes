@@ -41,4 +41,9 @@ class Driver extends Model
     {
         return $this->hasMany(Delivery::class);
     }
+
+    public function orderDeliveryTrackings()
+    {
+        return $this->hasMany(OrderDeliveryTracking::class);
+    }
 }

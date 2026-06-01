@@ -187,6 +187,10 @@
                                 <x-ui.icon name="download" size="3" class="mr-2" />
                                 Export Ledger
                             </x-ui.button>
+                            <x-ui.button variant="outline" size="sm" class="flex-1 sm:flex-none rounded-xl font-bold uppercase tracking-widest text-[10px] h-11 px-6 shadow-sm border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-all" onclick="window.location.href = '{{ route('delivery.performance.index') }}'">
+                                <x-ui.icon name="bar-chart" size="3" class="mr-2" />
+                                Performance
+                            </x-ui.button>
                         </div>
                     </div>
 

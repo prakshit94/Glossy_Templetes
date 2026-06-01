@@ -107,12 +107,11 @@
                                 <x-ui.icon name="phone" size="3" class="mr-1" /> Verify
                             </button>
                             @if($st === 'out_for_delivery')
-                                <form action="{{ route('delivery.deliver', $r->id) }}" method="POST">
-                                    @csrf
-                                    <x-ui.button type="submit" variant="default" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[9px] h-8 bg-emerald-500 hover:bg-emerald-600 border-none shadow-sm shadow-emerald-500/15">
-                                        <x-ui.icon name="check" size="3" class="mr-1" /> Mark Delivered
-                                    </x-ui.button>
-                                </form>
+                                <x-ui.button type="button" variant="default" size="sm"
+                                    @click="openDeliveryVerification({{ $r->id }}, 'customer_confirmed')"
+                                    class="rounded-xl font-bold uppercase tracking-widest text-[9px] h-8 bg-emerald-500 hover:bg-emerald-600 border-none shadow-sm shadow-emerald-500/15">
+                                    <x-ui.icon name="check" size="3" class="mr-1" /> Mark Delivered
+                                </x-ui.button>
                             @endif
 
                             <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">

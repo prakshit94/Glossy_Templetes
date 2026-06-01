@@ -47,56 +47,57 @@
       $crmItems = $filterItems([
          ['title' => 'Customers', 'url' => route('customers.index'), 'active' => request()->routeIs('customers.*') || request()->is('customers*'), 'permission' => 'customers.view', 'icon' => '<x-ui.icon name="users" size="4" />'],
          ['title' => 'Customer Groups', 'url' => '/customer-groups', 'active' => request()->is('customer-groups*'), 'permission' => 'customer-groups.view', 'icon' => '<x-ui.icon name="users-2" size="4" />'],
-         ['title' => 'Reviews & Ratings', 'url' => '/reviews', 'active' => request()->is('reviews*'), 'permission' => 'reviews.view', 'icon' => '<x-ui.icon name="star" size="4" />'],
          ['title' => 'Support Tickets', 'url' => '/support-tickets', 'active' => request()->is('support-tickets*'), 'permission' => 'support-tickets.view', 'icon' => '<x-ui.icon name="mail" size="4" />'],
+         ['title' => 'Reviews & Ratings', 'url' => '/reviews', 'active' => request()->is('reviews*'), 'permission' => 'reviews.view', 'icon' => '<x-ui.icon name="star" size="4" />'],
       ]);
 
       $catalogItems = $filterItems([
-         ['title' => 'Products', 'url' => '/products', 'active' => request()->is('products*'), 'permission' => 'products.view', 'icon' => '<x-ui.icon name="product" size="4" />'],
          ['title' => 'Categories', 'url' => '/categories', 'active' => request()->is('categories*'), 'permission' => 'categories.view', 'icon' => '<x-ui.icon name="category" size="4" />'],
          ['title' => 'Brands', 'url' => '/brands', 'active' => request()->is('brands*'), 'permission' => 'brands.view', 'icon' => '<x-ui.icon name="brand" size="4" />'],
+         ['title' => 'Products', 'url' => '/products', 'active' => request()->is('products*'), 'permission' => 'products.view', 'icon' => '<x-ui.icon name="product" size="4" />'],
          ['title' => 'Attributes', 'url' => '/attributes', 'active' => request()->is('attributes*'), 'permission' => 'attributes.view', 'icon' => '<x-ui.icon name="list" size="4" />'],
          ['title' => 'Units of Measure', 'url' => '/uoms', 'active' => request()->is('uoms*'), 'permission' => 'uoms.view', 'icon' => '<x-ui.icon name="box" size="4" />'],
-         ['title' => 'Tax Rates', 'url' => '/tax-rates', 'active' => request()->is('tax-rates*'), 'permission' => 'tax-rates.view', 'icon' => '<x-ui.icon name="finance" size="4" />'],
          ['title' => 'HSN Codes', 'url' => '/hsn-codes', 'active' => request()->is('hsn-codes*'), 'permission' => 'hsn-codes.view', 'icon' => '<x-ui.icon name="badge-check" size="4" />'],
+         ['title' => 'Tax Rates', 'url' => '/tax-rates', 'active' => request()->is('tax-rates*'), 'permission' => 'tax-rates.view', 'icon' => '<x-ui.icon name="finance" size="4" />'],
       ]);
 
       $inventoryItems = $filterItems([
-         ['title' => 'Inventory', 'url' => '/inventory', 'active' => request()->is('inventory*'), 'permission' => 'inventory.view', 'icon' => '<x-ui.icon name="inventory" size="4" />'],
          ['title' => 'Warehouses', 'url' => '/warehouses', 'active' => request()->is('warehouses*'), 'permission' => 'warehouses.view', 'icon' => '<x-ui.icon name="warehouse" size="4" />'],
+         ['title' => 'Inventory', 'url' => '/inventory', 'active' => request()->is('inventory*'), 'permission' => 'inventory.view', 'icon' => '<x-ui.icon name="inventory" size="4" />'],
          ['title' => 'Stock Transfers', 'url' => '/stock-transfers', 'active' => request()->is('stock-transfers*'), 'permission' => 'stock-transfers.view', 'icon' => '<x-ui.icon name="truck-2" size="4" />'],
          ['title' => 'Stock Adjustments', 'url' => '/stock-adjustments', 'active' => request()->is('stock-adjustments*'), 'permission' => 'stock-adjustments.view', 'icon' => '<x-ui.icon name="refresh-cw" size="4" />'],
       ]);
 
       $salesItems = $filterItems([
          ['title' => 'Orders', 'url' => '/orders', 'active' => request()->is('orders*'), 'permission' => 'orders.view', 'icon' => '<x-ui.icon name="orders" size="4" />'],
+         ['title' => 'Order Tracking', 'url' => '/order-tracking', 'active' => request()->is('order-tracking*'), 'permission' => 'order-tracking.view', 'icon' => '<x-ui.icon name="target" size="4" />'],
          ['title' => 'Invoices', 'url' => '/invoices', 'active' => request()->is('invoices*'), 'permission' => 'invoices.view', 'icon' => '<x-ui.icon name="finance" size="4" />'],
          ['title' => 'Payments', 'url' => '/payments', 'active' => request()->is('payments*'), 'permission' => 'payments.view', 'icon' => '<x-ui.icon name="credit-card" size="4" />'],
-         ['title' => 'Order Tracking', 'url' => '/order-tracking', 'active' => request()->is('order-tracking*'), 'permission' => 'order-tracking.view', 'icon' => '<x-ui.icon name="target" size="4" />'],
          ['title' => 'Returns', 'url' => '/returns', 'active' => request()->is('returns*'), 'permission' => 'returns.view', 'icon' => '<x-ui.icon name="return" size="4" />'],
-         ['title' => 'Refunds', 'url' => '/refunds', 'active' => request()->is('refunds*'), 'permission' => 'refunds.view', 'icon' => '<x-ui.icon name="refresh-cw" size="4" />'],
          ['title' => 'Replacement', 'url' => '/replacement', 'active' => request()->is('replacement*'), 'permission' => 'replacement.view', 'icon' => '<x-ui.icon name="package" size="4" />'],
+         ['title' => 'Refunds', 'url' => '/refunds', 'active' => request()->is('refunds*'), 'permission' => 'refunds.view', 'icon' => '<x-ui.icon name="refresh-cw" size="4" />'],
       ]);
 
       $procurementItems = $filterItems([
-         ['title' => 'Purchase Orders', 'url' => '/purchase-orders', 'active' => request()->is('purchase-orders*'), 'permission' => 'purchase-orders.view', 'icon' => '<x-ui.icon name="purchase" size="4" />'],
          ['title' => 'Suppliers', 'url' => '/suppliers', 'active' => request()->is('suppliers*'), 'permission' => 'suppliers.view', 'icon' => '<x-ui.icon name="building" size="4" />'],
          ['title' => 'Vendors', 'url' => '/vendors', 'active' => request()->is('vendors*'), 'permission' => 'vendors.view', 'icon' => '<x-ui.icon name="building" size="4" />'],
+         ['title' => 'Purchase Orders', 'url' => '/purchase-orders', 'active' => request()->is('purchase-orders*'), 'permission' => 'purchase-orders.view', 'icon' => '<x-ui.icon name="purchase" size="4" />'],
       ]);
 
       $operationsItems = $filterItems([
          ['title' => 'Villages', 'url' => '/villages', 'active' => request()->is('villages*'), 'permission' => 'villages.view', 'icon' => '<x-ui.icon name="map-pin" size="4" />'],
          ['title' => 'Services', 'url' => '/services', 'active' => request()->is('services*'), 'permission' => 'services.view', 'icon' => '<x-ui.icon name="box" size="4" />'],
+         ['title' => 'Drivers', 'url' => '/drivers', 'active' => request()->is('drivers*'), 'permission' => 'drivers.view', 'icon' => '<x-ui.icon name="users-2" size="4" />'],
          ['title' => 'Transport', 'url' => '/transport', 'active' => request()->is('transport*'), 'permission' => 'transport.view', 'icon' => '<x-ui.icon name="truck" size="4" />'],
          ['title' => 'Delivery', 'url' => '/delivery', 'active' => request()->is('delivery*'), 'permission' => 'delivery.view', 'icon' => '<x-ui.icon name="truck-2" size="4" />'],
          ['title' => 'Shipment Tracking', 'url' => '/shipment-tracking', 'active' => request()->is('shipment-tracking*'), 'permission' => 'shipment-tracking.view', 'icon' => '<x-ui.icon name="target" size="4" />'],
-         ['title' => 'Drivers', 'url' => '/drivers', 'active' => request()->is('drivers*'), 'permission' => 'drivers.view', 'icon' => '<x-ui.icon name="users-2" size="4" />'],
+         ['title' => 'Delivery Performance', 'url' => route('delivery.performance.index'), 'active' => request()->routeIs('delivery.performance.*'), 'permission' => 'shipment-tracking.view', 'icon' => '<x-ui.icon name="bar-chart" size="4" />'],
       ]);
 
       $financeItems = $filterItems([
          ['title' => 'Accounts', 'url' => '/accounts', 'active' => request()->is('accounts*'), 'permission' => 'accounts.view', 'icon' => '<x-ui.icon name="finance" size="4" />'],
-         ['title' => 'Expenses', 'url' => '/expenses', 'active' => request()->is('expenses*'), 'permission' => 'expenses.view', 'icon' => '<x-ui.icon name="activity" size="4" />'],
          ['title' => 'Transactions', 'url' => '/transactions', 'active' => request()->is('transactions*'), 'permission' => 'transactions.view', 'icon' => '<x-ui.icon name="credit-card" size="4" />'],
+         ['title' => 'Expenses', 'url' => '/expenses', 'active' => request()->is('expenses*'), 'permission' => 'expenses.view', 'icon' => '<x-ui.icon name="activity" size="4" />'],
          ['title' => 'Financial Reports', 'url' => '/financial-reports', 'active' => request()->is('financial-reports*'), 'permission' => 'financial-reports.view', 'icon' => '<x-ui.icon name="bar-chart" size="4" />'],
          ['title' => 'Sales Reports', 'url' => '/sales-reports', 'active' => request()->is('sales-reports*'), 'permission' => 'sales-reports.view', 'icon' => '<x-ui.icon name="reports" size="4" />'],
          ['title' => 'Inventory Reports', 'url' => '/inventory-reports', 'active' => request()->is('inventory-reports*'), 'permission' => 'inventory-reports.view', 'icon' => '<x-ui.icon name="inventory" size="4" />'],
@@ -105,17 +106,17 @@
       ]);
 
       $peopleItems = $filterItems([
+         ['title' => 'Departments', 'url' => '/departments', 'active' => request()->is('departments*'), 'permission' => 'departments.view', 'icon' => '<x-ui.icon name="building" size="4" />'],
          ['title' => 'Employees', 'url' => '/employees', 'active' => request()->is('employees*'), 'permission' => 'employees.view', 'icon' => '<x-ui.icon name="employees" size="4" />'],
          ['title' => 'Attendance', 'url' => '/attendance', 'active' => request()->is('attendance*'), 'permission' => 'attendance.view', 'icon' => '<x-ui.icon name="calendar" size="4" />'],
          ['title' => 'Payroll', 'url' => '/payroll', 'active' => request()->is('payroll*'), 'permission' => 'payroll.view', 'icon' => '<x-ui.icon name="finance" size="4" />'],
-         ['title' => 'Departments', 'url' => '/departments', 'active' => request()->is('departments*'), 'permission' => 'departments.view', 'icon' => '<x-ui.icon name="building" size="4" />'],
       ]);
 
       $marketingItems = $filterItems([
          ['title' => 'Campaigns', 'url' => '/campaigns', 'active' => request()->is('campaigns*'), 'permission' => 'campaigns.view', 'icon' => '<x-ui.icon name="marketing" size="4" />'],
+         ['title' => 'Email Marketing', 'url' => '/email-marketing', 'active' => request()->is('email-marketing*'), 'permission' => 'email-marketing.view', 'icon' => '<x-ui.icon name="mail" size="4" />'],
          ['title' => 'Coupons', 'url' => '/coupons', 'active' => request()->is('coupons*'), 'permission' => 'coupons.view', 'icon' => '<x-ui.icon name="gift" size="4" />'],
          ['title' => 'Offers', 'url' => '/offers', 'active' => request()->is('offers*'), 'permission' => 'coupons.view', 'icon' => '<x-ui.icon name="tag" size="4" />'],
-         ['title' => 'Email Marketing', 'url' => '/email-marketing', 'active' => request()->is('email-marketing*'), 'permission' => 'email-marketing.view', 'icon' => '<x-ui.icon name="mail" size="4" />'],
       ]);
 
       $settingsItems = $filterItems([

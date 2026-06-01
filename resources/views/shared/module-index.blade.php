@@ -1,5 +1,5 @@
 <x-layouts.app :pageTitle="$moduleTitle">
-    <div class="p-6 lg:p-10" x-data="{ search: '', perPage: '10', isLoading: false }">
+    <div class="p-6 lg:p-10 max-w-[1920px] mx-auto w-full" x-data="{ search: '', perPage: '10', isLoading: false }">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="group relative p-6 rounded-3xl bg-card/40 border border-border/60 backdrop-blur-xl hover:bg-primary/5 transition-all duration-500 overflow-hidden shadow-2xl">
                 <div class="absolute top-0 right-0 -mr-8 -mt-8 size-32 bg-primary/10 blur-[50px] rounded-full group-hover:bg-primary/20 transition-all"></div>
@@ -60,7 +60,7 @@
                 </div>
             </x-ui.card-header>
 
-            <x-ui.card-content class="p-0">
+            <x-ui.card-content class="p-0 relative min-h-[420px] bg-gradient-to-b from-transparent via-muted/[0.03] to-muted/5">
                 @includeFirst(
                     ["{$moduleKey}.partials.table", 'shared.partials.module-table'],
                     ['moduleTitle' => $moduleTitle, 'moduleIcon' => $moduleIcon]

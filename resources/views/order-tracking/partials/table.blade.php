@@ -10,6 +10,7 @@
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Carrier details</th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Customer & Order</th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Current Status</th>
+                <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Partner / Vehicle</th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Last Milestone</th>
                 <th class="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 text-right">Actions</th>
             </tr>
@@ -90,6 +91,16 @@
                         </div>
                     </td>
                     <td class="px-6 py-6">
+                        @if($shipment->deliveryTracking)
+                            <p class="text-xs font-black">{{ $shipment->deliveryTracking->assigned_name }}</p>
+                            <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                                {{ $shipment->deliveryTracking->vehicle_number ?? str_replace('_', ' ', $shipment->deliveryTracking->dispatch_type) }}
+                            </p>
+                        @else
+                            <span class="text-[10px] font-bold opacity-40 uppercase tracking-widest">Not synced</span>
+                        @endif
+                    </td>
+                    <td class="px-6 py-6">
                         @if($lastEvent = $shipment->events->last())
                             <div class="flex flex-col">
                                 <span class="text-[10px] font-black text-foreground uppercase tracking-tight">{{ $lastEvent->event_name }}</span>
@@ -121,7 +132,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="px-6 py-24 text-center">
+                    <td colspan="8" class="px-6 py-24 text-center">
                         <div class="flex flex-col items-center gap-4 opacity-30">
                             <div class="size-20 rounded-full bg-muted/20 flex items-center justify-center">
                                 <x-ui.icon name="target" size="10" />
