@@ -128,6 +128,7 @@
             'title' => 'Overview',
             'links' => [
                ['title' => 'Dashboard', 'url' => '/dashboard', 'active' => request()->is('dashboard'), 'icon' => 'dashboard'],
+               ['title' => 'Chat', 'url' => '/chat', 'active' => request()->is('chat*'), 'icon' => 'mail'],
             ],
          ],
          [

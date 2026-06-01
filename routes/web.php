@@ -19,9 +19,49 @@ use App\Http\Controllers\Web\InventoryController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\OrderReturnController;
 use App\Http\Controllers\Web\InvoiceController;
+use App\Http\Controllers\Web\Chat\ChatController as WebChatController;
+use App\Http\Controllers\Api\Chat\ConversationController as ChatConversationController;
+use App\Http\Controllers\Api\Chat\GroupController as ChatGroupController;
+use App\Http\Controllers\Api\Chat\MessageController as ChatMessageController;
+use App\Http\Controllers\Api\Chat\PresenceController as ChatPresenceController;
+use App\Http\Controllers\Api\Chat\SearchController as ChatSearchController;
+use App\Http\Controllers\Api\Chat\UserController as ChatUserController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Web\DashboardController::class, 'index'])->name('dashboard');
+
+    Route::prefix('chat')->name('chat.')->group(function () {
+        Route::get('/', WebChatController::class)->name('index');
+
+        Route::prefix('api')->name('api.')->middleware('throttle:chat')->group(function () {
+            Route::get('conversations', [ChatConversationController::class, 'index'])->name('conversations.index');
+            Route::post('conversations', [ChatConversationController::class, 'store'])->name('conversations.store');
+            Route::get('conversations/{conversation}', [ChatConversationController::class, 'show'])->name('conversations.show');
+            Route::post('conversations/{conversation}/archive', [ChatConversationController::class, 'archive'])->name('conversations.archive');
+            Route::post('conversations/{conversation}/pin', [ChatConversationController::class, 'pin'])->name('conversations.pin');
+            Route::get('conversations/{conversation}/messages', [ChatMessageController::class, 'index'])->name('messages.index');
+            Route::post('conversations/{conversation}/messages', [ChatMessageController::class, 'store'])->name('messages.store');
+            Route::post('conversations/{conversation}/read', [ChatMessageController::class, 'markRead'])->name('messages.read');
+            Route::put('messages/{message}', [ChatMessageController::class, 'update'])->name('messages.update');
+            Route::delete('messages/{message}', [ChatMessageController::class, 'destroy'])->name('messages.destroy');
+            Route::post('messages/{message}/edit', [ChatMessageController::class, 'update'])->name('messages.edit');
+            Route::post('messages/{message}/delete', [ChatMessageController::class, 'destroy'])->name('messages.delete');
+            Route::post('messages/{message}/forward', [ChatMessageController::class, 'forward'])->name('messages.forward');
+            Route::put('groups/{conversation}', [ChatGroupController::class, 'update'])->name('groups.update');
+            Route::delete('groups/{conversation}', [ChatGroupController::class, 'destroy'])->name('groups.destroy');
+            Route::post('groups/{conversation}/members', [ChatGroupController::class, 'addMember'])->name('groups.members.add');
+            Route::delete('groups/{conversation}/members', [ChatGroupController::class, 'removeMember'])->name('groups.members.remove');
+            Route::post('groups/{conversation}/members/remove', [ChatGroupController::class, 'removeMember'])->name('groups.members.remove-post');
+            Route::put('groups/{conversation}/members/role', [ChatGroupController::class, 'updateRole'])->name('groups.members.role');
+            Route::post('groups/{conversation}/members/role', [ChatGroupController::class, 'updateRole'])->name('groups.members.role-post');
+            Route::post('groups/{conversation}/transfer-owner', [ChatGroupController::class, 'transferOwner'])->name('groups.transfer-owner');
+            Route::post('groups/{conversation}/leave', [ChatGroupController::class, 'leave'])->name('groups.leave');
+            Route::get('presence', [ChatPresenceController::class, 'index'])->name('presence.index');
+            Route::post('presence', [ChatPresenceController::class, 'update'])->name('presence.update');
+            Route::get('users', [ChatUserController::class, 'index'])->name('users.index');
+            Route::get('search', ChatSearchController::class)->name('search');
+        });
+    });
 
     Route::post('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
     Route::post('/users/bulk-restore', [UserController::class, 'bulkRestore'])->name('users.bulk-restore');

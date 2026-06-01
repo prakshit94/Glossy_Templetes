@@ -18,8 +18,8 @@
         
         <!-- Header -->
         <div class="p-6 bg-primary text-primary-foreground">
-            <h3 class="font-bold text-lg">Support Assistant</h3>
-            <p class="text-xs opacity-80 mt-1">Ask us anything about the template!</p>
+            <h3 class="font-bold text-lg">Team Chat</h3>
+            <p class="text-xs opacity-80 mt-1">Open conversations, groups, and real-time updates.</p>
         </div>
 
         <!-- Messages -->
@@ -27,20 +27,18 @@
             <div class="flex items-start gap-3">
                 <div class="size-8 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-primary-foreground">AI</div>
                 <div class="bg-white dark:bg-zinc-900 p-3 rounded-2xl rounded-tl-none shadow-sm border border-border text-sm">
-                    Hello! How can I help you customize this premium template today?
+                    Your messaging module is ready. Open the full chat workspace to start a private chat or create a group.
                 </div>
             </div>
         </div>
 
         <!-- Input -->
         <div class="p-4 bg-white dark:bg-zinc-950 border-t border-border">
-            <div class="relative">
-                <input type="text" placeholder="Type a message..." 
-                    class="w-full pl-4 pr-12 py-3 bg-secondary/30 dark:bg-zinc-900 border-none rounded-2xl focus:ring-2 focus:ring-primary/20 text-sm">
-                <button class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary hover:scale-110 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send-horizontal"><path d="m3 3 3 9-3 9 19-9Z"/><path d="M6 12h16"/></svg>
-                </button>
-            </div>
+            <a href="{{ route('chat.index') }}"
+                class="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition hover:opacity-90">
+                Open Team Chat
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
         </div>
     </div>
 </div>

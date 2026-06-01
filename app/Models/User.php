@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -108,7 +109,12 @@ class User extends Authenticatable
         return $this->hasMany(Session::class);
     }
 
-    public function isOnline()
+    public function chatPresence(): HasOne
+    {
+        return $this->hasOne(\App\Models\Chat\Presence::class);
+    }
+
+    public function isOnline(): bool
     {
         return \DB::table('sessions')
             ->where('user_id', $this->id)
@@ -116,7 +122,16 @@ class User extends Authenticatable
             ->exists();
     }
 
-    public function getActiveDevice()
+    public function getLastSeenAt(): ?\Illuminate\Support\Carbon
+    {
+        $lastActivity = \DB::table('sessions')
+            ->where('user_id', $this->id)
+            ->max('last_activity');
+
+        return $lastActivity ? now()->setTimestamp((int) $lastActivity) : null;
+    }
+
+    public function getActiveDevice(): ?string
     {
         $session = \DB::table('sessions')
             ->where('user_id', $this->id)
