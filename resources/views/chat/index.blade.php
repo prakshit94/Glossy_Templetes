@@ -140,15 +140,21 @@
                                                     <template x-for="attachment in message.attachments" :key="attachment.path || attachment.name">
                                                         <div>
                                                             <template x-if="isImageAttachment(attachment)">
-                                                                <a :href="attachment.path" target="_blank" class="block overflow-hidden rounded-md border border-current/20 bg-background/20">
+                                                                <a :href="attachment.path" :download="attachment.name || 'image'" target="_blank" class="block overflow-hidden rounded-md border border-current/20 bg-background/20 relative group">
                                                                     <img :src="attachment.path" :alt="attachment.name || 'Image attachment'" class="max-h-72 w-full object-cover">
+                                                                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                                                        <span class="text-white text-xs font-bold flex items-center gap-1"><x-ui.icon name="download" size="4" /> Download</span>
+                                                                    </div>
                                                                 </a>
                                                             </template>
                                                             <template x-if="!isImageAttachment(attachment)">
-                                                                <a :href="attachment.path" target="_blank" class="flex items-center gap-2 rounded-md bg-background/20 px-2 py-2 text-xs font-bold underline">
-                                                                    <x-ui.icon name="file-text" size="4" />
-                                                                    <span class="min-w-0 flex-1 truncate" x-text="attachment.name || attachment.path"></span>
-                                                                    <span class="shrink-0 no-underline opacity-70" x-text="formatFileSize(attachment.size)"></span>
+                                                                <a :href="attachment.path" :download="attachment.name || 'document'" target="_blank" class="flex items-center justify-between gap-2 rounded-md bg-background/20 px-3 py-2 text-xs font-bold hover:bg-background/40 transition">
+                                                                    <div class="flex items-center gap-2 min-w-0">
+                                                                        <x-ui.icon name="file-text" size="4" />
+                                                                        <span class="min-w-0 truncate" x-text="attachment.name || attachment.path"></span>
+                                                                        <span class="shrink-0 opacity-70" x-text="formatFileSize(attachment.size)"></span>
+                                                                    </div>
+                                                                    <x-ui.icon name="download" size="4" class="opacity-70" />
                                                                 </a>
                                                             </template>
                                                         </div>
@@ -409,6 +415,22 @@
                     </div>
                 </div>
             </div>
+        <!-- Confirm Modal -->
+        <div x-show="confirmModal.show" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm">
+            <div class="w-full max-w-sm rounded-lg border border-border bg-card shadow-2xl overflow-hidden" @click.away="closeConfirm()">
+                <div class="p-6">
+                    <h2 class="text-lg font-black text-foreground mb-2" x-text="confirmModal.title"></h2>
+                    <p class="text-sm font-semibold text-muted-foreground" x-text="confirmModal.message"></p>
+                </div>
+                <div class="flex items-center justify-end gap-3 bg-muted/50 p-4 border-t border-border">
+                    <button type="button" @click="closeConfirm()" class="rounded-lg px-4 py-2 text-sm font-black text-muted-foreground hover:bg-muted transition">
+                        <span x-text="confirmModal.cancelText"></span>
+                    </button>
+                    <button type="button" @click="confirmModal.onConfirm()" class="rounded-lg bg-destructive px-4 py-2 text-sm font-black text-destructive-foreground hover:bg-destructive/90 transition shadow-sm">
+                        <span x-text="confirmModal.confirmText"></span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -418,7 +440,7 @@
                 currentUserId: @js(auth()->id()),
                 conversations: initial.conversations || [],
                 users: initial.users || [],
-                pollInterval: initial.pollInterval || 5000,
+                pollInterval: initial.pollInterval || 15000,
                 activeConversation: null,
                 messages: [],
                 presence: [],
@@ -443,6 +465,29 @@
                 lastTypingSentAt: 0,
                 searchResults: { users: [], groups: [], messages: [] },
                 poller: null,
+                confirmModal: {
+                    show: false,
+                    title: '',
+                    message: '',
+                    confirmText: 'Confirm',
+                    cancelText: 'Cancel',
+                    onConfirm: null,
+                },
+
+                showConfirm(title, message, onConfirm, confirmText = 'Confirm') {
+                    this.confirmModal = {
+                        show: true,
+                        title,
+                        message,
+                        confirmText,
+                        cancelText: 'Cancel',
+                        onConfirm,
+                    };
+                },
+
+                closeConfirm() {
+                    this.confirmModal.show = false;
+                },
 
                 get onlineLabel() {
                     const count = this.onlineUsers.length;
@@ -509,8 +554,18 @@
                         this.users = users.data.data;
                         if (this.activeConversation) {
                             const updated = this.conversations.find((item) => item.id === this.activeConversation.id);
-                            if (updated) this.activeConversation = updated;
-                            await this.loadMessages();
+                            let shouldLoad = false;
+                            if (updated) {
+                                const currentLatestId = this.messages.length > 0 ? this.messages[this.messages.length - 1].id : null;
+                                const updatedLatestId = updated.messages && updated.messages.length > 0 ? updated.messages[0].id : null;
+                                if (updatedLatestId !== currentLatestId || updated.updated_at !== this.activeConversation.updated_at) {
+                                    shouldLoad = true;
+                                }
+                                this.activeConversation = updated;
+                            }
+                            if (shouldLoad) {
+                                await this.loadMessages(false);
+                            }
                         }
                     } catch (error) {
                         this.showError(error, 'Unable to refresh chat.');
@@ -536,10 +591,10 @@
                     this.replyTo = null;
                     this.cancelEdit();
                     this.syncGroupSettingsForm();
-                    await this.loadMessages();
+                    await this.loadMessages(true);
                 },
 
-                async loadMessages() {
+                async loadMessages(forceScroll = true) {
                     if (!this.activeConversation) return;
                     try {
                         const response = await axios.get(`/chat/api/conversations/${this.activeConversation.id}/messages`);
@@ -547,7 +602,7 @@
                         const last = this.messages[this.messages.length - 1];
                         if (last) await axios.post(`/chat/api/conversations/${this.activeConversation.id}/read`, { message_id: last.id });
                         this.$nextTick(() => {
-                            if (this.$refs.messageScroller) this.$refs.messageScroller.scrollTop = this.$refs.messageScroller.scrollHeight;
+                            if (forceScroll && this.$refs.messageScroller) this.$refs.messageScroller.scrollTop = this.$refs.messageScroller.scrollHeight;
                         });
                     } catch (error) {
                         this.showError(error, 'Unable to load messages.');
@@ -573,12 +628,23 @@
                         this.pendingAttachments = [];
                         if (this.$refs.attachmentInput) this.$refs.attachmentInput.value = '';
                         this.replyTo = null;
-                        await this.refresh();
+                        
+                        await this.loadMessages(true);
+                        this.refresh();
                     } catch (error) {
                         this.showError(error, 'Unable to send message.');
                     } finally {
                         this.sendingMessage = false;
                     }
+                },
+
+                isImageAttachment(attachment) {
+                    if (attachment.mime && attachment.mime.startsWith('image/')) return true;
+                    if (attachment.name) {
+                        const ext = attachment.name.split('.').pop().toLowerCase();
+                        return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+                    }
+                    return false;
                 },
 
                 handleAttachmentSelection(event) {
@@ -614,11 +680,17 @@
                 },
 
                 async createGroup() {
-                    const response = await axios.post('/chat/api/conversations', { type: 'group', ...this.groupForm });
-                    this.showGroupModal = false;
-                    this.groupForm = { name: '', description: '', privacy: 'private', member_ids: [] };
-                    await this.refresh();
-                    this.selectConversation(response.data.data);
+                    this.errorMessage = '';
+                    try {
+                        const response = await axios.post('/chat/api/conversations', { type: 'group', ...this.groupForm });
+                        window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', message: 'Group created successfully.' } }));
+                        this.showGroupModal = false;
+                        this.groupForm = { name: '', description: '', privacy: 'private', member_ids: [] };
+                        await this.refresh();
+                        this.selectConversation(response.data.data);
+                    } catch (error) {
+                        this.showError(error, 'Unable to create group.');
+                    }
                 },
 
                 openGroupSettings() {
@@ -656,6 +728,7 @@
                     this.errorMessage = '';
                     try {
                         const response = await axios.put(`/chat/api/groups/${this.activeConversation.id}`, this.groupSettingsForm);
+                        window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', message: 'Group settings updated.' } }));
                         this.replaceActiveConversation(response.data.data);
                         await this.refresh();
                     } catch (error) {
@@ -671,6 +744,7 @@
                     this.errorMessage = '';
                     try {
                         const response = await axios.post(`/chat/api/groups/${this.activeConversation.id}/members`, this.groupMemberForm);
+                        window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', message: 'Member added successfully.' } }));
                         this.groupMemberForm = { user_id: '', role: 'member' };
                         this.replaceActiveConversation(response.data.conversation);
                         await this.refresh();
@@ -682,18 +756,28 @@
                 },
 
                 async removeGroupMember(member) {
-                    if (!this.activeConversation || !window.confirm(`Remove ${member.user?.name || 'this member'} from the group?`)) return;
-                    this.groupBusy = true;
-                    this.errorMessage = '';
-                    try {
-                        await axios.post(`/chat/api/groups/${this.activeConversation.id}/members/remove`, { user_id: member.user_id });
-                        await this.refresh();
-                    } catch (error) {
-                        this.showError(error, 'Unable to remove member.');
-                    } finally {
-                        this.groupBusy = false;
-                    }
+                    if (!this.activeConversation) return;
+                    this.showConfirm(
+                        'Remove Member',
+                        `Remove ${member.user?.name || 'this member'} from the group?`,
+                        async () => {
+                            this.closeConfirm();
+                            this.groupBusy = true;
+                            this.errorMessage = '';
+                            try {
+                                await axios.post(`/chat/api/groups/${this.activeConversation.id}/members/remove`, { user_id: member.user_id });
+                                window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', message: 'Member removed.' } }));
+                                await this.refresh();
+                            } catch (error) {
+                                this.showError(error, 'Unable to remove member.');
+                            } finally {
+                                this.groupBusy = false;
+                            }
+                        },
+                        'Remove'
+                    );
                 },
+
 
                 async updateMemberRole(member, role) {
                     if (!this.activeConversation || member.role === role) return;
@@ -701,6 +785,7 @@
                     this.errorMessage = '';
                     try {
                         const response = await axios.post(`/chat/api/groups/${this.activeConversation.id}/members/role`, { user_id: member.user_id, role });
+                        window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', message: 'Role updated.' } }));
                         this.replaceActiveConversation(response.data.conversation);
                         await this.refresh();
                     } catch (error) {
@@ -711,53 +796,83 @@
                 },
 
                 async transferOwner(member) {
-                    if (!this.activeConversation || !window.confirm(`Transfer ownership to ${member.user?.name || 'this member'}?`)) return;
-                    this.groupBusy = true;
-                    this.errorMessage = '';
-                    try {
-                        const response = await axios.post(`/chat/api/groups/${this.activeConversation.id}/transfer-owner`, { user_id: member.user_id });
-                        this.replaceActiveConversation(response.data.conversation);
-                        await this.refresh();
-                    } catch (error) {
-                        this.showError(error, 'Unable to transfer ownership.');
-                    } finally {
-                        this.groupBusy = false;
-                    }
+                    if (!this.activeConversation) return;
+                    this.showConfirm(
+                        'Transfer Ownership',
+                        `Transfer ownership to ${member.user?.name || 'this member'}?`,
+                        async () => {
+                            this.closeConfirm();
+                            this.groupBusy = true;
+                            this.errorMessage = '';
+                            try {
+                                const response = await axios.post(`/chat/api/groups/${this.activeConversation.id}/transfer-owner`, { user_id: member.user_id });
+                                window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', message: 'Ownership transferred.' } }));
+                                this.replaceActiveConversation(response.data.conversation);
+                                await this.refresh();
+                            } catch (error) {
+                                this.showError(error, 'Unable to transfer ownership.');
+                            } finally {
+                                this.groupBusy = false;
+                            }
+                        },
+                        'Transfer'
+                    );
                 },
+
 
                 async leaveGroup() {
-                    if (!this.activeConversation || !window.confirm('Leave this group?')) return;
-                    this.groupBusy = true;
-                    this.errorMessage = '';
-                    try {
-                        await axios.post(`/chat/api/groups/${this.activeConversation.id}/leave`);
-                        this.activeConversation = null;
-                        this.messages = [];
-                        this.showGroupSettingsModal = false;
-                        await this.refresh();
-                    } catch (error) {
-                        this.showError(error, 'Unable to leave group.');
-                    } finally {
-                        this.groupBusy = false;
-                    }
+                    if (!this.activeConversation) return;
+                    this.showConfirm(
+                        'Leave Group',
+                        'Are you sure you want to leave this group?',
+                        async () => {
+                            this.closeConfirm();
+                            this.groupBusy = true;
+                            this.errorMessage = '';
+                            try {
+                                await axios.post(`/chat/api/groups/${this.activeConversation.id}/leave`);
+                                window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', message: 'You left the group.' } }));
+                                this.activeConversation = null;
+                                this.messages = [];
+                                this.showGroupSettingsModal = false;
+                                await this.refresh();
+                            } catch (error) {
+                                this.showError(error, 'Unable to leave group.');
+                            } finally {
+                                this.groupBusy = false;
+                            }
+                        },
+                        'Leave'
+                    );
                 },
 
+
                 async deleteGroup() {
-                    if (!this.activeConversation || !window.confirm('Delete this group for everyone?')) return;
-                    this.groupBusy = true;
-                    this.errorMessage = '';
-                    try {
-                        await axios.delete(`/chat/api/groups/${this.activeConversation.id}`);
-                        this.activeConversation = null;
-                        this.messages = [];
-                        this.showGroupSettingsModal = false;
-                        await this.refresh();
-                    } catch (error) {
-                        this.showError(error, 'Unable to delete group.');
-                    } finally {
-                        this.groupBusy = false;
-                    }
+                    if (!this.activeConversation) return;
+                    this.showConfirm(
+                        'Delete Group',
+                        'Are you sure you want to delete this group for everyone? This action cannot be undone.',
+                        async () => {
+                            this.closeConfirm();
+                            this.groupBusy = true;
+                            this.errorMessage = '';
+                            try {
+                                await axios.delete(`/chat/api/groups/${this.activeConversation.id}`);
+                                window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', message: 'Group deleted.' } }));
+                                this.activeConversation = null;
+                                this.messages = [];
+                                this.showGroupSettingsModal = false;
+                                await this.refresh();
+                            } catch (error) {
+                                this.showError(error, 'Unable to delete group.');
+                            } finally {
+                                this.groupBusy = false;
+                            }
+                        },
+                        'Delete'
+                    );
                 },
+
 
                 setReply(message) {
                     this.replyTo = message;
@@ -830,6 +945,7 @@
                     const validation = error?.response?.data?.errors;
                     const firstValidation = validation ? Object.values(validation).flat()[0] : null;
                     this.errorMessage = firstValidation || error?.response?.data?.message || fallback;
+                    window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'error', message: this.errorMessage } }));
                 },
 
                 async toggleArchive() {

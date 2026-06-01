@@ -18,6 +18,7 @@ use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Jobs\Chat\ProcessMessageDeliveries;
 
 class ChatService
 {
@@ -127,24 +128,14 @@ class ChatService
 
             $conversation->touch();
 
-            foreach ($conversation->activeMembers()->where('user_id', '!=', $sender->id)->pluck('user_id') as $userId) {
-                MessageDelivery::firstOrCreate([
-                    'message_id' => $message->id,
-                    'user_id' => $userId,
-                ], ['delivered_at' => now()]);
-
-                ChatNotification::create([
-                    'user_id' => $userId,
-                    'conversation_id' => $conversation->id,
-                    'message_id' => $message->id,
-                    'type' => 'new_message',
-                    'payload' => [
-                        'sender_id' => $sender->id,
-                        'sender_name' => $sender->name,
-                        'preview' => str($message->content ?? $message->type)->limit(120)->toString(),
-                    ],
-                ]);
-            }
+            $preview = str($message->content ?? $message->type)->limit(120)->toString();
+            ProcessMessageDeliveries::dispatch(
+                $message->id,
+                $conversation->id,
+                $sender->id,
+                $sender->name,
+                $preview
+            );
 
             MessageRead::updateOrCreate(
                 ['message_id' => $message->id, 'user_id' => $sender->id],
@@ -327,7 +318,14 @@ class ChatService
             ->limit(250)
             ->get();
 
-        return $users->map(function (User $user) {
+        $emails = $users->pluck('email')->toArray();
+        $parties = Party::query()
+            ->whereIn('email', $emails)
+            ->with(['addresses' => fn ($query) => $query->where('status', 'active')->latest('is_default')])
+            ->get()
+            ->keyBy('email');
+
+        return $users->map(function (User $user) use ($parties) {
             $lastSessionAt = $user->last_session_activity
                 ? now()->setTimestamp((int) $user->last_session_activity)
                 : null;
@@ -341,13 +339,17 @@ class ChatService
             $isOnline = $lastSessionAt?->greaterThanOrEqualTo(now()->subMinutes(self::ONLINE_WINDOW_MINUTES)) === true
                 || ($user->presence_status === 'online' && $presenceLastSeenAt?->greaterThanOrEqualTo(now()->subMinutes(self::ONLINE_WINDOW_MINUTES)) === true);
 
+            $party = $parties->get($user->email);
+            $address = $party?->addresses?->first();
+            $location = $address ? collect([$address->city, $address->state, 'India'])->filter()->implode(', ') : null;
+
             return [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'username' => $user->username,
                 'avatar' => $user->avatar,
-                'location' => $this->locationForUser($user),
+                'location' => $location,
                 'is_online' => $isOnline,
                 'presence_status' => $isOnline ? 'online' : 'offline',
                 'last_seen_at' => $lastSeenAt?->toIso8601String(),
