@@ -26,7 +26,6 @@
                         <input
                             type="search"
                             x-model.debounce.250ms="search"
-                            @input="runSearch"
                             placeholder="Search chats, people, messages"
                             class="h-11 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/15"
                         >
@@ -40,7 +39,7 @@
                 </div>
 
                 <div class="min-h-0 flex-1 overflow-y-auto">
-                    <template x-if="searchResults.users.length">
+                    <template x-if="searchResults.users?.length">
                         <div class="border-b border-border/60 p-3">
                             <p class="mb-2 px-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">People</p>
                             <template x-for="user in searchResults.users" :key="user.id">
@@ -181,9 +180,12 @@
                             <div x-show="pendingAttachments.length" x-cloak class="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                                 <template x-for="(file, index) in pendingAttachments" :key="`${file.name}-${file.size}-${index}`">
                                     <div class="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs">
-                                        <span class="flex size-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                                            <template x-if="file.type?.startsWith('image/')"><x-ui.icon name="image" size="4" /></template>
-                                            <template x-if="!file.type?.startsWith('image/')"><x-ui.icon name="file-text" size="4" /></template>
+                                        <span class="flex size-8 shrink-0 overflow-hidden items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+                                            <template x-if="file.previewUrl">
+                                                <img :src="file.previewUrl" class="h-full w-full object-cover">
+                                            </template>
+                                            <template x-if="!file.previewUrl && file.type?.startsWith('image/')"><x-ui.icon name="image" size="4" /></template>
+                                            <template x-if="!file.previewUrl && !file.type?.startsWith('image/')"><x-ui.icon name="file-text" size="4" /></template>
                                         </span>
                                         <span class="min-w-0 flex-1">
                                             <span class="block truncate font-bold text-foreground" x-text="file.name"></span>
@@ -245,7 +247,6 @@
                         <input
                             type="search"
                             x-model.debounce.300ms="userSearch"
-                            @input="fetchUsers"
                             placeholder="Find users"
                             class="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/15"
                         >
@@ -292,13 +293,30 @@
                         <option value="private">Private</option>
                         <option value="public">Public</option>
                     </select>
-                    <div class="max-h-48 overflow-y-auto rounded-lg border border-border p-2">
-                        <template x-for="user in users" :key="user.id">
-                            <label class="flex items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent">
-                                <input type="checkbox" :value="user.id" x-model="groupForm.member_ids" class="rounded border-border">
-                                <span class="font-semibold text-foreground" x-text="user.name"></span>
-                            </label>
-                        </template>
+
+                    <div class="space-y-2">
+                        <label class="text-sm font-black uppercase tracking-widest text-muted-foreground">Add Members</label>
+                        <div class="relative">
+                            <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <input x-model="groupCreateSearch" type="search" class="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/15" placeholder="Search users...">
+                        </div>
+                        <div class="max-h-48 overflow-y-auto rounded-lg border border-border p-2">
+                            <template x-for="user in filteredGroupUsers" :key="user.id">
+                                <label class="flex items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent cursor-pointer transition">
+                                    <input type="checkbox" :value="user.id" x-model="groupForm.member_ids" class="rounded border-border text-primary focus:ring-primary">
+                                    <span class="relative flex size-8 items-center justify-center rounded-lg bg-secondary text-[10px] font-black text-secondary-foreground">
+                                        <span x-text="initials(user.name)"></span>
+                                    </span>
+                                    <span class="font-semibold text-foreground flex-1 truncate" x-text="user.name"></span>
+                                </label>
+                            </template>
+                            <div x-show="filteredGroupUsers.length === 0" class="p-4 text-center text-sm font-semibold text-muted-foreground">
+                                No users found.
+                            </div>
+                        </div>
+                        <div class="text-xs font-semibold text-muted-foreground">
+                            <span x-text="groupForm.member_ids.length"></span> users selected
+                        </div>
                     </div>
                 </div>
                 <div class="mt-5 flex justify-end gap-2">
@@ -355,20 +373,35 @@
 
                         <div x-show="canManageMembers" class="space-y-3">
                             <h3 class="text-sm font-black uppercase tracking-widest text-muted-foreground">Add Member</h3>
-                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_2.75rem]">
-                                <select x-model="groupMemberForm.user_id" class="h-11 min-w-0 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/15">
-                                    <option value="">Select user</option>
-                                    <template x-for="user in availableGroupUsers" :key="user.id">
-                                        <option :value="user.id" x-text="user.name"></option>
-                                    </template>
-                                </select>
-                                <select x-model="groupMemberForm.role" x-show="canManageSettings" class="h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/15">
+                            <div class="relative">
+                                <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                <input x-model="groupAddMemberSearch" type="search" class="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/15" placeholder="Search available users...">
+                            </div>
+
+                            <div class="max-h-40 overflow-y-auto rounded-lg border border-border p-2 bg-background/50">
+                                <template x-for="user in filteredAvailableGroupUsers" :key="user.id">
+                                    <label class="flex items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent cursor-pointer transition">
+                                        <input type="checkbox" :value="user.id" x-model="groupMemberForm.user_ids" class="rounded border-border text-primary focus:ring-primary">
+                                        <span class="relative flex size-8 items-center justify-center rounded-lg bg-secondary text-[10px] font-black text-secondary-foreground">
+                                            <span x-text="initials(user.name)"></span>
+                                        </span>
+                                        <span class="font-semibold text-foreground flex-1 truncate" x-text="user.name"></span>
+                                    </label>
+                                </template>
+                                <div x-show="filteredAvailableGroupUsers.length === 0" class="p-4 text-center text-sm font-semibold text-muted-foreground">
+                                    No available users found.
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <select x-model="groupMemberForm.role" x-show="canManageSettings" class="h-10 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/15">
                                     <option value="member">Member</option>
                                     <option value="moderator">Moderator</option>
                                     <option value="admin">Admin</option>
                                 </select>
-                                <button type="button" @click="addGroupMember" :disabled="groupBusy || !groupMemberForm.user_id" class="inline-flex h-11 items-center justify-center rounded-lg bg-primary text-primary-foreground transition hover:opacity-90 disabled:opacity-50">
+                                <button type="button" @click="addGroupMember" :disabled="groupBusy || groupMemberForm.user_ids.length === 0" class="inline-flex h-10 px-4 items-center justify-center gap-2 rounded-lg bg-primary font-bold text-sm text-primary-foreground transition hover:opacity-90 disabled:opacity-50">
                                     <x-ui.icon name="user-plus" size="4" />
+                                    <span x-text="groupMemberForm.user_ids.length > 1 ? `Add (${groupMemberForm.user_ids.length})` : 'Add'"></span>
                                 </button>
                             </div>
                         </div>
@@ -381,14 +414,19 @@
                         </div>
                     </div>
 
-                    <div class="min-h-0 p-5">
-                        <div class="mb-3 flex items-center justify-between gap-3">
+                    <div class="min-h-0 flex flex-col p-5 h-[50svh] lg:h-auto">
+                        <div class="mb-3 flex items-center justify-between gap-3 shrink-0">
                             <h3 class="text-sm font-black uppercase tracking-widest text-muted-foreground">Members</h3>
                             <span class="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-black text-secondary-foreground" x-text="`${activeConversation?.active_members?.length || 0}`"></span>
                         </div>
 
-                        <div class="max-h-[50svh] space-y-2 overflow-y-auto pr-1 lg:max-h-[60svh]">
-                            <template x-for="member in activeConversation.active_members || []" :key="member.id">
+                        <div class="mb-3 relative shrink-0">
+                            <x-ui.icon name="search" size="4" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <input x-model="groupMemberSearch" type="search" class="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/15" placeholder="Search members...">
+                        </div>
+
+                        <div class="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                            <template x-for="member in filteredGroupMembers" :key="member.id">
                                 <div class="rounded-lg border border-border bg-background px-3 py-3">
                                     <div class="flex items-center gap-3">
                                         <span class="flex size-9 items-center justify-center rounded-md bg-secondary text-[11px] font-black text-secondary-foreground" x-text="initials(member.user?.name)"></span>
@@ -411,6 +449,9 @@
                                     </div>
                                 </div>
                             </template>
+                            <div x-show="filteredGroupMembers.length === 0" class="p-6 text-center text-sm font-semibold text-muted-foreground border border-dashed border-border rounded-lg">
+                                No members match your search.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -460,11 +501,14 @@
                 showGroupSettingsModal: false,
                 groupForm: { name: '', description: '', privacy: 'private', member_ids: [] },
                 groupSettingsForm: { name: '', description: '', privacy: 'private' },
-                groupMemberForm: { user_id: '', role: 'member' },
+                groupMemberForm: { user_ids: [], role: 'member' },
                 groupBusy: false,
                 lastTypingSentAt: 0,
                 searchResults: { users: [], groups: [], messages: [] },
                 poller: null,
+                groupCreateSearch: '',
+                groupAddMemberSearch: '',
+                groupMemberSearch: '',
                 confirmModal: {
                     show: false,
                     title: '',
@@ -535,11 +579,40 @@
                     return this.users.filter((user) => !memberIds.has(Number(user.id)));
                 },
 
+                get filteredGroupUsers() {
+                    let available = this.users;
+                    if (this.groupCreateSearch.trim()) {
+                        const q = this.groupCreateSearch.toLowerCase();
+                        available = available.filter(u => u.name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q)));
+                    }
+                    return available;
+                },
+
+                get filteredAvailableGroupUsers() {
+                    let available = this.availableGroupUsers;
+                    if (this.groupAddMemberSearch.trim()) {
+                        const q = this.groupAddMemberSearch.toLowerCase();
+                        available = available.filter(u => u.name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q)));
+                    }
+                    return available;
+                },
+
+                get filteredGroupMembers() {
+                    let members = this.activeConversation?.active_members || [];
+                    if (this.groupMemberSearch.trim()) {
+                        const q = this.groupMemberSearch.toLowerCase();
+                        members = members.filter(m => (m.user?.name || '').toLowerCase().includes(q) || (m.user?.email || '').toLowerCase().includes(q));
+                    }
+                    return members;
+                },
+
                 init() {
                     this.refresh();
                     this.updatePresence('online');
                     this.poller = setInterval(() => this.refresh(), this.pollInterval);
                     window.addEventListener('beforeunload', () => this.updatePresence('offline'));
+                    this.$watch('search', () => this.runSearch());
+                    this.$watch('userSearch', () => this.fetchUsers());
                 },
 
                 async refresh() {
@@ -625,6 +698,9 @@
                             headers: { 'Content-Type': 'multipart/form-data' },
                         });
                         this.draft = '';
+                        this.pendingAttachments.forEach(file => {
+                            if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+                        });
                         this.pendingAttachments = [];
                         if (this.$refs.attachmentInput) this.$refs.attachmentInput.value = '';
                         this.replyTo = null;
@@ -658,6 +734,10 @@
                             continue;
                         }
 
+                        if (file.type && file.type.startsWith('image/')) {
+                            file.previewUrl = URL.createObjectURL(file);
+                        }
+
                         accepted.push(file);
                     }
 
@@ -666,6 +746,10 @@
                 },
 
                 removePendingAttachment(index) {
+                    const file = this.pendingAttachments[index];
+                    if (file && file.previewUrl) {
+                        URL.revokeObjectURL(file.previewUrl);
+                    }
                     this.pendingAttachments.splice(index, 1);
                 },
 
@@ -702,7 +786,7 @@
 
                 closeGroupSettings() {
                     this.showGroupSettingsModal = false;
-                    this.groupMemberForm = { user_id: '', role: 'member' };
+                    this.groupMemberForm = { user_ids: [], role: 'member' };
                 },
 
                 syncGroupSettingsForm() {
@@ -712,7 +796,7 @@
                         description: this.activeConversation.description || '',
                         privacy: this.activeConversation.privacy || 'private',
                     };
-                    this.groupMemberForm = { user_id: '', role: 'member' };
+                    this.groupMemberForm = { user_ids: [], role: 'member' };
                 },
 
                 replaceActiveConversation(conversation) {
@@ -739,13 +823,13 @@
                 },
 
                 async addGroupMember() {
-                    if (!this.activeConversation || !this.groupMemberForm.user_id || !this.canManageMembers) return;
+                    if (!this.activeConversation || this.groupMemberForm.user_ids.length === 0 || !this.canManageMembers) return;
                     this.groupBusy = true;
                     this.errorMessage = '';
                     try {
                         const response = await axios.post(`/chat/api/groups/${this.activeConversation.id}/members`, this.groupMemberForm);
-                        window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', message: 'Member added successfully.' } }));
-                        this.groupMemberForm = { user_id: '', role: 'member' };
+                        window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', message: 'Members added successfully.' } }));
+                        this.groupMemberForm = { user_ids: [], role: 'member' };
                         this.replaceActiveConversation(response.data.conversation);
                         await this.refresh();
                     } catch (error) {

@@ -152,16 +152,18 @@ class OrderDeliveryTrackingService
 
     public function partnerPerformance(array $filters = [])
     {
+        $pendingPlaceholders = implode(', ', array_fill(0, count(self::PENDING_STATUSES), '?'));
+        
         return $this->filteredQuery($filters)
             ->where('dispatch_type', 'lmd')
             ->whereNotNull('driver_id')
-            ->selectRaw('driver_id,
+            ->selectRaw("driver_id,
                 COUNT(*) as total_orders,
                 SUM(current_status = ?) as delivered_orders,
                 SUM(current_status = ?) as returned_orders,
                 SUM(current_status = ?) as failed_deliveries,
-                SUM(current_status IN (?, ?, ?, ?, ?, ?)) as pending_deliveries,
-                AVG(CASE WHEN delivered_date IS NOT NULL AND dispatch_date IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, dispatch_date, delivered_date) END) as avg_delivery_minutes',
+                SUM(current_status IN ({$pendingPlaceholders})) as pending_deliveries,
+                AVG(CASE WHEN delivered_date IS NOT NULL AND dispatch_date IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, dispatch_date, delivered_date) END) as avg_delivery_minutes",
                 ['delivered', 'returned', 'delivery_failed', ...self::PENDING_STATUSES])
             ->groupBy('driver_id')
             ->with('driver.user')
@@ -171,16 +173,18 @@ class OrderDeliveryTrackingService
 
     public function courierPerformance(array $filters = [])
     {
+        $pendingPlaceholders = implode(', ', array_fill(0, count(self::PENDING_STATUSES), '?'));
+
         return $this->filteredQuery($filters)
             ->where('dispatch_type', 'courier')
             ->whereNotNull('courier_provider_name')
-            ->selectRaw('courier_provider_name,
+            ->selectRaw("courier_provider_name,
                 COUNT(*) as total_orders,
                 SUM(current_status = ?) as delivered_orders,
                 SUM(current_status = ?) as returned_orders,
                 SUM(current_status = ?) as failed_deliveries,
-                SUM(current_status IN (?, ?, ?, ?, ?, ?)) as pending_deliveries,
-                AVG(CASE WHEN delivered_date IS NOT NULL AND dispatch_date IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, dispatch_date, delivered_date) END) as avg_delivery_minutes',
+                SUM(current_status IN ({$pendingPlaceholders})) as pending_deliveries,
+                AVG(CASE WHEN delivered_date IS NOT NULL AND dispatch_date IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, dispatch_date, delivered_date) END) as avg_delivery_minutes",
                 ['delivered', 'returned', 'delivery_failed', ...self::PENDING_STATUSES])
             ->groupBy('courier_provider_name')
             ->orderByDesc('delivered_orders')
@@ -189,6 +193,8 @@ class OrderDeliveryTrackingService
 
     public function monthlyPerformance(array $filters = [])
     {
+        $pendingPlaceholders = implode(', ', array_fill(0, count(self::PENDING_STATUSES), '?'));
+
         return $this->filteredQuery($filters)
             ->whereNotNull('dispatch_date')
             ->selectRaw("DATE_FORMAT(dispatch_date, '%Y-%m') as month,
@@ -199,7 +205,7 @@ class OrderDeliveryTrackingService
                 COUNT(*) as assigned_orders,
                 SUM(current_status = ?) as delivered_orders,
                 SUM(current_status = ?) as returned_orders,
-                SUM(current_status IN (?, ?, ?, ?, ?, ?)) as pending_orders",
+                SUM(current_status IN ({$pendingPlaceholders})) as pending_orders",
                 ['delivered', 'returned', ...self::PENDING_STATUSES])
             ->groupBy('month', 'dispatch_type', 'handler_key')
             ->orderByDesc('month')

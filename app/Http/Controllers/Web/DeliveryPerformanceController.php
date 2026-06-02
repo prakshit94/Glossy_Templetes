@@ -20,13 +20,14 @@ class DeliveryPerformanceController extends Controller
         $this->trackingService->backfillMissing();
 
         $filters = $this->filters($request);
+        $baseFilters = array_merge($filters, ['status' => []]);
         $query = $this->trackingService->filteredQuery($filters);
-        $metrics = $this->trackingService->summaryMetrics(clone $query);
+        $metrics = $this->trackingService->summaryMetrics($this->trackingService->filteredQuery($baseFilters));
         $trackings = $query->latest('last_status_at')->paginate((int) $request->get('perPage', 15))->withQueryString();
 
-        $partnerPerformance = $this->trackingService->partnerPerformance($filters);
-        $courierPerformance = $this->trackingService->courierPerformance($filters);
-        $monthlyPerformance = $this->trackingService->monthlyPerformance($filters);
+        $partnerPerformance = $this->trackingService->partnerPerformance($baseFilters);
+        $courierPerformance = $this->trackingService->courierPerformance($baseFilters);
+        $monthlyPerformance = $this->trackingService->monthlyPerformance($baseFilters);
         $statuses = DeliveryTrackingStatus::where('is_active', true)->orderBy('sort_order')->get();
         $drivers = Driver::with('user')->orderBy('id')->get();
         $couriers = OrderDeliveryTracking::whereNotNull('courier_provider_name')
@@ -50,8 +51,9 @@ class DeliveryPerformanceController extends Controller
     public function partner(Request $request, Driver $driver)
     {
         $filters = array_merge($this->filters($request), ['driver_id' => $driver->id, 'dispatch_type' => 'lmd']);
+        $baseFilters = array_merge($filters, ['status' => []]);
         $query = $this->trackingService->filteredQuery($filters);
-        $metrics = $this->trackingService->summaryMetrics(clone $query);
+        $metrics = $this->trackingService->summaryMetrics($this->trackingService->filteredQuery($baseFilters));
         $trackings = $query->latest('last_status_at')->paginate((int) $request->get('perPage', 15))->withQueryString();
 
         return view('delivery-performance.partner', compact('driver', 'metrics', 'trackings', 'filters'));
@@ -61,8 +63,9 @@ class DeliveryPerformanceController extends Controller
     {
         $provider = urldecode($provider);
         $filters = array_merge($this->filters($request), ['courier' => $provider, 'dispatch_type' => 'courier']);
+        $baseFilters = array_merge($filters, ['status' => []]);
         $query = $this->trackingService->filteredQuery($filters);
-        $metrics = $this->trackingService->summaryMetrics(clone $query);
+        $metrics = $this->trackingService->summaryMetrics($this->trackingService->filteredQuery($baseFilters));
         $trackings = $query->latest('last_status_at')->paginate((int) $request->get('perPage', 15))->withQueryString();
 
         return view('delivery-performance.courier', compact('provider', 'metrics', 'trackings', 'filters'));

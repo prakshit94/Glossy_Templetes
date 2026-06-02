@@ -58,17 +58,22 @@ class GroupController extends Controller
         abort_unless($actor->canManageMembers(), 403);
 
         $data = $request->validate([
-            'user_id' => ['required', 'integer', Rule::exists('users', 'id')->where('status', 'active')->whereNull('deleted_at')],
+            'user_ids' => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['integer', Rule::exists('users', 'id')->where('status', 'active')->whereNull('deleted_at')],
             'role' => ['nullable', 'in:admin,moderator,member'],
         ]);
         if (($data['role'] ?? 'member') !== 'member') {
             abort_unless($actor->canManageSettings(), 403, 'Only owners and admins can add managers.');
         }
 
-        $member = $chat->attachMember($conversation, (int) $data['user_id'], $data['role'] ?? 'member');
-        $chat->audit($request->user(), 'member.added', $conversation, null, null, $member->only(['user_id', 'role']), $request);
+        $members = collect();
+        foreach ($data['user_ids'] as $userId) {
+            $member = $chat->attachMember($conversation, (int) $userId, $data['role'] ?? 'member');
+            $chat->audit($request->user(), 'member.added', $conversation, null, null, $member->only(['user_id', 'role']), $request);
+            $members->push($member->load('user'));
+        }
 
-        return response()->json(['data' => $member->load('user'), 'conversation' => $conversation->fresh('activeMembers.user')], 201);
+        return response()->json(['data' => $members, 'conversation' => $conversation->fresh('activeMembers.user')], 201);
     }
 
     public function removeMember(Request $request, Conversation $conversation, ChatService $chat)
