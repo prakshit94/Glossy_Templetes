@@ -212,6 +212,9 @@ class OrderController extends Controller
         });
 
         $villagesList = \Illuminate\Support\Facades\Cache::remember('geo_villages_' . md5($request->state . '_' . $request->district . '_' . $request->taluka), 3600, function () use ($request) {
+            if (!$request->filled('taluka')) {
+                return collect([]);
+            }
             return \App\Models\Village::when($request->filled('state'), function ($q) use ($request) {
                 $q->whereIn('state_name', array_map('trim', explode(',', $request->state)));
             })->when($request->filled('district'), function ($q) use ($request) {

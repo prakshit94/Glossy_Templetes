@@ -103,16 +103,20 @@ class VillageController extends Controller
             $q->whereIn('district_name', $districts);
         })->distinct()->pluck('taluka_name')->filter()->sort()->values();
 
-        $villagesList = Village::when($request->filled('state'), function($q) use ($request) {
-            $states = array_map('trim', explode(',', $request->state));
-            $q->whereIn('state_name', $states);
-        })->when($request->filled('district'), function($q) use ($request) {
-            $districts = array_map('trim', explode(',', $request->district));
-            $q->whereIn('district_name', $districts);
-        })->when($request->filled('taluka'), function($q) use ($request) {
-            $talukas = array_map('trim', explode(',', $request->taluka));
-            $q->whereIn('taluka_name', $talukas);
-        })->distinct()->pluck('village_name')->filter()->sort()->values();
+        if ($request->filled('taluka')) {
+            $villagesList = Village::when($request->filled('state'), function($q) use ($request) {
+                $states = array_map('trim', explode(',', $request->state));
+                $q->whereIn('state_name', $states);
+            })->when($request->filled('district'), function($q) use ($request) {
+                $districts = array_map('trim', explode(',', $request->district));
+                $q->whereIn('district_name', $districts);
+            })->when($request->filled('taluka'), function($q) use ($request) {
+                $talukas = array_map('trim', explode(',', $request->taluka));
+                $q->whereIn('taluka_name', $talukas);
+            })->distinct()->pluck('village_name')->filter()->sort()->values();
+        } else {
+            $villagesList = collect([]);
+        }
 
         if ($request->ajax()) {
             return response()->json([
