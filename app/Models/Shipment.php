@@ -40,4 +40,21 @@ class Shipment extends Model
     {
         return $this->hasOne(OrderDeliveryTracking::class);
     }
+
+    public static function generateShipmentNo(): string
+    {
+        $prefix = 'SHP-' . now()->format('dmYHi');
+        $lastShipment = self::where('shipment_no', 'like', $prefix . '-%')
+            ->orderBy('shipment_no', 'desc')
+            ->first();
+
+        if ($lastShipment) {
+            $parts = explode('-', $lastShipment->shipment_no);
+            $lastNum = (int) end($parts);
+            $nextNum = str_pad($lastNum + 1, 2, '0', STR_PAD_LEFT);
+            return $prefix . '-' . $nextNum;
+        }
+
+        return $prefix . '-01';
+    }
 }

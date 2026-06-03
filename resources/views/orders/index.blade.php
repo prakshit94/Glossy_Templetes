@@ -12,19 +12,22 @@
         selectedItems: [], 
         selectedStatuses: {},
         allSelected: false,
-        visibleColumns: localStorage.getItem('order_table_visible_columns') 
-            ? JSON.parse(localStorage.getItem('order_table_visible_columns')) 
-            : {
+        visibleColumns: (() => {
+            const defaults = {
                 order_identity: true,
                 transaction_type: true,
                 associated_party: true,
                 fulfillment_node: true,
                 created_by: true,
                 lifecycle_status: true,
+                carrier_details: true,
                 ordered_products: true,
                 financial_total: true,
                 actions: true
-            },
+            };
+            const stored = localStorage.getItem('order_table_visible_columns');
+            return stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
+        })(),
         toggleColumn(col) {
             this.visibleColumns[col] = !this.visibleColumns[col];
             localStorage.setItem('order_table_visible_columns', JSON.stringify(this.visibleColumns));

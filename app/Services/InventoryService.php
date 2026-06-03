@@ -569,7 +569,7 @@ class InventoryService
 
             // Create Shipment record automatically
             $shipment = \App\Models\Shipment::create([
-                'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                'shipment_no'  => \App\Models\Shipment::generateShipmentNo(),
                 'order_id'     => $order->id,
                 'status'       => 'shipped',
                 'shipped_at'   => now(),
@@ -1008,7 +1008,7 @@ class InventoryService
 
                 // Create Shipment record in pending status
                 $shipment = \App\Models\Shipment::create([
-                    'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                    'shipment_no'  => \App\Models\Shipment::generateShipmentNo(),
                     'order_id'     => $order->id,
                     'status'       => 'pending',
                     'carrier_name' => $carrierName,
@@ -1122,7 +1122,7 @@ class InventoryService
             $shipment = $order->shipments->first();
             if (!$shipment) {
                 $shipment = \App\Models\Shipment::create([
-                    'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                    'shipment_no'  => \App\Models\Shipment::generateShipmentNo(),
                     'order_id'     => $order->id,
                     'status'       => 'shipped',
                     'shipped_at'   => now(),

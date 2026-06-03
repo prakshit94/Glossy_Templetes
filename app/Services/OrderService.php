@@ -524,7 +524,7 @@ class OrderService
                 }
                 
                 \App\Models\Shipment::create([
-                    'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                    'shipment_no'  => \App\Models\Shipment::generateShipmentNo(),
                     'order_id'     => $order->id,
                     'status'       => 'pending',
                     'carrier_name' => $carrierName,

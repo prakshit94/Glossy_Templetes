@@ -22,6 +22,7 @@
                     Created By
                 </x-ui.table-head>
                 <x-ui.table-head x-show="visibleColumns.lifecycle_status" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap text-center">Lifecycle Status</x-ui.table-head>
+                <x-ui.table-head x-show="visibleColumns.carrier_details" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Carrier Details</x-ui.table-head>
                 <x-ui.table-head x-show="visibleColumns.ordered_products" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Ordered Products</x-ui.table-head>
                 <x-ui.table-head x-show="visibleColumns.financial_total" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 text-right whitespace-nowrap">Financial Total</x-ui.table-head>
                 <x-ui.table-head x-show="visibleColumns.actions" class="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 pr-5">Actions</x-ui.table-head>
@@ -619,8 +620,50 @@
                 </div>
             @endif
         </div>
+    @elseif($lifecycleStatus === 'pending')
+        @php
+            $latestLog = $order->verificationLogs->first();
+            $followUpLog = $order->verificationLogs->where('outcome', 'next_followup_call')->whereNotNull('follow_up_at')->first();
+        @endphp
+        @if($latestLog || $followUpLog)
+            <div class="mt-2 flex flex-col items-center gap-1.5 w-full">
+                @if($followUpLog)
+                    <div class="text-[9px] font-bold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 whitespace-nowrap" title="Next Follow-up Call">
+                        <x-ui.icon name="phone-call" size="2.5" class="inline mr-1 -mt-0.5" />
+                        Recall: {{ $followUpLog->follow_up_at->format('M d, Y h:i A') }}
+                    </div>
+                @endif
+                
+                @if($latestLog && ($latestLog->outcome !== 'next_followup_call' || !$followUpLog))
+                    <div class="text-[9px] font-bold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded border border-border/50 whitespace-nowrap max-w-[130px] truncate" title="{{ $latestLog->remark ?? $latestLog->outcome_label }}">
+                        <x-ui.icon name="info" size="2.5" class="inline mr-1 -mt-0.5" />
+                        Log: {{ $latestLog->outcome_label }}
+                    </div>
+                @endif
+            </div>
+        @endif
     @endif
 </x-ui.table-cell>
+
+                    <x-ui.table-cell x-show="visibleColumns.carrier_details" class="align-middle">
+                        @php
+                            $shipment = $order->shipments->first();
+                        @endphp
+                        @if($shipment)
+                            <div class="flex flex-col min-w-0">
+                                <span class="text-[11px] font-bold text-foreground/80 break-words">{{ $shipment->carrier_name ?? 'Pending Carrier' }}</span>
+                                @if($shipment->tracking_no)
+                                    <span class="text-[9px] text-muted-foreground font-black uppercase tracking-wider mt-0.5 flex items-center gap-1">
+                                        <x-ui.icon name="truck" size="2.5" /> {{ $shipment->tracking_no }}
+                                    </span>
+                                @else
+                                    <span class="text-[9px] text-muted-foreground font-semibold mt-0.5">No Tracking ID</span>
+                                @endif
+                            </div>
+                        @else
+                            <span class="text-[10px] text-muted-foreground/50 font-medium italic">Unassigned</span>
+                        @endif
+                    </x-ui.table-cell>
 
                     <x-ui.table-cell x-show="visibleColumns.ordered_products" class="align-middle py-3">
                         <div x-data="{ show: false, mouseX: 0, mouseY: 0 }"

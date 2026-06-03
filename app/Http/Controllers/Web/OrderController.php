@@ -39,7 +39,7 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::with(['party', 'warehouse', 'invoice', 'items.product', 'shipments', 'creator', 'shippingAddress.village.services'])->withCount('items');
+        $query = Order::with(['party', 'warehouse', 'invoice', 'items.product', 'shipments', 'creator', 'shippingAddress.village.services', 'verificationLogs'])->withCount('items');
 
         $user = auth()->user();
         if ($user && !$user->hasAnyRole(['Super Admin', 'Admin']) && !$user->can('view_all_order')) {
