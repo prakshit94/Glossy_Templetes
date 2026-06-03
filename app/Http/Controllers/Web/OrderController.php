@@ -137,7 +137,7 @@ class OrderController extends Controller
             }
         }
 
-        if ($request->filled('state') || $request->filled('district') || $request->filled('taluka')) {
+        if ($request->filled('state') || $request->filled('district') || $request->filled('taluka') || $request->filled('village')) {
             $query->whereHas('shippingAddress.village', function ($q) use ($request) {
                 if ($request->filled('state') && auth()->user()->can('orders.filter_state')) {
                     $q->whereIn('state_name', array_map('trim', explode(',', $request->state)));
@@ -147,6 +147,9 @@ class OrderController extends Controller
                 }
                 if ($request->filled('taluka') && auth()->user()->can('orders.filter_taluka')) {
                     $q->whereIn('taluka_name', array_map('trim', explode(',', $request->taluka)));
+                }
+                if ($request->filled('village')) {
+                    $q->whereIn('village_name', array_map('trim', explode(',', $request->village)));
                 }
             });
         }
@@ -200,10 +203,22 @@ class OrderController extends Controller
             })->distinct()->pluck('district_name')->filter()->sort()->values();
         });
 
-        $talukasList = \Illuminate\Support\Facades\Cache::remember('geo_talukas_' . $request->district, 3600, function () use ($request) {
-            return \App\Models\Village::when($request->filled('district'), function ($q) use ($request) {
+        $talukasList = \Illuminate\Support\Facades\Cache::remember('geo_talukas_' . md5($request->state . '_' . $request->district), 3600, function () use ($request) {
+            return \App\Models\Village::when($request->filled('state'), function ($q) use ($request) {
+                $q->whereIn('state_name', array_map('trim', explode(',', $request->state)));
+            })->when($request->filled('district'), function ($q) use ($request) {
                 $q->whereIn('district_name', array_map('trim', explode(',', $request->district)));
             })->distinct()->pluck('taluka_name')->filter()->sort()->values();
+        });
+
+        $villagesList = \Illuminate\Support\Facades\Cache::remember('geo_villages_' . md5($request->state . '_' . $request->district . '_' . $request->taluka), 3600, function () use ($request) {
+            return \App\Models\Village::when($request->filled('state'), function ($q) use ($request) {
+                $q->whereIn('state_name', array_map('trim', explode(',', $request->state)));
+            })->when($request->filled('district'), function ($q) use ($request) {
+                $q->whereIn('district_name', array_map('trim', explode(',', $request->district)));
+            })->when($request->filled('taluka'), function ($q) use ($request) {
+                $q->whereIn('taluka_name', array_map('trim', explode(',', $request->taluka)));
+            })->distinct()->pluck('village_name')->filter()->sort()->values();
         });
 
         $services = \App\Models\Service::active()->get();
@@ -216,6 +231,7 @@ class OrderController extends Controller
                 'table'     => view('orders.partials.table', compact('orders', 'services'))->render(),
                 'districts' => $districtsList,
                 'talukas'   => $talukasList,
+                'villages'  => $villagesList,
                 'stats'     => $stats,
                 'carriers'  => $carriersList,
             ]);
@@ -229,6 +245,7 @@ class OrderController extends Controller
             'statesList',
             'districtsList',
             'talukasList',
+            'villagesList',
             'services',
             'drivers',
             'transports',
@@ -602,7 +619,15 @@ class OrderController extends Controller
                             ->log("Order #{$order->order_no} reverted to pending");
                         $count++;
                     } elseif ($targetStatus === 'confirmed' && $order->status === 'processing') {
-                        // Processing → Confirmed: no stock change, just status
+                        // Processing → Confirmed: no stock change, just status, but revert shipment creation
+                        $order->loadMissing('shipments');
+                        foreach ($order->shipments as $shipment) {
+                            if ($shipment->status === 'pending') {
+                                $shipment->events()->delete();
+                                $shipment->delete();
+                            }
+                        }
+
                         $order->update(['status' => 'confirmed', 'updated_by' => auth()->id()]);
                         activity('orders')
                             ->performedOn($order)
@@ -1217,6 +1242,14 @@ class OrderController extends Controller
         $targetStatus === 'confirmed' &&
         $order->status === 'processing'
     ) {
+
+        $order->loadMissing('shipments');
+        foreach ($order->shipments as $shipment) {
+            if ($shipment->status === 'pending') {
+                $shipment->events()->delete();
+                $shipment->delete();
+            }
+        }
 
         $order->update([
             'status' => 'confirmed',

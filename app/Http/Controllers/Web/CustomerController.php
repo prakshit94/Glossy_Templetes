@@ -66,9 +66,9 @@ class CustomerController extends Controller
 
     public function create()
     {
-        $crops = Crop::where('status', 'active')->orderBy('name')->get();
-        $irrigationTypes = IrrigationType::where('status', 'active')->orderBy('name')->get();
-        $landUnits = LandUnit::where('status', 'active')->orderBy('name')->get();
+        $crops = \Illuminate\Support\Facades\Cache::remember('global_crops_active', 600, fn() => Crop::where('status', 'active')->orderBy('name')->get());
+        $irrigationTypes = \Illuminate\Support\Facades\Cache::remember('global_irrigation_types_active', 600, fn() => IrrigationType::where('status', 'active')->orderBy('name')->get());
+        $landUnits = \Illuminate\Support\Facades\Cache::remember('global_land_units_active', 600, fn() => LandUnit::where('status', 'active')->orderBy('name')->get());
 
         return view('customers.create', compact('crops', 'irrigationTypes', 'landUnits'));
     }
@@ -166,18 +166,18 @@ class CustomerController extends Controller
             $q->latest()->limit(5);
         }]);
 
-        $categories = \App\Models\Category::whereNull('parent_id')->get();
-        $warehouses = \App\Models\Warehouse::with('village')->where('status', 'active')->get();
-        $activeOffers = \App\Models\Offer::active()
+        $categories = \Illuminate\Support\Facades\Cache::remember('categories_parent_null', 600, fn() => \App\Models\Category::whereNull('parent_id')->get());
+        $warehouses = \Illuminate\Support\Facades\Cache::remember('warehouses_active_village', 600, fn() => \App\Models\Warehouse::with('village')->where('status', 'active')->get());
+        $activeOffers = \Illuminate\Support\Facades\Cache::remember('active_offers_with_product', 600, fn() => \App\Models\Offer::active()
             ->with('product:id,name,sku')
             ->orderByDesc('priority')
             ->orderBy('id')
-            ->get();
+            ->get());
         
         // For the Edit Profile Modal
-        $crops = \App\Models\Crop::where('status', 'active')->orderBy('name')->get();
-        $irrigationTypes = \App\Models\IrrigationType::where('status', 'active')->orderBy('name')->get();
-        $landUnits = \App\Models\LandUnit::where('status', 'active')->orderBy('name')->get();
+        $crops = \Illuminate\Support\Facades\Cache::remember('global_crops_active', 600, fn() => \App\Models\Crop::where('status', 'active')->orderBy('name')->get());
+        $irrigationTypes = \Illuminate\Support\Facades\Cache::remember('global_irrigation_types_active', 600, fn() => \App\Models\IrrigationType::where('status', 'active')->orderBy('name')->get());
+        $landUnits = \Illuminate\Support\Facades\Cache::remember('global_land_units_active', 600, fn() => \App\Models\LandUnit::where('status', 'active')->orderBy('name')->get());
 
         return view('customers.show', compact('customer', 'categories', 'warehouses', 'activeOffers', 'crops', 'irrigationTypes', 'landUnits'));
     }
@@ -188,9 +188,9 @@ class CustomerController extends Controller
     {
         $customer->load('addresses.village');
         
-        $crops = Crop::where('status', 'active')->orderBy('name')->get();
-        $irrigationTypes = IrrigationType::where('status', 'active')->orderBy('name')->get();
-        $landUnits = LandUnit::where('status', 'active')->orderBy('name')->get();
+        $crops = \Illuminate\Support\Facades\Cache::remember('global_crops_active', 600, fn() => Crop::where('status', 'active')->orderBy('name')->get());
+        $irrigationTypes = \Illuminate\Support\Facades\Cache::remember('global_irrigation_types_active', 600, fn() => IrrigationType::where('status', 'active')->orderBy('name')->get());
+        $landUnits = \Illuminate\Support\Facades\Cache::remember('global_land_units_active', 600, fn() => LandUnit::where('status', 'active')->orderBy('name')->get());
 
         return view('customers.edit', compact('customer', 'crops', 'irrigationTypes', 'landUnits'));
     }

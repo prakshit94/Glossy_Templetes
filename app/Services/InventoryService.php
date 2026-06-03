@@ -980,7 +980,7 @@ class InventoryService
     {
         DB::transaction(function () use ($order, $carrierName, $trackingNo) {
             /** @var Order $order */
-            $order = Order::lockForUpdate()->findOrFail($order->id);
+            $order = Order::with('shipments')->lockForUpdate()->findOrFail($order->id);
 
             if (!in_array($order->status, ['confirmed', 'processing'])) {
                 throw ValidationException::withMessages([
@@ -988,29 +988,41 @@ class InventoryService
                 ]);
             }
 
-            if (empty($carrierName)) {
-                $order->loadMissing('shippingAddress.village.services');
-                if ($order->shippingAddress && $order->shippingAddress->village) {
-                    $service = $order->shippingAddress->village->services
-                        ->where('is_active', true)
-                        ->where('pivot.is_available', true)
-                        ->sortBy('pivot.priority')
-                        ->first();
-                    
-                    if ($service) {
-                        $carrierName = $service->name;
+            $shipment = $order->shipments->first();
+
+            if (!$shipment) {
+                if (empty($carrierName)) {
+                    $order->loadMissing('shippingAddress.village.services');
+                    if ($order->shippingAddress && $order->shippingAddress->village) {
+                        $service = $order->shippingAddress->village->services
+                            ->where('is_active', true)
+                            ->where('pivot.is_available', true)
+                            ->sortBy('pivot.priority')
+                            ->first();
+                        
+                        if ($service) {
+                            $carrierName = $service->name;
+                        }
                     }
                 }
-            }
 
-            // Create Shipment record in pending status
-            $shipment = \App\Models\Shipment::create([
-                'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
-                'order_id'     => $order->id,
-                'status'       => 'pending',
-                'carrier_name' => $carrierName,
-                'tracking_no'  => $trackingNo,
-            ]);
+                // Create Shipment record in pending status
+                $shipment = \App\Models\Shipment::create([
+                    'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                    'order_id'     => $order->id,
+                    'status'       => 'pending',
+                    'carrier_name' => $carrierName,
+                    'tracking_no'  => $trackingNo,
+                ]);
+            } else {
+                // Update existing shipment
+                $updateData = [];
+                if (!empty($carrierName)) $updateData['carrier_name'] = $carrierName;
+                if (!empty($trackingNo)) $updateData['tracking_no'] = $trackingNo;
+                if (!empty($updateData)) {
+                    $shipment->update($updateData);
+                }
+            }
 
             // Log initial tracking event
             \App\Models\ShipmentTrackingEvent::create([
@@ -1029,10 +1041,10 @@ class InventoryService
                 ->withProperties(array_filter([
                     'order_no'     => $order->order_no,
                     'shipment_no'  => $shipment->shipment_no,
-                    'carrier_name' => $carrierName,
-                    'tracking_no'  => $trackingNo,
+                    'carrier_name' => $shipment->carrier_name,
+                    'tracking_no'  => $shipment->tracking_no,
                 ]))
-                ->log("Order #{$order->order_no} marked as ready to ship, shipment #{$shipment->shipment_no} created");
+                ->log("Order #{$order->order_no} marked as ready to ship, shipment #{$shipment->shipment_no} created/updated");
         });
     }
 

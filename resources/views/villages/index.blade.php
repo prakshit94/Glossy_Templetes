@@ -9,6 +9,7 @@
         $qState = request('state') ? explode(',', request('state')) : [];
         $qDistrict = request('district') ? explode(',', request('district')) : [];
         $qTaluka = request('taluka') ? explode(',', request('taluka')) : [];
+        $qVillage = request('village') ? explode(',', request('village')) : [];
     @endphp
 
     <div class="p-6 lg:p-10" x-data="{ 
@@ -19,9 +20,11 @@
         stateFilter: @js($qState),
         districtFilter: @js($qDistrict),
         talukaFilter: @js($qTaluka),
+        villageFilter: @js($qVillage),
         statesList: @js($statesList),
         districtsList: @js($districtsList),
         talukasList: @js($talukasList),
+        villagesList: @js($villagesList ?? []),
         stats: @js($stats),
         isLoading: false,
 
@@ -42,7 +45,8 @@
                 perPage: this.perPage,
                 state: this.stateFilter.join(','),
                 district: this.districtFilter.join(','),
-                taluka: this.talukaFilter.join(',')
+                taluka: this.talukaFilter.join(','),
+                village: this.villageFilter.join(',')
             });
 
             // Persist to URL
@@ -60,11 +64,13 @@
             document.getElementById('table-container').innerHTML = data.table;
             this.districtsList = data.districts;
             this.talukasList = data.talukas;
+            this.villagesList = data.villages || [];
             this.stats = data.stats;
             
             // Sync dependent filters
             this.districtFilter = this.districtFilter.filter(d => this.districtsList.includes(d));
             this.talukaFilter = this.talukaFilter.filter(t => this.talukasList.includes(t));
+            this.villageFilter = this.villageFilter.filter(v => this.villagesList.includes(v));
 
             this.isLoading = false;
             this.selectedItems = [];
@@ -76,6 +82,7 @@
             this.stateFilter = [];
             this.districtFilter = [];
             this.talukaFilter = [];
+            this.villageFilter = [];
             this.performSearch();
         }
     }">

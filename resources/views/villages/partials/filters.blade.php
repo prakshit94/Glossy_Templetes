@@ -69,3 +69,28 @@
         </div>
     </div>
 </div>
+
+<!-- Village (X/Y) -->
+<div class="relative" x-data="{ open: false, filter: '' }">
+    <button @click="open = !open" class="h-9 px-4 flex items-center rounded-xl border border-border bg-background/50 text-[11px] font-bold hover:bg-background transition-all group shadow-sm">
+        <span class="text-muted-foreground/80 group-hover:text-blue-500 transition-colors">Villages</span>
+        <span class="ml-2 px-1.5 py-0.5 rounded-lg bg-blue-500/10 text-blue-500 font-black text-[10px]">
+            <span x-text="villageFilter.length"></span>/<span x-text="villagesList.length"></span>
+        </span>
+        <x-ui.icon name="chevron-down" size="3" class="ml-2 text-muted-foreground/40" />
+    </button>
+    <div x-show="open" @click.away="open = false" x-cloak class="absolute left-0 mt-2 w-64 bg-popover border border-border rounded-xl shadow-2xl z-[100] p-1">
+        <div class="p-2 border-b border-border bg-muted/10 mb-1">
+            <input type="text" x-model="filter" placeholder="Search..." class="w-full px-3 py-1 bg-background rounded-lg border border-border text-[11px] outline-none">
+        </div>
+        <div class="max-h-60 overflow-y-auto custom-scrollbar">
+            <template x-for="item in (villagesList || []).filter(i => (i || '').toLowerCase().includes(filter.toLowerCase()))" :key="item">
+                <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" x-bind:class="villageFilter.includes(item) ? 'bg-primary/5' : ''">
+                    <input type="checkbox" :value="item" x-model="villageFilter" @change="performSearch()" class="rounded border-border text-primary">
+                    <span class="text-[11px]" x-text="item"></span>
+                </label>
+            </template>
+        </div>
+    </div>
+</div>
+

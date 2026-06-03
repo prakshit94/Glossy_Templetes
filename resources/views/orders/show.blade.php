@@ -604,7 +604,10 @@
     @can('orders.ship')
         @php
             $suggestedCarrier = '';
-            if (!empty($order->shippingAddress) && !empty($order->shippingAddress->village)) {
+            $existingShipment = $order->shipments->first();
+            if ($existingShipment && $existingShipment->carrier_name) {
+                $suggestedCarrier = $existingShipment->carrier_name;
+            } elseif (!empty($order->shippingAddress) && !empty($order->shippingAddress->village)) {
                 $service = $order->shippingAddress->village->services
                     ->where('is_active', true)
                     ->where('pivot.is_available', true)

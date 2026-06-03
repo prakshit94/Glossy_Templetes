@@ -67,6 +67,11 @@ class VillageController extends Controller
             $query->whereIn('taluka_name', $talukas);
         }
 
+        if ($request->filled('village')) {
+            $villages = array_filter(array_map('trim', explode(',', $request->village)));
+            $query->whereIn('village_name', $villages);
+        }
+
         /*
         |--------------------------------------------------------------------------
         | STATS & DATA
@@ -90,16 +95,31 @@ class VillageController extends Controller
             $q->whereIn('state_name', $states);
         })->distinct()->pluck('district_name')->filter()->sort()->values();
 
-        $talukasList = Village::when($request->filled('district'), function($q) use ($request) {
+        $talukasList = Village::when($request->filled('state'), function($q) use ($request) {
+            $states = array_map('trim', explode(',', $request->state));
+            $q->whereIn('state_name', $states);
+        })->when($request->filled('district'), function($q) use ($request) {
             $districts = array_map('trim', explode(',', $request->district));
             $q->whereIn('district_name', $districts);
         })->distinct()->pluck('taluka_name')->filter()->sort()->values();
+
+        $villagesList = Village::when($request->filled('state'), function($q) use ($request) {
+            $states = array_map('trim', explode(',', $request->state));
+            $q->whereIn('state_name', $states);
+        })->when($request->filled('district'), function($q) use ($request) {
+            $districts = array_map('trim', explode(',', $request->district));
+            $q->whereIn('district_name', $districts);
+        })->when($request->filled('taluka'), function($q) use ($request) {
+            $talukas = array_map('trim', explode(',', $request->taluka));
+            $q->whereIn('taluka_name', $talukas);
+        })->distinct()->pluck('village_name')->filter()->sort()->values();
 
         if ($request->ajax()) {
             return response()->json([
                 'table' => view('villages.partials.table', compact('villages'))->render(),
                 'districts' => $districtsList,
                 'talukas' => $talukasList,
+                'villages' => $villagesList,
                 'stats' => $stats
             ]);
         }
@@ -109,7 +129,8 @@ class VillageController extends Controller
             'stats', 
             'statesList', 
             'districtsList', 
-            'talukasList'
+            'talukasList',
+            'villagesList'
         ));
     }
 

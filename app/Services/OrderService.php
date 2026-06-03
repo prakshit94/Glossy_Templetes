@@ -507,6 +507,31 @@ class OrderService
             'updated_by' => auth()->id(),
         ]);
 
+        if ($status === 'processing') {
+            $order->loadMissing(['shipments', 'shippingAddress.village.services']);
+            if ($order->shipments->isEmpty()) {
+                $carrierName = null;
+                if ($order->shippingAddress && $order->shippingAddress->village) {
+                    $service = $order->shippingAddress->village->services
+                        ->where('is_active', true)
+                        ->where('pivot.is_available', true)
+                        ->sortBy('pivot.priority')
+                        ->first();
+                    
+                    if ($service) {
+                        $carrierName = $service->name;
+                    }
+                }
+                
+                \App\Models\Shipment::create([
+                    'shipment_no'  => 'SHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                    'order_id'     => $order->id,
+                    'status'       => 'pending',
+                    'carrier_name' => $carrierName,
+                ]);
+            }
+        }
+
         if ($status === 'delivered') {
             foreach ($order->shipments as $shipment) {
                 if ($shipment->status !== 'delivered') {
