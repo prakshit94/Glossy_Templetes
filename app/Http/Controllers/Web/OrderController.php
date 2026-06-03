@@ -170,16 +170,29 @@ class OrderController extends Controller
             $query->whereDate('order_date', '<=', $request->to_date);
         }
 
+        $statsQuery = clone $query;
+        $counts = $statsQuery->select([
+            \Illuminate\Support\Facades\DB::raw("COUNT(*) as total"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'pending' AND orders.is_draft = 1 THEN 1 ELSE 0 END) as future_order"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'pending' AND (orders.is_draft = 0 OR orders.is_draft IS NULL) THEN 1 ELSE 0 END) as pending"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'confirmed' THEN 1 ELSE 0 END) as confirmed"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'processing' THEN 1 ELSE 0 END) as processing"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'ready_to_ship' THEN 1 ELSE 0 END) as ready_to_ship"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status IN ('dispatched', 'shipped') THEN 1 ELSE 0 END) as dispatched"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'delivered' THEN 1 ELSE 0 END) as delivered"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'cancelled' THEN 1 ELSE 0 END) as cancelled")
+        ])->toBase()->first();
+
         $stats = [
-            'total'         => (clone $query)->count(),
-            'future_order'  => (clone $query)->where('status', 'pending')->where('is_draft', true)->count(),
-            'pending'       => (clone $query)->where('status', 'pending')->where(function($q){ $q->where('is_draft', false)->orWhereNull('is_draft'); })->count(),
-            'confirmed'     => (clone $query)->where('status', 'confirmed')->count(),
-            'processing'    => (clone $query)->where('status', 'processing')->count(),
-            'ready_to_ship' => (clone $query)->where('status', 'ready_to_ship')->count(),
-            'dispatched'    => (clone $query)->whereIn('status', ['dispatched', 'shipped'])->count(),
-            'delivered'     => (clone $query)->where('status', 'delivered')->count(),
-            'cancelled'     => (clone $query)->where('status', 'cancelled')->count(),
+            'total'         => (int) ($counts->total ?? 0),
+            'future_order'  => (int) ($counts->future_order ?? 0),
+            'pending'       => (int) ($counts->pending ?? 0),
+            'confirmed'     => (int) ($counts->confirmed ?? 0),
+            'processing'    => (int) ($counts->processing ?? 0),
+            'ready_to_ship' => (int) ($counts->ready_to_ship ?? 0),
+            'dispatched'    => (int) ($counts->dispatched ?? 0),
+            'delivered'     => (int) ($counts->delivered ?? 0),
+            'cancelled'     => (int) ($counts->cancelled ?? 0),
         ];
 
         $perPage = (int) $request->get('perPage', 15);

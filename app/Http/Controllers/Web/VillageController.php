@@ -77,10 +77,17 @@ class VillageController extends Controller
         | STATS & DATA
         |--------------------------------------------------------------------------
         */
+        $statsQuery = clone $query;
+        $counts = $statsQuery->select([
+            \Illuminate\Support\Facades\DB::raw("COUNT(*) as total"),
+            \Illuminate\Support\Facades\DB::raw("COUNT(DISTINCT pincode) as pincodes"),
+            \Illuminate\Support\Facades\DB::raw("COUNT(DISTINCT district_name) as districts_count"),
+        ])->toBase()->first();
+
         $stats = [
-            'total' => (clone $query)->count(),
-            'pincodes' => (clone $query)->distinct('pincode')->count('pincode'),
-            'districts_count' => (clone $query)->distinct('district_name')->count('district_name'),
+            'total' => (int) ($counts->total ?? 0),
+            'pincodes' => (int) ($counts->pincodes ?? 0),
+            'districts_count' => (int) ($counts->districts_count ?? 0),
             'services' => Service::active()->count(),
         ];
 
