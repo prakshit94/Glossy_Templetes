@@ -1069,6 +1069,13 @@ class InventoryService
                 ]);
             }
 
+            $shipment = $order->shipments->first();
+            if (!$shipment || empty($shipment->tracking_no)) {
+                throw ValidationException::withMessages([
+                    'tracking_no' => 'Order cannot be dispatched without a valid tracking ID.',
+                ]);
+            }
+
             foreach ($order->items as $item) {
                 $productId   = (int) $item->product_id;
                 $warehouseId = (int) $order->warehouse_id;

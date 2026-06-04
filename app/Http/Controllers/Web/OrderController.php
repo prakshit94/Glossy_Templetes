@@ -505,10 +505,15 @@ class OrderController extends Controller
 
     public function dispatch(string $id, InventoryService $inventoryService)
     {
-        $order = Order::findOrFail($id);
+        $order = Order::with('shipments')->findOrFail($id);
 
         if ($order->status !== 'ready_to_ship') {
             return back()->with('error', 'Only orders in ready to ship status can be dispatched.');
+        }
+
+        $shipment = $order->shipments->first();
+        if (!$shipment || empty($shipment->carrier_name) || empty($shipment->tracking_no)) {
+            return back()->with('error', 'Order cannot be dispatched without valid carrier and tracking details attached.');
         }
 
         try {
@@ -617,6 +622,11 @@ class OrderController extends Controller
                         $inventoryService->readyToShipOrder($order, null, null);
                         $count++;
                     } elseif ($targetStatus === 'dispatched' && $order->status === 'ready_to_ship') {
+                        $shipment = $order->shipments->first();
+                        if (!$shipment || empty($shipment->carrier_name) || empty($shipment->tracking_no)) {
+                            $errors[] = "Order #{$order->order_no} missing carrier/tracking info.";
+                            continue;
+                        }
                         $inventoryService->dispatchOrder($order);
                         $count++;
                     } elseif ($targetStatus === 'delivered' && in_array($order->status, Order::inTransitStatuses(), true)) {
