@@ -59,25 +59,27 @@
                 <div class="p-6 border-b border-border/40 flex items-center justify-between">
                     <h2 class="text-sm font-black uppercase tracking-widest">Partner Performance Report</h2>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <tbody class="divide-y divide-border/20">
+                <div class="overflow-x-auto relative">
+                    <x-ui.table>
+                        <x-ui.table-body>
                             @forelse($partnerPerformance as $row)
                                 @php $success = $row->total_orders > 0 ? round(($row->delivered_orders / $row->total_orders) * 100, 2) : 0; @endphp
-                                <tr>
-                                    <td class="px-6 py-4">
+                                <x-ui.table-row class="hover:bg-primary/[0.03] transition-colors duration-200 border-b border-border/40">
+                                    <x-ui.table-cell class="pl-6 py-4 align-middle">
                                         <a href="{{ route('delivery.performance.partner', $row->driver_id) }}" class="text-sm font-black hover:text-primary">{{ $row->driver?->name ?? 'Partner #' . $row->driver_id }}</a>
-                                    </td>
-                                    <td class="px-6 py-4 text-xs font-bold">Total {{ $row->total_orders }}</td>
-                                    <td class="px-6 py-4 text-xs font-bold text-emerald-500">Delivered {{ $row->delivered_orders }}</td>
-                                    <td class="px-6 py-4 text-xs font-bold text-red-500">Returned {{ $row->returned_orders }}</td>
-                                    <td class="px-6 py-4 text-xs font-black">{{ $success }}%</td>
-                                </tr>
+                                    </x-ui.table-cell>
+                                    <x-ui.table-cell class="px-6 py-4 text-xs font-bold align-middle">Total {{ $row->total_orders }}</x-ui.table-cell>
+                                    <x-ui.table-cell class="px-6 py-4 text-xs font-bold text-emerald-500 align-middle">Delivered {{ $row->delivered_orders }}</x-ui.table-cell>
+                                    <x-ui.table-cell class="px-6 py-4 text-xs font-bold text-red-500 align-middle">Returned {{ $row->returned_orders }}</x-ui.table-cell>
+                                    <x-ui.table-cell class="pr-6 pl-6 py-4 text-xs font-black align-middle text-right">{{ $success }}%</x-ui.table-cell>
+                                </x-ui.table-row>
                             @empty
-                                <tr><td class="px-6 py-12 text-center text-sm text-muted-foreground">No partner data yet.</td></tr>
+                                <x-ui.table-row>
+                                    <x-ui.table-cell colspan="5" class="py-12 text-center text-sm text-muted-foreground">No partner data yet.</x-ui.table-cell>
+                                </x-ui.table-row>
                             @endforelse
-                        </tbody>
-                    </table>
+                        </x-ui.table-body>
+                    </x-ui.table>
                 </div>
             </x-ui.card>
 
@@ -85,25 +87,27 @@
                 <div class="p-6 border-b border-border/40">
                     <h2 class="text-sm font-black uppercase tracking-widest">Courier Performance Report</h2>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <tbody class="divide-y divide-border/20">
+                <div class="overflow-x-auto relative">
+                    <x-ui.table>
+                        <x-ui.table-body>
                             @forelse($courierPerformance as $row)
                                 @php $success = $row->total_orders > 0 ? round(($row->delivered_orders / $row->total_orders) * 100, 2) : 0; @endphp
-                                <tr>
-                                    <td class="px-6 py-4">
+                                <x-ui.table-row class="hover:bg-primary/[0.03] transition-colors duration-200 border-b border-border/40">
+                                    <x-ui.table-cell class="pl-6 py-4 align-middle">
                                         <a href="{{ route('delivery.performance.courier', urlencode($row->courier_provider_name)) }}" class="text-sm font-black hover:text-primary">{{ $row->courier_provider_name }}</a>
-                                    </td>
-                                    <td class="px-6 py-4 text-xs font-bold">Total {{ $row->total_orders }}</td>
-                                    <td class="px-6 py-4 text-xs font-bold text-emerald-500">Delivered {{ $row->delivered_orders }}</td>
-                                    <td class="px-6 py-4 text-xs font-bold text-red-500">Returned {{ $row->returned_orders }}</td>
-                                    <td class="px-6 py-4 text-xs font-black">{{ $success }}%</td>
-                                </tr>
+                                    </x-ui.table-cell>
+                                    <x-ui.table-cell class="px-6 py-4 text-xs font-bold align-middle">Total {{ $row->total_orders }}</x-ui.table-cell>
+                                    <x-ui.table-cell class="px-6 py-4 text-xs font-bold text-emerald-500 align-middle">Delivered {{ $row->delivered_orders }}</x-ui.table-cell>
+                                    <x-ui.table-cell class="px-6 py-4 text-xs font-bold text-red-500 align-middle">Returned {{ $row->returned_orders }}</x-ui.table-cell>
+                                    <x-ui.table-cell class="pr-6 pl-6 py-4 text-xs font-black align-middle text-right">{{ $success }}%</x-ui.table-cell>
+                                </x-ui.table-row>
                             @empty
-                                <tr><td class="px-6 py-12 text-center text-sm text-muted-foreground">No courier data yet.</td></tr>
+                                <x-ui.table-row>
+                                    <x-ui.table-cell colspan="5" class="py-12 text-center text-sm text-muted-foreground">No courier data yet.</x-ui.table-cell>
+                                </x-ui.table-row>
                             @endforelse
-                        </tbody>
-                    </table>
+                        </x-ui.table-body>
+                    </x-ui.table>
                 </div>
             </x-ui.card>
         </div>
@@ -119,24 +123,35 @@
             <div class="p-6 border-b border-border/40">
                 <h2 class="text-sm font-black uppercase tracking-widest">Monthly Delivery Report</h2>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead><tr class="border-b border-border/40"><th class="px-6 py-4 text-left text-[10px] uppercase tracking-widest">Month</th><th class="px-6 py-4 text-left text-[10px] uppercase tracking-widest">Type</th><th class="px-6 py-4 text-left text-[10px] uppercase tracking-widest">Assigned</th><th class="px-6 py-4 text-left text-[10px] uppercase tracking-widest">Delivered</th><th class="px-6 py-4 text-left text-[10px] uppercase tracking-widest">Returned</th><th class="px-6 py-4 text-left text-[10px] uppercase tracking-widest">Pending</th></tr></thead>
-                    <tbody class="divide-y divide-border/20">
+            <div class="overflow-x-auto relative">
+                <x-ui.table>
+                    <x-ui.table-header class="bg-muted/30">
+                        <x-ui.table-row class="border-b border-border/60">
+                            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap pl-6">Month</x-ui.table-head>
+                            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Type</x-ui.table-head>
+                            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Assigned</x-ui.table-head>
+                            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Delivered</x-ui.table-head>
+                            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">Returned</x-ui.table-head>
+                            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap pr-6">Pending</x-ui.table-head>
+                        </x-ui.table-row>
+                    </x-ui.table-header>
+                    <x-ui.table-body>
                         @forelse($monthlyPerformance as $row)
-                            <tr>
-                                <td class="px-6 py-4 text-xs font-black">{{ $row->month }}</td>
-                                <td class="px-6 py-4 text-xs font-bold uppercase">{{ $row->dispatch_type }}</td>
-                                <td class="px-6 py-4 text-xs font-bold">{{ $row->assigned_orders }}</td>
-                                <td class="px-6 py-4 text-xs font-bold text-emerald-500">{{ $row->delivered_orders }}</td>
-                                <td class="px-6 py-4 text-xs font-bold text-red-500">{{ $row->returned_orders }}</td>
-                                <td class="px-6 py-4 text-xs font-bold">{{ $row->pending_orders }}</td>
-                            </tr>
+                            <x-ui.table-row class="hover:bg-primary/[0.03] transition-colors duration-200 border-b border-border/40">
+                                <x-ui.table-cell class="pl-6 py-4 text-xs font-black align-middle">{{ $row->month }}</x-ui.table-cell>
+                                <x-ui.table-cell class="px-6 py-4 text-xs font-bold uppercase align-middle">{{ $row->dispatch_type }}</x-ui.table-cell>
+                                <x-ui.table-cell class="px-6 py-4 text-xs font-bold align-middle">{{ $row->assigned_orders }}</x-ui.table-cell>
+                                <x-ui.table-cell class="px-6 py-4 text-xs font-bold text-emerald-500 align-middle">{{ $row->delivered_orders }}</x-ui.table-cell>
+                                <x-ui.table-cell class="px-6 py-4 text-xs font-bold text-red-500 align-middle">{{ $row->returned_orders }}</x-ui.table-cell>
+                                <x-ui.table-cell class="px-6 py-4 text-xs font-bold align-middle pr-6">{{ $row->pending_orders }}</x-ui.table-cell>
+                            </x-ui.table-row>
                         @empty
-                            <tr><td colspan="6" class="px-6 py-12 text-center text-sm text-muted-foreground">No monthly data yet.</td></tr>
+                            <x-ui.table-row>
+                                <x-ui.table-cell colspan="6" class="py-12 text-center text-sm text-muted-foreground">No monthly data yet.</x-ui.table-cell>
+                            </x-ui.table-row>
                         @endforelse
-                    </tbody>
-                </table>
+                    </x-ui.table-body>
+                </x-ui.table>
             </div>
         </x-ui.card>
     </div>
