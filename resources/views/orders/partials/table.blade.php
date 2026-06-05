@@ -285,6 +285,7 @@
             'delivered' => ['bg' => 'bg-emerald-500/10', 'text' => 'text-emerald-600', 'border' => 'border-emerald-500/20'],
             'cancelled' => ['bg' => 'bg-red-500/10', 'text' => 'text-red-600', 'border' => 'border-red-500/20'],
             'returned' => ['bg' => 'bg-rose-500/10', 'text' => 'text-rose-600', 'border' => 'border-rose-500/20'],
+            'return_requested' => ['bg' => 'bg-orange-500/10', 'text' => 'text-orange-600', 'border' => 'border-orange-500/20'],
         ];
 
         $colorClasses = $statusColors[$lifecycleStatus] ?? ['bg' => 'bg-muted/40', 'text' => 'text-muted-foreground', 'border' => 'border-border/50'];
@@ -734,8 +735,9 @@
 
                     <x-ui.table-cell x-show="visibleColumns.actions" class="text-right align-middle pr-5">
                         @php
-                            $canReturnFromLedger = $order->status !== 'returned'
-                                && in_array($order->status, array_merge(\App\Models\Order::inTransitStatuses(), ['delivered', 'processing']), true);
+                            $canReturnFromLedger = !in_array($order->status, ['returned', 'return_requested'])
+                                && in_array($order->status, array_merge(\App\Models\Order::inTransitStatuses(), ['delivered', 'processing']), true)
+                                && !$order->returns()->where('status', '!=', 'rejected')->exists();
                         @endphp
                         <div class="flex justify-end gap-1">
                             @if($canReturnFromLedger)

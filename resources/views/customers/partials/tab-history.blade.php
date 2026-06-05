@@ -25,13 +25,13 @@
                                             'ready_to_ship' => 'indigo',
                                             'processing' => 'amber',
                                             'confirmed' => 'indigo',
-                                            'cancelled', 'returned' => 'red',
+                                            'cancelled', 'returned', 'return_requested' => 'red',
                                             'pending' => 'orange',
                                             'future_order' => 'purple',
                                             default => 'primary'
                                         };
                                     @endphp
-                                    <x-ui.badge variant="{{ match($order->lifecycleStatus()) { 'dispatched', 'delivered' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'warning', 'future_order' => 'secondary', default => 'default' } }}" class="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
+                                    <x-ui.badge variant="{{ match($order->lifecycleStatus()) { 'dispatched', 'delivered' => 'success', 'cancelled', 'returned', 'return_requested' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'warning', 'future_order' => 'secondary', default => 'default' } }}" class="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
                                         {{ $order->statusLabel() }}
                                     </x-ui.badge>
                                 </div>
@@ -180,7 +180,7 @@
                                 ];
                                 $stepKeys = array_column($steps, 'key');
                                 $currentIndex = array_search($order->lifecycleStatus(), $stepKeys);
-                                $isCancelled = in_array($order->status, ['cancelled', 'returned']);
+                                $isCancelled = in_array($order->status, ['cancelled', 'returned', 'return_requested']);
                             @endphp
                             <div class="bg-card/60 backdrop-blur-md rounded-2xl border border-border/50 p-6">
                                 <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-8 flex items-center gap-2">

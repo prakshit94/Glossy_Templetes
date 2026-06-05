@@ -12,7 +12,7 @@
                         'ready_to_ship' => 'indigo',
                         'processing' => 'amber',
                         'confirmed' => 'indigo',
-                        'cancelled', 'returned' => 'red',
+                        'cancelled', 'returned', 'return_requested' => 'red',
                         'pending' => 'orange',
                         default => 'primary'
                     };
@@ -26,7 +26,7 @@
                     <div>
                         <div class="flex items-center gap-3 mb-1">
                             <h3 class="text-2xl font-black text-foreground tracking-tight">{{ $order->order_no }}</h3>
-                            <x-ui.badge variant="{{ match($order->lifecycleStatus()) { 'dispatched', 'delivered' => 'success', 'cancelled', 'returned' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'indigo', default => 'default' } }}" class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
+                            <x-ui.badge variant="{{ match($order->lifecycleStatus()) { 'dispatched', 'delivered' => 'success', 'cancelled', 'returned', 'return_requested' => 'destructive', 'pending' => 'warning', 'processing' => 'warning', 'ready_to_ship' => 'indigo', default => 'default' } }}" class="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
                                 {{ $order->statusLabel() }}
                             </x-ui.badge>
                         </div>
@@ -132,7 +132,7 @@
                     @endif
 
                     {{-- Cancel (only before stock leaves the warehouse) --}}
-                    @if(!in_array($order->status, array_merge(['delivered', 'cancelled', 'returned'], \App\Models\Order::inTransitStatuses()), true))
+                    @if(!in_array($order->status, array_merge(['delivered', 'cancelled', 'returned', 'return_requested'], \App\Models\Order::inTransitStatuses()), true))
                         @can('orders.cancel')
                             <x-ui.button variant="outline" size="sm" @click="$dispatch('open-modal', { name: 'order-verification-modal', outcome: 'cancel_order' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-destructive border-destructive/30 hover:bg-destructive/10">
                                 <x-ui.icon name="x-circle" size="3" class="mr-2" /> Cancel
@@ -155,7 +155,7 @@
             ];
             $stepKeys = array_column($steps, 'key');
             $currentIndex = array_search($order->lifecycleStatus(), $stepKeys);
-            $isCancelled = in_array($order->status, ['cancelled', 'returned']);
+            $isCancelled = in_array($order->status, ['cancelled', 'returned', 'return_requested']);
         @endphp
         @if(!$isCancelled)
         <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-3xl p-8">

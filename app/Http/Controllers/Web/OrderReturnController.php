@@ -124,6 +124,12 @@ class OrderReturnController extends Controller
             ]);
         }
 
+        if (\App\Models\OrderReturn::where('order_id', $order->id)->where('status', '!=', 'rejected')->exists()) {
+            throw ValidationException::withMessages([
+                'order' => 'A return request has already been created for this order.',
+            ]);
+        }
+
         $order->loadMissing('items');
 
         if ($items === null) {
@@ -149,6 +155,8 @@ class OrderReturnController extends Controller
                 'status' => 'requested',
                 'refund_amount' => 0,
             ]);
+
+            $order->update(['status' => 'return_requested']);
 
             $totalRefund = 0;
 

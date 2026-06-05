@@ -16,7 +16,7 @@ return new class extends Migration {
             $table->decimal('tax_amount', 15, 2)->default(0);
             $table->decimal('discount_amount', 15, 2)->default(0);
             $table->decimal('net_amount', 15, 2)->default(0);
-            $table->enum('status', ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'shipped', 'delivered', 'cancelled', 'returned'])->default('pending')->index();
+            $table->enum('status', ['pending', 'confirmed', 'processing', 'ready_to_ship', 'dispatched', 'shipped', 'delivered', 'cancelled', 'returned', 'return_requested'])->default('pending')->index();
             $table->boolean('is_draft')->default(false)->index();
             $table->date('future_order_date')->nullable();
             $table->foreignId('warehouse_id')->nullable()->constrained()->nullOnDelete();

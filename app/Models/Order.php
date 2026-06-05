@@ -45,6 +45,7 @@ class Order extends Model
             'confirmed'     => 'Confirmed',
             'cancelled'     => 'Cancelled',
             'returned'      => 'Returned',
+            'return_requested' => 'Return Requested',
             default         => ucfirst(str_replace('_', ' ', $this->lifecycleStatus())),
         };
     }
@@ -124,4 +125,5 @@ class Order extends Model
     {
         return $this->hasOne(OrderDeliveryTracking::class);
     }
+    public function returns() { return $this->hasMany(OrderReturn::class); }
 }

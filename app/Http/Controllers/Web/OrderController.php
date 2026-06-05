@@ -452,6 +452,14 @@ class OrderController extends Controller
                         $statusChangedMessage = ' Order cancelled and stock released.';
                     }
                     break;
+
+                case 'return_order':
+                    if (in_array($order->status, array_merge(['delivered', 'processing'], Order::inTransitStatuses()), true)) {
+                        $orderReturnController = app(\App\Http\Controllers\Web\OrderReturnController::class);
+                        $orderReturnController->createRequestedReturn($order, $validated['remark'] ?? 'Returned via Order Verification');
+                        $statusChangedMessage = ' Return request created.';
+                    }
+                    break;
             }
         } catch (ValidationException $e) {
             return back()->with('error', 'Call logged, but status transition failed: ' . (collect($e->errors())->flatten()->first() ?? 'Unknown error.'));
