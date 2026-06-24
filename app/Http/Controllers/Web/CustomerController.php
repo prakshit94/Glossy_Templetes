@@ -274,7 +274,7 @@ class CustomerController extends Controller
 
         $customer->update($data);
 
-        return redirect()->route('customers.index')
+        return redirect()->back()
             ->with('success', 'Customer updated successfully.');
     }
 

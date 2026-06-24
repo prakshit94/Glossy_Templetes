@@ -3,6 +3,7 @@
     <div class="p-6 lg:p-10" x-data="{ 
         search: '{{ request('search', '') }}',
         perPage: '{{ request('perPage', 10) }}',
+        filter: '{{ request('filter', 'active') }}',
         stats: @js($stats),
         isLoading: false,
         editingRecord: null,
@@ -47,7 +48,7 @@
         },
 
         async performSearch() {
-            const params = new URLSearchParams({ search: this.search, perPage: this.perPage });
+            const params = new URLSearchParams({ search: this.search, perPage: this.perPage, filter: this.filter });
             const url = `{{ route('transport.index') }}?${params.toString()}`;
             window.history.replaceState({}, '', url);
             await this.fetchTable(url);
@@ -134,7 +135,21 @@
                         <div class="flex bg-muted/50 px-4 py-1.5 rounded-xl border border-border/50 shadow-inner">
                             <span class="text-xs font-bold text-primary tracking-widest uppercase">Vehicles Fleet</span>
                         </div>
-                        
+
+                        {{-- Active / Archived tabs --}}
+                        <div class="flex bg-muted/20 p-1 rounded-xl border border-border/60 shadow-inner">
+                            <button type="button" @click="filter = 'active'; performSearch()"
+                                :class="filter === 'active' ? 'bg-card shadow-sm text-primary ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'"
+                                class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest">
+                                Active
+                            </button>
+                            <button type="button" @click="filter = 'trashed'; performSearch()"
+                                :class="filter === 'trashed' ? 'bg-card shadow-sm text-destructive ring-1 ring-border/20' : 'text-muted-foreground/60 hover:text-foreground'"
+                                class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest">
+                                Archived
+                            </button>
+                        </div>
+
                         <!-- Bulk Actions -->
                         <div x-show="selectedRecords.length > 0" x-cloak x-transition class="flex items-center gap-2">
                             <x-ui.dropdown>
@@ -146,13 +161,37 @@
                                 </x-slot>
                                 <x-slot name="content">
                                     <x-ui.dropdown-label>Bulk Actions</x-ui.dropdown-label>
-                                    <form action="{{ route('transport.bulk-delete') }}" method="POST" onsubmit="return confirm('Delete selected vehicles?')">
-                                        @csrf
-                                        <input type="hidden" name="ids" :value="JSON.stringify(selectedRecords)">
-                                        <button type="submit" class="w-full text-left px-2 py-1.5 text-xs hover:bg-muted rounded-md flex items-center text-destructive">
-                                            <x-ui.icon name="trash" size="3" class="mr-2" /> Delete Selected
-                                        </button>
-                                    </form>
+                                    <div class="p-1 space-y-1">
+                                        <template x-if="filter !== 'trashed'">
+                                            <div class="space-y-1">
+                                                <form action="{{ route('transport.bulk-delete') }}" method="POST" onsubmit="return confirm('Move selected vehicles to archive?')">
+                                                    @csrf
+                                                    <input type="hidden" name="ids" :value="JSON.stringify(selectedRecords)">
+                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-black hover:bg-destructive/10 rounded-xl flex items-center text-destructive uppercase tracking-widest transition-colors">
+                                                        <x-ui.icon name="trash" size="3.5" class="mr-2" /> Move to Archive
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </template>
+                                        <template x-if="filter === 'trashed'">
+                                            <div class="space-y-1">
+                                                <form action="{{ route('transport.bulk-restore') }}" method="POST">
+                                                    @csrf
+                                                    <input type="hidden" name="ids" :value="JSON.stringify(selectedRecords)">
+                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-black hover:bg-emerald-500/10 rounded-xl flex items-center text-emerald-600 uppercase tracking-widest transition-colors">
+                                                        <x-ui.icon name="refresh-cw" size="3.5" class="mr-2" /> Restore
+                                                    </button>
+                                                </form>
+                                                <form action="{{ route('transport.bulk-force-delete') }}" method="POST" onsubmit="return confirm('PERMANENTLY delete selected vehicles?')">
+                                                    @csrf
+                                                    <input type="hidden" name="ids" :value="JSON.stringify(selectedRecords)">
+                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-black hover:bg-destructive/10 rounded-xl flex items-center text-destructive uppercase tracking-widest transition-colors">
+                                                        <x-ui.icon name="trash-2" size="3.5" class="mr-2" /> Purge Records
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </x-slot>
                             </x-ui.dropdown>
                         </div>

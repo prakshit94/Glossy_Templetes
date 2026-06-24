@@ -10,7 +10,11 @@ class TransportController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Transport::query();
+        $filter = $request->input('filter', 'active');
+
+        $query = $filter === 'trashed'
+            ? Transport::onlyTrashed()
+            : Transport::query();
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -25,25 +29,26 @@ class TransportController extends Controller
         $records = $query->latest()->paginate($perPage)->withQueryString();
 
         $stats = [
-            'total' => Transport::count(),
-            'available' => Transport::where('status', 'available')->count(),
+            'total'       => Transport::count(),
+            'available'   => Transport::where('status', 'available')->count(),
             'on_delivery' => Transport::where('status', 'on_delivery')->count(),
             'maintenance' => Transport::where('status', 'maintenance')->count(),
         ];
 
         if ($request->ajax()) {
             return response()->json([
-                'table' => view('transport.partials.table', compact('records'))->render(),
+                'table' => view('transport.partials.table', compact('records', 'filter'))->render(),
                 'stats' => $stats
             ]);
         }
 
         return view('transport.index', [
-            'moduleKey' => 'transport',
+            'moduleKey'   => 'transport',
             'moduleTitle' => 'Transport',
-            'moduleIcon' => 'truck',
-            'records' => $records,
-            'stats' => $stats,
+            'moduleIcon'  => 'truck',
+            'records'     => $records,
+            'stats'       => $stats,
+            'filter'      => $filter,
         ]);
     }
 
@@ -80,7 +85,21 @@ class TransportController extends Controller
     public function destroy(Transport $transport)
     {
         $transport->delete();
-        return back()->with('success', 'Transport vehicle deleted successfully.');
+        return back()->with('success', 'Transport vehicle moved to archive.');
+    }
+
+    public function restore($id)
+    {
+        $transport = Transport::onlyTrashed()->findOrFail($id);
+        $transport->restore();
+        return back()->with('success', 'Transport vehicle restored successfully.');
+    }
+
+    public function forceDelete($id)
+    {
+        $transport = Transport::onlyTrashed()->findOrFail($id);
+        $transport->forceDelete();
+        return back()->with('success', 'Transport vehicle permanently deleted.');
     }
 
     public function bulkDelete(Request $request)
@@ -90,6 +109,26 @@ class TransportController extends Controller
 
         Transport::whereIn('id', $ids)->delete();
 
-        return back()->with('success', count($ids) . ' transports deleted successfully.');
+        return back()->with('success', count($ids) . ' transports moved to archive.');
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $ids = json_decode($request->ids, true);
+        if (empty($ids)) return back()->with('error', 'No transports selected.');
+
+        Transport::onlyTrashed()->whereIn('id', $ids)->restore();
+
+        return back()->with('success', count($ids) . ' transports restored successfully.');
+    }
+
+    public function bulkForceDelete(Request $request)
+    {
+        $ids = json_decode($request->ids, true);
+        if (empty($ids)) return back()->with('error', 'No transports selected.');
+
+        Transport::onlyTrashed()->whereIn('id', $ids)->forceDelete();
+
+        return back()->with('success', count($ids) . ' transports permanently deleted.');
     }
 }

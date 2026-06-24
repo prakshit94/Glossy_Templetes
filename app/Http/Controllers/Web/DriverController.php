@@ -11,7 +11,11 @@ class DriverController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Driver::with('user');
+        $filter = $request->input('filter', 'active');
+
+        $query = $filter === 'trashed'
+            ? Driver::onlyTrashed()->with('user')
+            : Driver::with('user');
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -28,9 +32,9 @@ class DriverController extends Controller
         $records = $query->latest()->paginate($perPage)->withQueryString();
 
         $stats = [
-            'total' => Driver::count(),
-            'available' => Driver::where('status', 'available')->count(),
-            'busy' => Driver::where('status', 'busy')->count(),
+            'total'    => Driver::count(),
+            'available'=> Driver::where('status', 'available')->count(),
+            'busy'     => Driver::where('status', 'busy')->count(),
             'on_leave' => Driver::where('status', 'on_leave')->count(),
         ];
 
@@ -39,18 +43,19 @@ class DriverController extends Controller
 
         if ($request->ajax()) {
             return response()->json([
-                'table' => view('drivers.partials.table', compact('records'))->render(),
+                'table' => view('drivers.partials.table', compact('records', 'filter'))->render(),
                 'stats' => $stats
             ]);
         }
 
         return view('drivers.index', [
-            'moduleKey' => 'drivers',
+            'moduleKey'   => 'drivers',
             'moduleTitle' => 'Drivers',
-            'moduleIcon' => 'users-2',
-            'records' => $records,
-            'stats' => $stats,
-            'users' => $users,
+            'moduleIcon'  => 'users-2',
+            'records'     => $records,
+            'stats'       => $stats,
+            'users'       => $users,
+            'filter'      => $filter,
         ]);
     }
 
@@ -85,7 +90,21 @@ class DriverController extends Controller
     public function destroy(Driver $driver)
     {
         $driver->delete();
-        return back()->with('success', 'Driver deleted successfully.');
+        return back()->with('success', 'Driver moved to archive.');
+    }
+
+    public function restore($id)
+    {
+        $driver = Driver::onlyTrashed()->findOrFail($id);
+        $driver->restore();
+        return back()->with('success', 'Driver restored successfully.');
+    }
+
+    public function forceDelete($id)
+    {
+        $driver = Driver::onlyTrashed()->findOrFail($id);
+        $driver->forceDelete();
+        return back()->with('success', 'Driver permanently deleted.');
     }
 
     public function bulkDelete(Request $request)
@@ -95,6 +114,26 @@ class DriverController extends Controller
 
         Driver::whereIn('id', $ids)->delete();
 
-        return back()->with('success', count($ids) . ' drivers deleted successfully.');
+        return back()->with('success', count($ids) . ' drivers moved to archive.');
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $ids = json_decode($request->ids, true);
+        if (empty($ids)) return back()->with('error', 'No drivers selected.');
+
+        Driver::onlyTrashed()->whereIn('id', $ids)->restore();
+
+        return back()->with('success', count($ids) . ' drivers restored successfully.');
+    }
+
+    public function bulkForceDelete(Request $request)
+    {
+        $ids = json_decode($request->ids, true);
+        if (empty($ids)) return back()->with('error', 'No drivers selected.');
+
+        Driver::onlyTrashed()->whereIn('id', $ids)->forceDelete();
+
+        return back()->with('success', count($ids) . ' drivers permanently deleted.');
     }
 }

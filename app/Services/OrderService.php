@@ -80,7 +80,15 @@ class OrderService
     public function createOrder(array $data): Order
     {
         return DB::transaction(function () use ($data) {
-            $orderNo = 'ORD-' . strtoupper(Str::random(8));
+            // Generate order number: {daily_seq}-{MMDDYYYY}-{HHMM}
+            // e.g. 1-06242026-1036, 2-06242026-1042
+            $today     = now();
+            $datePart  = $today->format('dmY');   // DDMMYYYY
+            $timePart  = $today->format('Hi');    // HHMM
+            $todayStart = $today->copy()->startOfDay();
+            $todayEnd   = $today->copy()->endOfDay();
+            $dailyCount = \App\Models\Order::whereBetween('created_at', [$todayStart, $todayEnd])->count() + 1;
+            $orderNo   = $dailyCount . '-' . $datePart . '-' . $timePart;
 
             $order = Order::create([
                 'order_no'            => $orderNo,

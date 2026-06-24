@@ -1,6 +1,7 @@
 @php
     $records = $records ?? collect();
-    $rows = $records instanceof \Illuminate\Pagination\AbstractPaginator ? $records->getCollection() : $records;
+    $rows    = $records instanceof \Illuminate\Pagination\AbstractPaginator ? $records->getCollection() : $records;
+    $filter  = $filter ?? 'active';
 @endphp
 
 <div class="overflow-x-auto">
@@ -64,16 +65,32 @@
                     </td>
                     <td class="p-5 text-right">
                         <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <button @click.stop="openEditModal({{ json_encode($r) }})" class="size-9 rounded-xl bg-background/50 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-all shadow-sm hover:scale-105 active:scale-95">
-                                <x-ui.icon name="edit-3" size="4" />
-                            </button>
-                            <form action="{{ route('drivers.destroy', $r) }}" method="POST" onsubmit="return confirm('Permanently delete this driver?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="size-9 rounded-xl bg-background/50 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-all shadow-sm hover:scale-105 active:scale-95">
-                                    <x-ui.icon name="trash-2" size="4" />
+                            @if($filter === 'trashed')
+                                <form action="{{ route('drivers.restore', $r->id) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="h-9 px-3 rounded-xl bg-background/50 border border-border/60 flex items-center gap-1.5 text-[10px] font-black text-emerald-600 hover:bg-emerald-500/10 hover:border-emerald-500/40 transition-all shadow-sm uppercase tracking-widest">
+                                        <x-ui.icon name="refresh-cw" size="3.5" /> Restore
+                                    </button>
+                                </form>
+                                <form action="{{ route('drivers.force-delete', $r->id) }}" method="POST" onsubmit="return confirm('PERMANENTLY delete this driver?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="size-9 rounded-xl bg-background/50 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-all shadow-sm hover:scale-105 active:scale-95">
+                                        <x-ui.icon name="trash-2" size="4" />
+                                    </button>
+                                </form>
+                            @else
+                                <button @click.stop="openEditModal({{ json_encode($r) }})" class="size-9 rounded-xl bg-background/50 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-all shadow-sm hover:scale-105 active:scale-95">
+                                    <x-ui.icon name="edit-3" size="4" />
                                 </button>
-                            </form>
+                                <form action="{{ route('drivers.destroy', $r) }}" method="POST" onsubmit="return confirm('Move this driver to archive?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="size-9 rounded-xl bg-background/50 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-all shadow-sm hover:scale-105 active:scale-95">
+                                        <x-ui.icon name="trash-2" size="4" />
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                     </td>
                 </tr>

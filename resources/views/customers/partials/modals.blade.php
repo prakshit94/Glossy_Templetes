@@ -1,13 +1,13 @@
 {{-- Address Modal --}}
 <x-ui.modal id="address-modal" maxWidth="2xl">
-    <div class="p-8">
-        <div class="flex items-center justify-between mb-6">
+    <div class="p-6">
+        <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-3">
                 <div class="size-10 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
                     <x-ui.icon name="map-pin" size="5" />
                 </div>
                 <div>
-                    <h3 class="text-sm font-black text-foreground uppercase tracking-widest" x-text="editingAddress ? 'Edit Address' : 'Add New Address'"></h3>
+                    <h3 class="text-sm font-black text-foreground uppercase tracking-widest" x-text="(editingAddress && editingAddress.id) ? 'Edit Address' : 'Add New Address'"></h3>
                     <p class="text-[10px] text-muted-foreground font-bold tracking-tight">Manage customer registered addresses</p>
                 </div>
             </div>
@@ -16,17 +16,22 @@
             </button>
         </div>
 
-        <form :action="(editingAddress && editingAddress.id) ? `/customers/{{ $customer->id }}/addresses/${editingAddress.id}` : `/customers/{{ $customer->id }}/addresses`" method="POST" class="space-y-5">
+        <form :action="(editingAddress && editingAddress.id) ? `/customers/{{ $customer->id }}/addresses/${editingAddress.id}` : `/customers/{{ $customer->id }}/addresses`" method="POST" class="space-y-4">
             @csrf
             <template x-if="editingAddress && editingAddress.id">
                 @method('PUT')
             </template>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-2">
                     <label for="label" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Address Label</label>
-                    <input type="text" name="label" id="label" x-model="editingAddress.label" placeholder="e.g. Home, Office" required 
-                        class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
+                    <select name="label" id="label" x-model="editingAddress.label" required 
+                        class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-sm font-medium focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none">
+                        <option value="Home">Home</option>
+                        <option value="Shop">Shop</option>
+                        <option value="Office">Office</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
 
                 <div class="space-y-2">
@@ -75,7 +80,7 @@
                     class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium outline-none">
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-2">
                     <label for="village_name" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Village</label>
                     <input type="text" name="village_name" id="village_name" x-model="editingAddress.village_name" 
@@ -88,7 +93,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="space-y-2">
                     <label for="taluka" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Taluka</label>
                     <input type="text" name="taluka" id="taluka" x-model="editingAddress.taluka" 

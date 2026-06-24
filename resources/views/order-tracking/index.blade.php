@@ -56,8 +56,10 @@
                     const shipNo = cb.getAttribute('data-shipment-no');
                     const orderNo = cb.getAttribute('data-order-no');
                     const party = cb.getAttribute('data-party');
+                    const driverId = cb.getAttribute('data-driver-id') || '';
+                    const transportId = cb.getAttribute('data-transport-id') || '';
                     if (shipId && shipId !== '' && shipId !== 'null') {
-                        shipments.push({ id: parseInt(shipId), no: shipNo, order: orderNo, party: party });
+                        shipments.push({ id: parseInt(shipId), no: shipNo, order: orderNo, party: party, driver_id: driverId, transport_id: transportId });
                     }
                 });
                 window._orderAssignShipments = shipments;
@@ -325,6 +327,8 @@
         <div class="p-8" x-data="{
             open: false,
             search: '',
+            selectedDriver: '',
+            selectedTransport: '',
             selectedShipments: [],
             shipments: [],
             get filteredShipments() {
@@ -340,6 +344,12 @@
                     this.selectedShipments = this.selectedShipments.filter(s => s.id !== shp.id);
                 } else {
                     this.selectedShipments.push(shp);
+                    if (shp.driver_id && !this.selectedDriver) {
+                        this.selectedDriver = shp.driver_id;
+                    }
+                    if (shp.transport_id && !this.selectedTransport) {
+                        this.selectedTransport = shp.transport_id;
+                    }
                 }
             },
             isSelected(id) {
@@ -434,7 +444,7 @@
 
                 <div class="space-y-2">
                     <label for="driver_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Driver Allocation</label>
-                    <select id="driver_id" name="driver_id" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 text-sm font-semibold outline-none transition-all appearance-none cursor-pointer">
+                    <select id="driver_id" name="driver_id" x-model="selectedDriver" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 text-sm font-semibold outline-none transition-all appearance-none cursor-pointer">
                         <option value="">-- Select Driver --</option>
                         @foreach($drivers as $driver)
                             <option value="{{ $driver->id }}">{{ $driver->user->name }} ({{ str_replace('_', ' ', $driver->status) }})</option>
@@ -444,7 +454,7 @@
 
                 <div class="space-y-2">
                     <label for="transport_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Transport Vehicle</label>
-                    <select id="transport_id" name="transport_id" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 text-sm font-semibold outline-none transition-all appearance-none cursor-pointer">
+                    <select id="transport_id" name="transport_id" x-model="selectedTransport" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 text-sm font-semibold outline-none transition-all appearance-none cursor-pointer">
                         <option value="">-- Select Vehicle --</option>
                         @foreach($transports as $vehicle)
                             <option value="{{ $vehicle->id }}">{{ $vehicle->name }} - {{ $vehicle->vehicle_number }} ({{ str_replace('_', ' ', $vehicle->status) }})</option>

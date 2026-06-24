@@ -321,14 +321,21 @@
                     <div class="space-y-2" x-data="{ 
                         open: false,
                         search: '',
+                        selectedDriver: '',
+                        selectedTransport: '',
                         selectedShipments: [],
                         shipments: [
                             @foreach($availableShipments as $shp)
+                                @php
+                                    $latestDelivery = $shp->deliveries()->latest()->first();
+                                @endphp
                                 { 
                                     id: {{ $shp->id }}, 
                                     no: '{{ addslashes($shp->shipment_no) }}', 
                                     order: '{{ $shp->order ? addslashes($shp->order->order_no) : '—' }}',
-                                    party: '{{ $shp->order && $shp->order->party ? addslashes($shp->order->party->company_name) : 'No Party' }}'
+                                    party: '{{ $shp->order && $shp->order->party ? addslashes($shp->order->party->company_name) : 'No Party' }}',
+                                    driver_id: '{{ $latestDelivery?->driver_id ?? $shp->deliveryTracking?->driver_id ?? "" }}',
+                                    transport_id: '{{ $latestDelivery?->transport_id ?? $shp->deliveryTracking?->transport_id ?? "" }}'
                                 },
                             @endforeach
                         ],
@@ -345,6 +352,12 @@
                                 this.selectedShipments = this.selectedShipments.filter(s => s.id !== shp.id);
                             } else {
                                 this.selectedShipments.push(shp);
+                                if (shp.driver_id && !this.selectedDriver) {
+                                    this.selectedDriver = shp.driver_id;
+                                }
+                                if (shp.transport_id && !this.selectedTransport) {
+                                    this.selectedTransport = shp.transport_id;
+                                }
                             }
                         },
                         isSelected(id) {
@@ -412,7 +425,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <label for="driver_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Select Driver</label>
-                            <select id="driver_id" name="driver_id" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                            <select id="driver_id" name="driver_id" x-model="selectedDriver" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all">
                                 <option value="" disabled selected>Select a Driver</option>
                                 @forelse($drivers as $drv)
                                     <option value="{{ $drv->id }}">{{ $drv->name }}</option>
@@ -424,7 +437,7 @@
 
                         <div class="space-y-2">
                             <label for="transport_id" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Select Vehicle</label>
-                            <select id="transport_id" name="transport_id" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                            <select id="transport_id" name="transport_id" x-model="selectedTransport" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-[10px] font-black uppercase tracking-widest focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all">
                                 <option value="" disabled selected>Select a Vehicle</option>
                                 @forelse($transports as $tr)
                                     <option value="{{ $tr->id }}">{{ $tr->name }} ({{ $tr->vehicle_number }})</option>

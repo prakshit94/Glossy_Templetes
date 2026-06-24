@@ -501,7 +501,7 @@
     selectVillage(v) {
         if (!this.editingAddress) {
             this.editingAddress = {
-                label: 'Other',
+                label: 'Home',
                 address_line_1: '',
                 address_line_2: '',
                 village_id: v.id,

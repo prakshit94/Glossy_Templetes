@@ -53,6 +53,8 @@
                             data-status="{{ $order->status }}"
                             data-shipment-id="{{ $order->shipments->first()?->id }}"
                             data-order-no="{{ $order->order_no }}"
+                            data-driver-id="{{ $order->shipments->first()?->deliveryTracking?->driver_id ?? '' }}"
+                            data-transport-id="{{ $order->shipments->first()?->deliveryTracking?->transport_id ?? '' }}"
                             class="rounded-md border-border bg-background text-primary focus:ring-primary/25 shadow-sm">
                     </x-ui.table-cell>
 
@@ -457,7 +459,9 @@
                                             id: {{ $firstShipment->id }},
                                             no: '{{ addslashes($firstShipment->shipment_no) }}',
                                             order: '{{ addslashes($order->order_no) }}',
-                                            party: '{{ addslashes($order->party?->company_name ?? '') }}'
+                                            party: '{{ addslashes($order->party?->company_name ?? '') }}',
+                                            driver_id: '{{ $firstShipment->deliveryTracking?->driver_id ?? "" }}',
+                                            transport_id: '{{ $firstShipment->deliveryTracking?->transport_id ?? "" }}'
                                         }])"
 
                                         class="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:bg-blue-500/5 rounded-lg transition-colors">

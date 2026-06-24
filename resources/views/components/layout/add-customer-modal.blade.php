@@ -1,6 +1,6 @@
 @props(['globalCrops' => collect(), 'globalIrrigationTypes' => collect(), 'globalLandUnits' => collect()])
 
-<x-ui.modal id="global-add-customer-modal" maxWidth="5xl">
+<x-ui.modal id="global-add-customer-modal" maxWidth="6xl">
     <div class="p-0 overflow-hidden" x-data="{
         selectedSources: [],
         showSourceDropdown: false,
@@ -55,21 +55,21 @@
 
         <form action="{{ route('customers.store') }}" method="POST">
             @csrf
-            <div class="p-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="p-3 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     
                     {{-- ─── LEFT COLUMN ───────────────────────────────────────── --}}
                     <div class="space-y-4">
                         
                         {{-- Basic Identity --}}
-                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-4 shadow-sm">
-                            <div class="flex items-center gap-3 pb-2 mb-3 border-b border-border/40">
+                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-3 shadow-sm">
+                            <div class="flex items-center gap-3 pb-2 mb-2 border-b border-border/40">
                                 <div class="size-6 rounded-md bg-blue-500/10 flex items-center justify-center text-blue-500">
                                     <x-ui.icon name="user" size="3.5" />
                                 </div>
                                 <h4 class="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">Basic Identity</h4>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div class="space-y-1 group">
                                     <label class="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground">First Name *</label>
                                     <div class="relative">
@@ -128,14 +128,14 @@
                         </div>
 
                         {{-- Contact Channels --}}
-                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-4 shadow-sm">
-                            <div class="flex items-center gap-3 pb-2 mb-3 border-b border-border/40">
+                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-3 shadow-sm">
+                            <div class="flex items-center gap-3 pb-2 mb-2 border-b border-border/40">
                                 <div class="size-6 rounded-md bg-indigo-500/10 flex items-center justify-center text-indigo-500">
                                     <x-ui.icon name="phone" size="3.5" />
                                 </div>
                                 <h4 class="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">Contact Channels</h4>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div class="space-y-1 group">
                                     <label class="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground">Email Address</label>
                                     <div class="relative">
@@ -171,14 +171,14 @@
                         </div>
                         
                         {{-- Internal Notes --}}
-                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-4 shadow-sm">
+                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-3 shadow-sm">
                             <div class="flex items-center gap-3 pb-2 mb-2 border-b border-border/40">
                                 <div class="size-6 rounded-md bg-slate-500/10 flex items-center justify-center text-slate-500">
                                     <x-ui.icon name="file-text" size="3.5" />
                                 </div>
                                 <h4 class="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">Internal Notes</h4>
                             </div>
-                            <textarea name="internal_notes" rows="2" placeholder="Administrative notes..." class="w-full px-4 py-2 rounded-xl bg-background/50 border border-border/60 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-xs font-semibold resize-none"></textarea>
+                            <textarea name="internal_notes" rows="1" placeholder="Administrative notes..." class="w-full px-4 py-2 rounded-xl bg-background/50 border border-border/60 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-xs font-semibold resize-none"></textarea>
                         </div>
 
                     </div>
@@ -187,15 +187,15 @@
                     <div class="space-y-4">
 
                         {{-- Business & Compliance --}}
-                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-4 shadow-sm">
-                            <div class="flex items-center gap-3 pb-2 mb-3 border-b border-border/40">
+                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-3 shadow-sm">
+                            <div class="flex items-center gap-3 pb-2 mb-2 border-b border-border/40">
                                 <div class="size-6 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                                     <x-ui.icon name="briefcase" size="3.5" />
                                 </div>
                                 <h4 class="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">Business & Compliance</h4>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div class="space-y-1 group sm:col-span-2">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div class="space-y-1 group sm:col-span-3">
                                     <label class="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground">Company Name</label>
                                     <div class="relative">
                                         <x-ui.icon name="building" size="3.5" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -214,7 +214,7 @@
                                     <label class="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground">Aadhaar (Last 4)</label>
                                     <input type="text" name="aadhaar_last4" maxlength="4" class="w-full px-3 py-1.5 rounded-xl bg-background/50 border border-border/60 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-xs font-mono tracking-widest">
                                 </div>
-                                <div class="flex flex-col justify-center gap-2 pt-4">
+                                <div class="flex flex-row items-center justify-start gap-6 pt-4 sm:col-span-3">
                                     <label class="flex items-center gap-2 cursor-pointer group/toggle">
                                         <input type="hidden" name="kyc_completed" value="0">
                                         <input type="checkbox" name="kyc_completed" value="1" class="size-4 rounded-md border-border text-primary focus:ring-primary/20">
@@ -230,14 +230,14 @@
                         </div>
 
                         {{-- Agriculture Profile --}}
-                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-4 shadow-sm">
-                            <div class="flex items-center gap-3 pb-2 mb-3 border-b border-border/40">
+                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-3 shadow-sm">
+                            <div class="flex items-center gap-3 pb-2 mb-2 border-b border-border/40">
                                 <div class="size-6 rounded-md bg-amber-500/10 flex items-center justify-center text-amber-500">
                                     <x-ui.icon name="sun" size="3.5" />
                                 </div>
                                 <h4 class="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">Agriculture Profile</h4>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <div class="space-y-1 group">
                                     <label class="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground">Land Area & Unit</label>
                                     <div class="flex gap-2">
@@ -303,14 +303,14 @@
                         </div>
 
                         {{-- Financial Terms --}}
-                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-4 shadow-sm">
-                            <div class="flex items-center gap-3 pb-2 mb-3 border-b border-border/40">
+                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-3 shadow-sm">
+                            <div class="flex items-center gap-3 pb-2 mb-2 border-b border-border/40">
                                 <div class="size-6 rounded-md bg-rose-500/10 flex items-center justify-center text-rose-500">
                                     <x-ui.icon name="credit-card" size="3.5" />
                                 </div>
                                 <h4 class="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">Financial Terms</h4>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <div class="space-y-1 group">
                                     <label class="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground">Credit Limit (₹)</label>
                                     <input type="number" name="credit_limit" step="0.01" class="w-full px-3 py-1.5 rounded-xl bg-background/50 border border-border/60 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-xs font-semibold">

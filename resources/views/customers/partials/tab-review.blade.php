@@ -1,12 +1,12 @@
-{{-- ══ TAB: Order Review ══ --}}
+{{-- â•â• TAB: Order Review â•â• --}}
 <div x-show="activeTab === 'review'" 
      x-transition:enter="transition ease-out duration-500" 
      x-transition:enter-start="opacity-0 translate-y-4" 
      x-transition:enter-end="opacity-100 translate-y-0" 
      x-cloak>
     
-    <div class="space-y-8 max-w-5xl mx-auto">
-        {{-- ── Action Bar ── --}}
+    <div class="space-y-5 max-w-7xl mx-auto">
+        {{-- â”€â”€ Action Bar â”€â”€ --}}
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-card/40 backdrop-blur-xl p-4 rounded-2xl border border-border/40">
             <button type="button" @click="activeTab = 'order'" 
                 class="w-full sm:w-auto h-11 px-6 rounded-xl border border-border bg-background text-[10px] font-black uppercase tracking-widest hover:bg-muted transition-all flex items-center justify-center gap-2">
@@ -31,18 +31,18 @@
             </div>
         </template>
 
-        {{-- ── Main Review Area ── --}}
-        <div class="space-y-8">
+        {{-- â”€â”€ Main Review Area â”€â”€ --}}
+        <div class="space-y-5">
             
             {{-- 1. Full Customer Profile --}}
-            <div class="p-8 rounded-[2rem] bg-card border border-border shadow-sm">
-                <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3 mb-8">
+            <div class="p-6 rounded-2xl bg-card border border-border shadow-sm">
+                <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3 mb-5">
                     <span class="size-8 rounded-xl bg-primary/10 flex items-center justify-center">
                         <x-ui.icon name="user" size="4" />
                     </span>
                     Customer Identification
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                     <div>
                         <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Full Name</p>
                         <p class="text-sm font-black text-foreground">{{ $customer->name }}</p>
@@ -63,7 +63,7 @@
             </div>
 
             {{-- 2. Billing Address --}}
-            <div class="p-8 rounded-[2rem] bg-card border border-border shadow-sm space-y-6">
+            <div class="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-6">
                 <div class="flex items-center justify-between">
                     <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3">
                         <span class="size-8 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -78,7 +78,7 @@
                 
                 <div class="grid grid-cols-1 gap-4">
                     @foreach($customer->addresses as $addr)
-                        <label class="relative flex flex-col p-6 rounded-3xl border-2 cursor-pointer transition-all duration-300 group/addr"
+                        <label class="relative flex flex-col p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 group/addr"
                             :class="selectedBillingAddressId == {{ $addr->id }} ? 'border-primary bg-primary/[0.02]' : 'border-border/40 bg-muted/5 hover:border-border'">
                             <input type="radio" x-model="selectedBillingAddressId" value="{{ $addr->id }}" class="sr-only">
                             
@@ -125,7 +125,7 @@
                                 </div>
                             </div>
 
-                            {{-- ── Services available at this village ── --}}
+                            {{-- â”€â”€ Services available at this village â”€â”€ --}}
                             @include('customers.partials._service-badges', ['addrModel' => $addr])
                             
                             {{-- Edit Action --}}
@@ -139,7 +139,7 @@
             </div>
 
             {{-- 3. Shipping Address --}}
-            <div class="p-8 rounded-[2rem] bg-card border border-border shadow-sm space-y-6">
+            <div class="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3">
                         <span class="size-8 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -160,7 +160,7 @@
 
                 <div x-show="!sameAsBilling" x-transition class="grid grid-cols-1 gap-4">
                     @foreach($customer->addresses as $addr)
-                        <label class="relative flex flex-col p-6 rounded-3xl border-2 cursor-pointer transition-all duration-300 group/addr"
+                        <label class="relative flex flex-col p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 group/addr"
                             :class="selectedShippingAddressId == {{ $addr->id }} ? 'border-primary bg-primary/[0.02]' : 'border-border/40 bg-muted/5 hover:border-border'">
                             <input type="radio" x-model="selectedShippingAddressId" value="{{ $addr->id }}" class="sr-only">
                             
@@ -204,7 +204,7 @@
                                 </div>
                             </div>
 
-                            {{-- ── Services available at this village ── --}}
+                            {{-- â”€â”€ Services available at this village â”€â”€ --}}
                             @include('customers.partials._service-badges', ['addrModel' => $addr])
                             
                             {{-- Edit Action --}}
@@ -225,7 +225,7 @@
             </div>
 
             {{-- 4. Dispatch Information (Warehouse) --}}
-            <div class="p-8 rounded-[2rem] bg-card border border-border shadow-sm space-y-8"
+            <div class="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-8"
                  x-data="{ warehousesMap: @js($warehouses->keyBy('id')) }">
                 <div class="flex items-center justify-between border-b border-border/40 pb-4">
                     <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3">
@@ -295,8 +295,8 @@
             </div>
 
             {{-- 5. Order Items Matrix --}}
-            <div class="bg-card border border-border rounded-[2rem] shadow-sm overflow-hidden">
-                <div class="px-8 py-6 border-b border-border/40 flex items-center justify-between bg-muted/5">
+            <div class="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-border/40 flex items-center justify-between bg-muted/5">
                     <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-foreground flex items-center gap-3">
                         <x-ui.icon name="shopping-bag" size="4" /> Order Items
                     </h4>
@@ -306,16 +306,16 @@
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-muted/10">
-                                <th class="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Product Specification</th>
-                                <th class="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-muted-foreground text-center">Qty</th>
-                                <th class="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-muted-foreground text-right">Unit Price</th>
-                                <th class="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-muted-foreground text-right">Net Total</th>
+                                <th class="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Product Specification</th>
+                                <th class="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-muted-foreground text-center">Qty</th>
+                                <th class="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-muted-foreground text-right">Unit Price</th>
+                                <th class="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-muted-foreground text-right">Net Total</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border/20">
                             <template x-for="item in cart" :key="item.id">
                                 <tr class="hover:bg-primary/[0.01] transition-colors">
-                                    <td class="px-8 py-6">
+                                    <td class="px-6 py-4">
                                         <div class="flex items-center gap-5">
                                             <div class="size-12 rounded-xl bg-muted/40 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
                                                 <template x-if="item.image_url">
@@ -339,21 +339,21 @@
                                                         </span>
                                                         <span class="text-[9px] text-muted-foreground font-semibold"
                                                             x-text="item.discountType === 'percent' 
-                                                                ? '(Saved ₹' + Number(item.price * (item.discountValue / 100)).toFixed(2) + ' per unit × ' + item.quantity + ' = ₹' + Number(item.price * (item.discountValue / 100) * item.quantity).toFixed(2) + ')' 
-                                                                : '(Saved ₹' + Number(item.discountValue).toFixed(2) + ' per unit × ' + item.quantity + ' = ₹' + Number(item.discountValue * item.quantity).toFixed(2) + ')'">
+                                                                ? '(Saved ₹' + Number(item.price * (item.discountValue / 100)).toFixed(2) + ' per unit Ã— ' + item.quantity + ' = ₹' + Number(item.price * (item.discountValue / 100) * item.quantity).toFixed(2) + ')' 
+                                                                : '(Saved ₹' + Number(item.discountValue).toFixed(2) + ' per unit Ã— ' + item.quantity + ' = ₹' + Number(item.discountValue * item.quantity).toFixed(2) + ')'">
                                                         </span>
                                                     </div>
                                                 </template>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-6 text-center">
+                                    <td class="px-4 py-4 text-center">
                                         <span class="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-muted/60 text-xs font-black text-foreground border border-border/40" x-text="item.quantity"></span>
                                     </td>
-                                    <td class="px-6 py-6 text-right">
+                                    <td class="px-4 py-4 text-right">
                                         <span class="text-xs font-bold text-muted-foreground" x-text="'₹' + Number(item.price).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
                                     </td>
-                                    <td class="px-8 py-6 text-right">
+                                    <td class="px-6 py-4 text-right">
                                         <span class="text-sm font-black text-foreground" x-text="'₹' + Number(itemLineTotal(item)).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
                                     </td>
                                 </tr>
@@ -363,10 +363,10 @@
                 </div>
 
                 {{-- Order Summary Block (Below Items) --}}
-                <div class="p-10 bg-muted/5 border-t border-border/40">
-                    <div class="flex flex-col lg:flex-row justify-between gap-12">
+                <div class="p-6 bg-muted/5 border-t border-border/40">
+                    <div class="flex flex-col lg:flex-row justify-between gap-8">
                         <div class="lg:w-1/2 space-y-4">
-                            <div class="p-6 rounded-3xl bg-background border border-border/60 flex gap-4 items-start">
+                            <div class="p-5 rounded-2xl bg-background border border-border/60 flex gap-4 items-start">
                                 <div class="size-10 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center text-primary shrink-0">
                                     <x-ui.icon name="shield-check" size="5" />
                                 </div>
@@ -440,7 +440,7 @@
                                     <span class="text-4xl font-black text-primary tracking-tighter" x-text="'₹' + Number(grandTotal).toLocaleString('en-IN', {minimumFractionDigits: 2})"></span>
                                 </div>
                                 
-                                {{-- ── Confirm Button Moved Here ── --}}
+                                {{-- â”€â”€ Confirm Button Moved Here â”€â”€ --}}
                                 <form action="{{ route('customers.orders.place', $customer) }}" method="POST" class="w-full" x-data="{ isFutureOrder: false }">
                                     @csrf
                                     <input type="hidden" name="order_id" :value="editingOrderId" :disabled="!editingOrderId">
@@ -457,7 +457,7 @@
                                     <input type="hidden" name="address_id" :value="selectedShippingAddressId">
                                     <input type="hidden" name="is_draft" :value="isFutureOrder ? '1' : '0'">
                                     
-                                    <div class="mb-6 p-4 rounded-2xl border border-border/60 bg-muted/20" x-show="!editingOrderId">
+                                    <div class="mb-5 p-4 rounded-xl border border-border/60 bg-muted/20" x-show="!editingOrderId">
                                         <label class="flex items-center justify-between cursor-pointer group">
                                             <div class="flex items-center gap-3">
                                                 <div class="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">

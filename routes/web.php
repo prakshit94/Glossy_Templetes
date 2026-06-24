@@ -219,11 +219,19 @@ Route::resource(
 
     // Transport Management
     Route::post('/transport/bulk-delete', [\App\Http\Controllers\Web\TransportController::class, 'bulkDelete'])->name('transport.bulk-delete');
+    Route::post('/transport/bulk-restore', [\App\Http\Controllers\Web\TransportController::class, 'bulkRestore'])->name('transport.bulk-restore');
+    Route::post('/transport/bulk-force-delete', [\App\Http\Controllers\Web\TransportController::class, 'bulkForceDelete'])->name('transport.bulk-force-delete');
+    Route::post('/transport/{id}/restore', [\App\Http\Controllers\Web\TransportController::class, 'restore'])->name('transport.restore');
+    Route::delete('/transport/{id}/force-delete', [\App\Http\Controllers\Web\TransportController::class, 'forceDelete'])->name('transport.force-delete');
     Route::post('/transport/store', [\App\Http\Controllers\Web\TransportController::class, 'store'])->name('transport.store');
     Route::resource('transport', \App\Http\Controllers\Web\TransportController::class)->except(['create', 'edit', 'store'])->middleware('permission:transport.view');
 
     // Drivers Management
     Route::post('/drivers/bulk-delete', [\App\Http\Controllers\Web\DriverController::class, 'bulkDelete'])->name('drivers.bulk-delete');
+    Route::post('/drivers/bulk-restore', [\App\Http\Controllers\Web\DriverController::class, 'bulkRestore'])->name('drivers.bulk-restore');
+    Route::post('/drivers/bulk-force-delete', [\App\Http\Controllers\Web\DriverController::class, 'bulkForceDelete'])->name('drivers.bulk-force-delete');
+    Route::post('/drivers/{id}/restore', [\App\Http\Controllers\Web\DriverController::class, 'restore'])->name('drivers.restore');
+    Route::delete('/drivers/{id}/force-delete', [\App\Http\Controllers\Web\DriverController::class, 'forceDelete'])->name('drivers.force-delete');
     Route::post('/drivers/store', [\App\Http\Controllers\Web\DriverController::class, 'store'])->name('drivers.store');
     Route::resource('drivers', \App\Http\Controllers\Web\DriverController::class)->except(['create', 'edit', 'store'])->middleware('permission:drivers.view');
 
