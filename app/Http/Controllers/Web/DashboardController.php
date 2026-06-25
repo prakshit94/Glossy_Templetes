@@ -109,6 +109,7 @@ class DashboardController extends Controller
         */
         $revenue = (clone $orderQuery)
             ->whereNotIn('status', ['cancelled', 'returned'])
+            ->where('is_draft', false)          // exclude future orders
             ->whereBetween('order_date', [$startDate, $endDate])
             ->sum('net_amount');
 
@@ -142,6 +143,7 @@ class DashboardController extends Controller
         */
         $prevRevenue = (clone $orderQuery)
             ->whereNotIn('status', ['cancelled', 'returned'])
+            ->where('is_draft', false)          // exclude future orders
             ->whereBetween('order_date', [$prevStartDate, $prevEndDate])
             ->sum('net_amount');
 
@@ -252,7 +254,13 @@ class DashboardController extends Controller
         | RECENT ACTIVITY
         |--------------------------------------------------------------------------
         */
-        $recentOrders = (clone $orderQuery)->where('created_by', Auth::id())->with('party')->latest()->take(5)->get();
+        $recentOrders = (clone $orderQuery)
+            ->where('created_by', Auth::id())
+            ->whereBetween('order_date', [$startDate, $endDate])  // respect selected filter period
+            ->with('party')
+            ->latest('order_date')
+            ->take(10)
+            ->get();
         $recentReturns = (clone $returnsQuery)->with('order')->latest()->take(5)->get();
         
         $recentReviews = DB::table('product_reviews')
@@ -281,13 +289,16 @@ class DashboardController extends Controller
             'revenue', 'ordersCount', 'cancelledOrdersCount', 'newCustomers', 'refundsAmount', 'activeReturns', 'diffs'
         ))->render();
 
+        $recentOrdersView = view('dashboard.partials.recent_orders', compact('recentOrders'))->render();
+
         if ($request->ajax()) {
             return response()->json([
-                'chartLabels'     => $chartLabels,
-                'salesData'       => $salesData,
-                'ordersData'      => $ordersData,
-                'dateRangeString' => $dateRangeString,
-                'html'            => $metricsView
+                'chartLabels'       => $chartLabels,
+                'salesData'         => $salesData,
+                'ordersData'        => $ordersData,
+                'dateRangeString'   => $dateRangeString,
+                'html'              => $metricsView,
+                'recentOrdersHtml'  => $recentOrdersView,
             ]);
         }
 

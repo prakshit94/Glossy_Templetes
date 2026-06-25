@@ -733,7 +733,7 @@
                     <x-ui.table-cell x-show="visibleColumns.financial_total" class="text-right align-middle">
                         <div class="flex flex-col items-end">
                             <span class="text-sm font-black text-foreground tracking-tight">₹{{ number_format((float) $order->net_amount, 2) }}</span>
-                            <span class="text-[9px] font-bold text-muted-foreground/60">{{ $order->items_count ?? 0 }} items itemized</span>
+                            <span class="text-[9px] font-bold text-muted-foreground/60">{{ $order->items->count() }} items itemized</span>
                         </div>
                     </x-ui.table-cell>
 

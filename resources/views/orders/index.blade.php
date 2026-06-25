@@ -640,8 +640,8 @@
                                     class="pl-9 pr-10 py-2.5 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all w-full text-xs shadow-sm outline-none">
                                 <div x-show="isLoading" x-cloak class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                                     <x-ui.icon name="refresh-cw" class="animate-spin text-primary" size="4" />
+                                </div>
                             </div>
-                        </div>
                     </div>
                 </x-ui.card-header>
 

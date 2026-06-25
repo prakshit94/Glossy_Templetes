@@ -26,6 +26,13 @@
                 // Update HTML partials
                 document.getElementById('metrics-container').innerHTML = data.html;
                 this.dateRangeString = data.dateRangeString;
+
+                // Update Recent Orders with filter-aware data and re-init Alpine
+                const roEl = document.getElementById('recent-orders-container');
+                if (roEl && data.recentOrdersHtml) {
+                    roEl.innerHTML = data.recentOrdersHtml;
+                    if (window.Alpine) Alpine.initTree(roEl);
+                }
                 
                 // Update Chart
                 if (this.chartInstance) {
@@ -206,39 +213,9 @@
                 
                 @auth
                     <!-- Recent Orders -->
-                    <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-2xl rounded-3xl">
-                        <div class="p-5 border-b border-border/40 bg-muted/10 flex justify-between items-center">
-                            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-foreground flex items-center gap-2">
-                                <x-ui.icon name="shopping-bag" size="3.5" class="text-primary" /> Recent Orders
-                            </h3>
-                            <a href="{{ route('orders.index') }}" class="text-[9px] font-bold text-primary uppercase tracking-widest hover:underline">View All</a>
-                        </div>
-                        <div class="divide-y divide-border/40">
-                            @forelse($recentOrders as $order)
-                                <a href="{{ route('orders.show', $order) }}" class="block p-4 hover:bg-primary/5 transition-colors group">
-                                    <div class="flex justify-between items-center">
-                                        <div>
-                                            <p class="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{{ $order->order_no }}</p>
-                                            <p class="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                                                {{ $order->party->company_name ?? ($order->party->firstname . ' ' . $order->party->lastname) }}
-                                            </p>
-                                            <p class="text-[9px] text-muted-foreground mt-1 flex items-center gap-1">
-                                                <x-ui.icon name="clock" size="2.5" /> {{ $order->created_at->diffForHumans() }}
-                                            </p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-sm font-black text-foreground">₹{{ number_format($order->net_amount, 2) }}</p>
-                                            <x-ui.badge variant="outline" class="mt-1 text-[8px] font-black uppercase rounded-md">
-                                                {{ $order->status }}
-                                            </x-ui.badge>
-                                        </div>
-                                    </div>
-                                </a>
-                            @empty
-                                <div class="p-6 text-center text-sm font-medium text-muted-foreground">No recent orders.</div>
-                            @endforelse
-                        </div>
-                    </x-ui.card>
+                    <div id="recent-orders-container">
+                        @include('dashboard.partials.recent_orders')
+                    </div>
 
                     <!-- Recent Returns -->
                     <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-2xl rounded-3xl">
