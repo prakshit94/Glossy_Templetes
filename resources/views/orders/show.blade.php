@@ -239,9 +239,11 @@
                                 <span class="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-muted text-muted-foreground">{{ $order->party->type }}</span>
                                 <span class="text-[10px] font-medium text-muted-foreground flex items-center gap-1"><x-ui.icon name="phone" size="3" /> {{ $order->party->phone ?? 'No Phone' }}</span>
                             </div>
-                            <a href="{{ route($order->party->type === 'customer' ? 'customers.show' : 'suppliers.show', $order->party->id) }}" class="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
-                                View Profile <x-ui.icon name="external-link" size="3" />
-                            </a>
+                            @if($order->party->type === 'customer')
+                                <a href="{{ route('customers.show', $order->party->id) }}" class="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
+                                    View Profile <x-ui.icon name="external-link" size="3" />
+                                </a>
+                            @endif
                         @else
                             <p class="text-sm font-medium text-muted-foreground">No party assigned</p>
                         @endif
@@ -449,8 +451,8 @@
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-3">
                                                 <div class="size-10 rounded-xl bg-background border border-border flex items-center justify-center overflow-hidden shrink-0">
-                                                    @if($item->product?->image_url)
-                                                        <img src="{{ $item->product->image_url }}" class="size-full object-cover">
+                                                    @if($item->product?->image_path)
+                                                        <img src="{{ asset('storage/' . $item->product->image_path) }}" class="size-full object-cover">
                                                     @else
                                                         <x-ui.icon name="image" size="4" class="text-muted-foreground/30" />
                                                     @endif
@@ -560,7 +562,7 @@
                                         </div>
                                         <div>
                                             <p class="text-xs font-bold text-foreground">{{ $payment->payment_no }}</p>
-                                            <p class="text-[10px] text-muted-foreground font-medium">{{ $payment->payment_date->format('M d, Y') }} • {{ $payment->payment_method }}</p>
+                                            <p class="text-[10px] text-muted-foreground font-medium">{{ optional($payment->payment_date)->format('M d, Y') ?? 'N/A' }} • {{ $payment->payment_method }}</p>
                                         </div>
                                     </div>
                                     <div class="text-right">

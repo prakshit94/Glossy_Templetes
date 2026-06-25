@@ -28,7 +28,7 @@ class Order extends Model
     /** Map legacy DB value and normalize for UI / stepper logic. */
     public function lifecycleStatus(): string
     {
-        if ($this->is_draft) {
+        if ($this->is_draft && $this->status === 'pending') {
             return 'future_order';
         }
         return $this->status === 'shipped' ? 'dispatched' : $this->status;
