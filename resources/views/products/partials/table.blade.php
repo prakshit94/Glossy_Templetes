@@ -17,6 +17,7 @@
             @endcan
             <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest py-5">Product Identity</x-ui.table-head>
             <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest">Market Value</x-ui.table-head>
+            <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest">Available Offers</x-ui.table-head>
             <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-center min-w-[220px]">Inventory Metrics</x-ui.table-head>
             <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest">Operational Status</x-ui.table-head>
             <x-ui.table-head class="text-right text-[10px] font-black uppercase tracking-widest">Management</x-ui.table-head>
@@ -37,6 +38,21 @@
                     'out_of_stock' => 'bg-red-500/10 text-red-600 border-red-500/20',
                 ];
                 $colorClass = $statusColors[$product->status] ?? 'bg-muted/10 text-muted-foreground border-border/40';
+
+                $margin = $product->purchase_price > 0 ? round((($product->selling_price - $product->purchase_price) / $product->purchase_price) * 100, 1) : 0;
+                if (!empty($product->grade)) {
+                    $grade = $product->grade;
+                    if ($grade === 'A') $gradeColor = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+                    elseif ($grade === 'B') $gradeColor = 'bg-green-500/10 text-green-600 border-green-500/20';
+                    elseif ($grade === 'C') $gradeColor = 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+                    else $gradeColor = 'bg-red-500/10 text-red-600 border-red-500/20';
+                } else {
+                    $grade = 'D';
+                    $gradeColor = 'bg-red-500/10 text-red-600 border-red-500/20';
+                    if ($margin >= 50) { $grade = 'A'; $gradeColor = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'; }
+                    elseif ($margin >= 30) { $grade = 'B'; $gradeColor = 'bg-green-500/10 text-green-600 border-green-500/20'; }
+                    elseif ($margin >= 10) { $grade = 'C'; $gradeColor = 'bg-amber-500/10 text-amber-600 border-amber-500/20'; }
+                }
             @endphp
 
             <x-ui.table-row x-bind:class="selectedItems.includes({{ $product->id }}) ? 'bg-primary/5 ring-1 ring-primary/10' : 'hover:bg-primary/[0.02]'" class="border-b border-border/40 group transition-all duration-300">
@@ -83,6 +99,9 @@
                                         {{ $product->category->name }}
                                     </span>
                                 @endif
+                                <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border {{ $gradeColor }}" title="Margin: {{ $margin }}%">
+                                    Grade {{ $grade }}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -102,6 +121,115 @@
                                 <span class="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">
                                     {{ $product->taxRate->name }}
                                 </span>
+                            </div>
+                        @endif
+                    </div>
+                </x-ui.table-cell>
+
+                <x-ui.table-cell>
+                    @php
+                        $prodOffersCount = $product->activeOffers->count();
+                        $globalOffersCount = isset($storeWideOffers) ? $storeWideOffers->count() : 0;
+                        $totalOffersCount = $prodOffersCount + $globalOffersCount;
+                        $hasOffers = $totalOffersCount > 0;
+                    @endphp
+
+                    <div class="min-h-[48px] flex items-center justify-start max-w-[220px] group/offers">
+                        {{-- Muted indicator shown when NOT hovered --}}
+                        @if($hasOffers)
+                            <div class="flex items-center gap-2 text-muted-foreground/35 group-hover/offers:hidden transition-all duration-200 w-full">
+                                <div class="size-8 rounded-xl bg-rose-500/[0.04] border border-rose-500/10 flex items-center justify-center text-rose-500/50 shrink-0">
+                                    <x-ui.icon name="tag" size="3.5" />
+                                </div>
+                                <div class="flex flex-col min-w-0">
+                                    <span class="text-[9px] font-black text-rose-500/70 uppercase tracking-widest leading-none">
+                                        {{ $totalOffersCount }} {{ Str::plural('Offer', $totalOffersCount) }} Available
+                                    </span>
+                                    <span class="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-wider mt-1">
+                                        Hover to view
+                                    </span>
+                                </div>
+                            </div>
+                        @else
+                            <span class="text-[10px] font-bold text-muted-foreground/30 italic">No offers</span>
+                        @endif
+
+                        {{-- Detailed list of offers revealed ONLY on hover --}}
+                        @if($hasOffers)
+                            <div class="hidden group-hover/offers:flex flex-col justify-center gap-1.5 py-1 w-full transition-all duration-200">
+                                {{-- Product-Specific Campaigns --}}
+                                @if($prodOffersCount > 0)
+                                    @foreach($product->activeOffers as $offer)
+                                        <div class="p-2 rounded-xl bg-rose-500/[0.03] border border-rose-500/15 flex flex-col gap-1 hover:bg-rose-500/[0.06] transition-all text-left">
+                                            <div class="flex items-center justify-between gap-2">
+                                                <span class="text-[10px] font-black text-foreground truncate max-w-[130px]" title="{{ $offer->name }}">
+                                                    {{ $offer->name }}
+                                                </span>
+                                                <span class="text-[7px] font-black px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 uppercase tracking-[0.05em] whitespace-nowrap">
+                                                    {{ $offer->type === 'bogo' ? 'BOGO' : 'Discount' }}
+                                                </span>
+                                            </div>
+                                            <div class="text-[11px] font-black text-rose-500 leading-none">
+                                                @if($offer->type === 'bogo')
+                                                    Buy {{ $offer->buy_qty }} Get {{ $offer->get_qty }}
+                                                @else
+                                                    {{ $offer->discount_type === 'percentage'
+                                                        ? rtrim(rtrim(number_format((float) $offer->value, 2), '0'), '.') . '%'
+                                                        : '₹' . number_format((float) $offer->value, 2)
+                                                    }} OFF
+                                                @endif
+                                            </div>
+                                            <div class="flex flex-col gap-0.5 mt-0.5 text-[8px] font-bold text-muted-foreground/65 uppercase tracking-wide">
+                                                <span>Priority {{ $offer->priority }}</span>
+                                                @if($offer->type === 'order_discount')
+                                                    <span>{{ $offer->min_spend > 0 ? 'Min Spend: ₹' . number_format((float) $offer->min_spend, 2) : 'No Min Spend' }}</span>
+                                                    @if($offer->max_discount > 0)
+                                                        <span>Max Disc: ₹{{ number_format((float) $offer->max_discount, 2) }}</span>
+                                                    @endif
+                                                @endif
+                                                @if($offer->ends_at)
+                                                    <span class="text-orange-500/80">Ends: {{ $offer->ends_at->format('M d, Y') }}</span>
+                                                @else
+                                                    <span>No expiry</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                @endif
+
+                                {{-- Global Store Offers --}}
+                                @if($globalOffersCount > 0)
+                                    @foreach($storeWideOffers as $offer)
+                                        <div class="p-2 rounded-xl bg-blue-500/[0.03] border border-blue-500/15 flex flex-col gap-1 hover:bg-blue-500/[0.06] transition-all text-left">
+                                            <div class="flex items-center justify-between gap-2">
+                                                <span class="text-[10px] font-black text-foreground truncate max-w-[130px]" title="{{ $offer->name }}">
+                                                    {{ $offer->name }}
+                                                </span>
+                                                <span class="text-[7px] font-black px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 uppercase tracking-[0.05em] whitespace-nowrap">
+                                                    Global
+                                                </span>
+                                            </div>
+                                            <div class="text-[11px] font-black text-blue-500 leading-none">
+                                                {{ $offer->discount_type === 'percentage'
+                                                    ? rtrim(rtrim(number_format((float) $offer->value, 2), '0'), '.') . '%'
+                                                    : '₹' . number_format((float) $offer->value, 2)
+                                                }} OFF
+                                            </div>
+                                            <div class="flex flex-col gap-0.5 mt-0.5 text-[8px] font-bold text-muted-foreground/65 uppercase tracking-wide">
+                                                <span>Priority {{ $offer->priority }}</span>
+                                                <span>{{ $offer->min_spend > 0 ? 'Min Spend: ₹' . number_format((float) $offer->min_spend, 2) : 'No Min Spend' }}</span>
+                                                @if($offer->max_discount > 0)
+                                                    <span>Max Disc: ₹{{ number_format((float) $offer->max_discount, 2) }}</span>
+                                                @endif
+                                                @if($offer->ends_at)
+                                                    <span class="text-orange-500/80">Ends: {{ $offer->ends_at->format('M d, Y') }}</span>
+                                                @else
+                                                    <span>No expiry</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -201,7 +329,7 @@
             </x-ui.table-row>
         @empty
             <x-ui.table-row>
-                <x-ui.table-cell colspan="6" class="h-64 text-center">
+                <x-ui.table-cell colspan="7" class="h-64 text-center">
                     <div class="flex flex-col items-center justify-center gap-6 opacity-40">
                         <x-ui.icon name="package" size="16" stroke-width="1" />
                         <div class="space-y-1">

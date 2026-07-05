@@ -87,7 +87,7 @@
                                             class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background text-sm font-medium text-foreground outline-none">
                                             <option value="" class="bg-card">Select Unit</option>
                                             @foreach($uoms as $uom)
-                                                <option value="{{ $uom->id }}" {{ old('uom_id', $product->uom_id) == $uom->id ? 'selected' : '' }} class="bg-card">{{ $uom->name }} ({{ $uom->short_name }})</option>
+                                                <option value="{{ $uom->id }}" {{ old('uom_id', $product->uom_id) == $uom->id ? 'selected' : '' }} class="bg-card">{{ $uom->name }}{{ $uom->short_name ? ' (' . $uom->short_name . ')' : '' }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -316,6 +316,18 @@
                                             <option value="active" {{ $product->status == 'active' ? 'selected' : '' }} class="bg-card">Active</option>
                                             <option value="draft" {{ $product->status == 'draft' ? 'selected' : '' }} class="bg-card">Draft</option>
                                             <option value="out_of_stock" {{ $product->status == 'out_of_stock' ? 'selected' : '' }} class="bg-card">Out of Stock</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="space-y-2">
+                                        <label for="grade" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Product Grade (Optional)</label>
+                                        <select name="grade" id="grade" 
+                                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-[10px] font-black uppercase tracking-widest text-foreground outline-none">
+                                            <option value="" {{ empty($product->grade) ? 'selected' : '' }} class="bg-card">Auto-Calculate (Margin based)</option>
+                                            <option value="A" {{ $product->grade == 'A' ? 'selected' : '' }} class="bg-card">Grade A (High Margin)</option>
+                                            <option value="B" {{ $product->grade == 'B' ? 'selected' : '' }} class="bg-card">Grade B (Good Margin)</option>
+                                            <option value="C" {{ $product->grade == 'C' ? 'selected' : '' }} class="bg-card">Grade C (Average Margin)</option>
+                                            <option value="D" {{ $product->grade == 'D' ? 'selected' : '' }} class="bg-card">Grade D (Low Margin)</option>
                                         </select>
                                     </div>
                                 </div>

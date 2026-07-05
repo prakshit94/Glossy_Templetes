@@ -214,7 +214,7 @@ Route::post(
 Route::resource(
     'offers',
     App\Http\Controllers\Web\OfferController::class
-)->except(['show'])->middleware('permission:offers.view');
+)->middleware('permission:offers.view');
 
 
     // Transport Management

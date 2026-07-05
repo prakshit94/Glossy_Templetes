@@ -301,40 +301,131 @@
                     class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                     <!-- Product -->
-                    <div class="space-y-2 md:col-span-2">
+                    <div class="space-y-2 md:col-span-2 relative animate-in fade-in duration-300"
+                        x-data="{
+                            searchQuery: '',
+                            isOpen: false,
+                            selectedId: '{{ old('product_id', $offer->product_id ?? '') }}',
+                            selectedLabel: '',
+                            productsList: [
+                                @foreach($products as $product)
+                                    {
+                                        id: '{{ $product->id }}',
+                                        name: @js($product->name),
+                                        sku: @js($product->sku)
+                                    },
+                                @endforeach
+                            ],
+                            get filteredProducts() {
+                                if (!this.searchQuery) return this.productsList;
+                                const query = this.searchQuery.toLowerCase();
+                                return this.productsList.filter(p => 
+                                    p.name.toLowerCase().includes(query) || 
+                                    p.sku.toLowerCase().includes(query)
+                                );
+                            },
+                            selectProduct(p) {
+                                this.selectedId = p.id;
+                                this.selectedLabel = p.name + ' (' + p.sku + ')';
+                                this.searchQuery = '';
+                                this.isOpen = false;
+                            },
+                            clearSelection() {
+                                this.selectedId = '';
+                                this.selectedLabel = '';
+                                this.searchQuery = '';
+                            },
+                            init() {
+                                const initial = this.productsList.find(p => p.id == this.selectedId);
+                                if (initial) {
+                                    this.selectedLabel = initial.name + ' (' + initial.sku + ')';
+                                }
+                            }
+                        }"
+                        @click.away="isOpen = false">
 
                         <label
-                            for="product_id"
                             class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">
 
                             Product
 
                         </label>
 
-                        <select
-                            name="product_id"
-                            id="product_id"
-                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 text-sm font-medium focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none">
+                        <!-- Hidden input to submit the actual product_id -->
+                        <input type="hidden" name="product_id" :value="selectedId">
 
-                            <option value="">
+                        <!-- Trigger / Input Area -->
+                        <div class="relative">
+                            <!-- Selected Product Badge -->
+                            <template x-if="selectedId">
+                                <div class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 flex items-center justify-between text-sm font-bold text-foreground">
+                                    <div class="flex items-center gap-2">
+                                        <x-ui.icon name="check-circle" size="4" class="text-emerald-500" />
+                                        <span x-text="selectedLabel"></span>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        @click="clearSelection()"
+                                        class="size-7 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all">
+                                        <x-ui.icon name="x" size="3.5" />
+                                    </button>
+                                </div>
+                            </template>
 
-                                Select Product
+                            <!-- Search Input (Unselected state) -->
+                            <template x-if="!selectedId">
+                                <div class="relative w-full">
+                                    <input
+                                        type="text"
+                                        x-model="searchQuery"
+                                        @focus="isOpen = true"
+                                        placeholder="Search product by name or SKU..."
+                                        class="w-full h-11 pl-10 pr-10 rounded-xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm font-bold outline-none">
+                                    
+                                    <div class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50">
+                                        <x-ui.icon name="search" size="4" />
+                                    </div>
 
-                            </option>
+                                    <button 
+                                        type="button"
+                                        @click="isOpen = !isOpen"
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors">
+                                        <x-ui.icon name="chevron-down" size="4" />
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
 
-                            @foreach($products as $product)
+                        <!-- Dropdown Panel -->
+                        <div 
+                            x-show="isOpen && !selectedId"
+                            x-cloak
+                            x-transition:enter="transition ease-out duration-150"
+                            x-transition:enter-start="opacity-0 scale-95"
+                            x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-100"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
+                            class="absolute z-50 mt-1 w-full bg-background border border-border/80 rounded-2xl shadow-2xl max-h-60 overflow-y-auto p-1.5 backdrop-blur-2xl bg-card/95">
+                            
+                            <div class="space-y-0.5">
+                                <template x-for="p in filteredProducts" :key="p.id">
+                                    <button
+                                        type="button"
+                                        @click="selectProduct(p)"
+                                        class="w-full text-left px-3 py-2 text-xs font-bold rounded-xl hover:bg-primary/5 hover:text-primary transition-all flex items-center justify-between">
+                                        <span x-text="p.name" class="truncate pr-4"></span>
+                                        <span x-text="p.sku" class="text-[9px] font-mono font-black uppercase bg-muted/40 px-2 py-0.5 rounded border border-border/20 text-muted-foreground"></span>
+                                    </button>
+                                </template>
 
-                                <option
-                                    value="{{ $product->id }}"
-                                    {{ (string) old('product_id', $offer->product_id ?? '') === (string) $product->id ? 'selected' : '' }}>
-
-                                    {{ $product->name }} ({{ $product->sku }})
-
-                                </option>
-
-                            @endforeach
-
-                        </select>
+                                <template x-if="filteredProducts.length === 0">
+                                    <div class="py-4 text-center text-xs font-bold text-muted-foreground/50">
+                                        No products found
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
 
                     </div>
 

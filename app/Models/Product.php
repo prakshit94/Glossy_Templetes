@@ -41,6 +41,7 @@ class Product extends Model
         'is_sku_enabled',
         'default_discount',
         'default_discount_type',
+        'grade',
     ];
 
     protected $casts = [
@@ -111,6 +112,16 @@ class Product extends Model
     public function attributeValues()
     {
         return $this->belongsToMany(ProductAttributeValue::class, 'product_attribute_mapping', 'product_id', 'attribute_value_id');
+    }
+
+    public function offers(): HasMany
+    {
+        return $this->hasMany(Offer::class);
+    }
+
+    public function activeOffers(): HasMany
+    {
+        return $this->hasMany(Offer::class)->active();
     }
 
     // ─── Computed Attributes ───────────────────────────────────────────────

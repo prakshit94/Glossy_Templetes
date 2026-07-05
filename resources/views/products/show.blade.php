@@ -140,6 +140,44 @@
     @endpush
 
     <div class="p-4 sm:p-6 lg:p-10 max-w-[1400px] mx-auto">
+        @php
+            $margin = $product->purchase_price > 0 ? round((($product->selling_price - $product->purchase_price) / $product->purchase_price) * 100, 1) : 0;
+            
+            if (!empty($product->grade)) {
+                $grade = $product->grade;
+                if ($grade === 'A') {
+                    $gradeColor = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+                    $gradeLabel = 'High Margin (Assigned)';
+                } elseif ($grade === 'B') {
+                    $gradeColor = 'bg-green-500/10 text-green-500 border-green-500/20';
+                    $gradeLabel = 'Good Margin (Assigned)';
+                } elseif ($grade === 'C') {
+                    $gradeColor = 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+                    $gradeLabel = 'Average Margin (Assigned)';
+                } else {
+                    $gradeColor = 'bg-red-500/10 text-red-500 border-red-500/20';
+                    $gradeLabel = 'Low Margin (Assigned)';
+                }
+            } else {
+                $grade = 'D';
+                $gradeColor = 'bg-red-500/10 text-red-500 border-red-500/20';
+                $gradeLabel = 'Low Margin';
+                
+                if ($margin >= 50) {
+                    $grade = 'A';
+                    $gradeColor = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+                    $gradeLabel = 'High Margin';
+                } elseif ($margin >= 30) {
+                    $grade = 'B';
+                    $gradeColor = 'bg-green-500/10 text-green-500 border-green-500/20';
+                    $gradeLabel = 'Good Margin';
+                } elseif ($margin >= 10) {
+                    $grade = 'C';
+                    $gradeColor = 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+                    $gradeLabel = 'Average Margin';
+                }
+            }
+        @endphp
 
         {{-- ════════════════════════════════════════════════════════════
              BREADCRUMB & PAGE HEADER
@@ -237,7 +275,14 @@
 
                                 {{-- Product Name --}}
                                 <div>
-                                    <h2 class="text-2xl sm:text-3xl font-black text-foreground leading-tight">{{ $product->name }}</h2>
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        <h2 class="text-2xl sm:text-3xl font-black text-foreground leading-tight">{{ $product->name }}</h2>
+                                        <div class="flex items-center gap-1.5 cursor-help" title="{{ $gradeLabel }}">
+                                            <span class="px-2.5 py-1 rounded-lg border {{ $gradeColor }} text-[10px] font-black uppercase tracking-widest">
+                                                Grade {{ $grade }}
+                                            </span>
+                                        </div>
+                                    </div>
                                     <div class="flex flex-wrap items-center gap-3 mt-2">
                                         <span class="text-xs font-mono text-muted-foreground bg-muted/20 px-2 py-0.5 rounded-md border border-border/30">SKU: {{ $product->sku }}</span>
                                         @if($product->barcode)
@@ -635,6 +680,80 @@
                     </div>
                 </x-ui.card>
 
+                @if($product->activeOffers->count() > 0 || (isset($storeWideOffers) && $storeWideOffers->count() > 0))
+                {{-- ──────────────────────────────────────────────────
+                     ACTIVE OFFERS & DISCOUNTS
+                     ────────────────────────────────────────────────── --}}
+                <x-ui.card class="overflow-hidden border-rose-500/30 shadow-2xl bg-rose-500/[0.02] backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <x-ui.card-header class="border-b border-rose-500/20 bg-rose-500/5 px-5 py-4">
+                        <div class="flex items-center gap-2">
+                            <x-ui.icon name="tag" size="4" class="text-rose-500 opacity-80" />
+                            <h4 class="text-[10px] font-black uppercase tracking-widest text-rose-600">Available Offers</h4>
+                        </div>
+                    </x-ui.card-header>
+                    <div class="p-5 space-y-4">
+                        {{-- Product-Specific Campaigns --}}
+                        @if($product->activeOffers->count() > 0)
+                            <div class="space-y-2">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-rose-500/60">Product Campaigns</p>
+                                @foreach($product->activeOffers as $offer)
+                                    <div class="p-3.5 rounded-2xl bg-card/60 border border-rose-500/10 hover:border-rose-500/30 hover:bg-rose-500/[0.04] transition-all">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="space-y-1 min-w-0">
+                                                <span class="text-xs font-black text-foreground block truncate" title="{{ $offer->name }}">{{ $offer->name }}</span>
+                                                @if($offer->type === 'bogo')
+                                                    <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                        Buy {{ $offer->buy_qty }} Get {{ $offer->get_qty }} free
+                                                    </p>
+                                                @endif
+                                                @if($offer->min_spend > 0)
+                                                    <p class="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-widest">Min Spend: ₹{{ number_format($offer->min_spend, 2) }}</p>
+                                                @endif
+                                                @if($offer->ends_at)
+                                                    <p class="text-[9px] font-bold text-orange-500 uppercase tracking-widest">Ends: {{ $offer->ends_at->format('d M Y, h:i A') }}</p>
+                                                @endif
+                                            </div>
+                                            <span class="text-[10px] font-black text-rose-500 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider shrink-0">
+                                                @if($offer->type === 'bogo')
+                                                    BOGO
+                                                @else
+                                                    {{ $offer->discount_type === 'percentage' ? rtrim(rtrim(number_format((float) $offer->value, 2), '0'), '.') . '%' : '₹' . number_format((float) $offer->value, 2) }} OFF
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        {{-- Store-Wide Campaigns --}}
+                        @if(isset($storeWideOffers) && $storeWideOffers->count() > 0)
+                            <div class="space-y-2 pt-2 border-t border-border/40">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-blue-500/60">Global Store Offers</p>
+                                @foreach($storeWideOffers as $offer)
+                                    <div class="p-3.5 rounded-2xl bg-card/60 border border-blue-500/10 hover:border-blue-500/30 hover:bg-blue-500/[0.04] transition-all">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="space-y-1 min-w-0">
+                                                <span class="text-xs font-black text-foreground block truncate" title="{{ $offer->name }}">{{ $offer->name }}</span>
+                                                @if($offer->min_spend > 0)
+                                                    <p class="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-widest">Min Spend: ₹{{ number_format($offer->min_spend, 2) }}</p>
+                                                @endif
+                                                @if($offer->ends_at)
+                                                    <p class="text-[9px] font-bold text-orange-500 uppercase tracking-widest">Ends: {{ $offer->ends_at->format('d M Y, h:i A') }}</p>
+                                                @endif
+                                            </div>
+                                            <span class="text-[10px] font-black text-blue-500 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider shrink-0">
+                                                {{ $offer->discount_type === 'percentage' ? rtrim(rtrim(number_format((float) $offer->value, 2), '0'), '.') . '%' : '₹' . number_format((float) $offer->value, 2) }} OFF
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </x-ui.card>
+                @endif
+
                 {{-- ──────────────────────────────────────────────────
                      PRICING BREAKDOWN
                      ────────────────────────────────────────────────── --}}
@@ -667,10 +786,7 @@
                         </div>
                         @endif
                         @role('Super Admin')
-                        @php
-                            $margin = $product->purchase_price > 0 ? round((($product->selling_price - $product->purchase_price) / $product->purchase_price) * 100, 1) : 0;
-                        @endphp
-                        <div class="mt-3 pt-3 border-t border-border/20">
+                        <div class="mt-3 pt-3 border-t border-border/20 space-y-0">
                             <div class="info-row flex items-center justify-between">
                                 <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Margin</span>
                                 <span class="text-sm font-black {{ $margin >= 0 ? 'text-emerald-500' : 'text-red-500' }}">

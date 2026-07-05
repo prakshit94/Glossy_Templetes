@@ -109,7 +109,7 @@
                                             class="w-full h-12 px-4 rounded-2xl border border-border bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium text-foreground">
                                             <option value="" class="bg-card">Select Unit</option>
                                             @foreach($uoms as $uom)
-                                                <option value="{{ $uom->id }}" {{ old('uom_id') == $uom->id ? 'selected' : '' }} class="bg-card">{{ $uom->name }} ({{ $uom->short_name }})</option>
+                                                <option value="{{ $uom->id }}" {{ old('uom_id') == $uom->id ? 'selected' : '' }} class="bg-card">{{ $uom->name }}{{ $uom->short_name ? ' (' . $uom->short_name . ')' : '' }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -337,6 +337,18 @@
                                             <option value="active" class="bg-card">Active</option>
                                             <option value="draft" class="bg-card">Draft</option>
                                             <option value="out_of_stock" class="bg-card">Out of Stock</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="space-y-2">
+                                        <label for="grade" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Product Grade (Optional)</label>
+                                        <select name="grade" id="grade" 
+                                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/50 focus:bg-background text-[10px] font-black uppercase tracking-widest text-foreground outline-none">
+                                            <option value="" class="bg-card">Auto-Calculate (Margin based)</option>
+                                            <option value="A" class="bg-card">Grade A (High Margin)</option>
+                                            <option value="B" class="bg-card">Grade B (Good Margin)</option>
+                                            <option value="C" class="bg-card">Grade C (Average Margin)</option>
+                                            <option value="D" class="bg-card">Grade D (Low Margin)</option>
                                         </select>
                                     </div>
                                 </div>

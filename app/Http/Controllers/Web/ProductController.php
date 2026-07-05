@@ -11,6 +11,7 @@ use App\Models\UnitOfMeasure;
 use App\Models\TaxRate;
 use App\Models\HsnCode;
 use App\Models\ProductAttribute;
+use App\Models\Offer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -26,7 +27,7 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $query = Product::query()->with(['category', 'brand', 'taxRate', 'hsnCode'])
+        $query = Product::query()->with(['category', 'brand', 'taxRate', 'hsnCode', 'activeOffers'])
             ->withSum('stocks as total_stock', 'quantity')
             ->withSum('stocks as total_reserved', 'reserved_qty')
             ->withSum('stocks as total_dispatched', 'dispatched_qty');
@@ -78,17 +79,18 @@ class ProductController extends Controller
 
         $perPage = (int) $request->input('perPage', 10);
         $products = $query->paginate($perPage)->withQueryString();
+        $storeWideOffers = Offer::active()->whereNull('product_id')->get();
 
         if ($request->ajax()) {
             return response()->json([
-                'table' => view('products.partials.table', compact('products'))->render(),
+                'table' => view('products.partials.table', compact('products', 'storeWideOffers'))->render(),
                 'categoriesList' => $categoriesList,
                 'statusList' => $statusList,
                 'stats' => $stats
             ]);
         }
 
-        return view('products.index', compact('products', 'stats', 'categoriesList', 'statusList'));
+        return view('products.index', compact('products', 'stats', 'categoriesList', 'statusList', 'storeWideOffers'));
     }
 
     public function searchApi(Request $request)
@@ -261,6 +263,7 @@ class ProductController extends Controller
             'is_sku_enabled' => 'nullable|boolean',
             'default_discount' => 'nullable|numeric|min:0|max:100',
             'default_discount_type' => 'nullable|in:percent,flat',
+            'grade' => 'nullable|string|in:A,B,C,D',
         ]);
 
         $data['slug'] = Str::slug($data['name']);
@@ -271,6 +274,7 @@ class ProductController extends Controller
         $data['overselling_qty'] = $request->input('overselling_qty', 0);
         $data['min_stock_level'] = $request->input('min_stock_level', 0);
         $data['is_sku_enabled'] = $request->has('is_sku_enabled');
+        $data['grade'] = $request->input('grade');
         
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
@@ -287,8 +291,9 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        $product->load(['category', 'brand', 'taxRate', 'hsnCode', 'stocks.warehouse', 'attributeValues.attribute']);
-        return view('products.show', compact('product'));
+        $product->load(['category', 'brand', 'taxRate', 'hsnCode', 'stocks.warehouse', 'attributeValues.attribute', 'activeOffers']);
+        $storeWideOffers = Offer::active()->whereNull('product_id')->get();
+        return view('products.show', compact('product', 'storeWideOffers'));
     }
 
     public function edit(Product $product)
@@ -335,6 +340,7 @@ class ProductController extends Controller
             'is_sku_enabled' => 'nullable|boolean',
             'default_discount' => 'nullable|numeric|min:0|max:100',
             'default_discount_type' => 'nullable|in:percent,flat',
+            'grade' => 'nullable|string|in:A,B,C,D',
         ]);
 
         $data['slug'] = Str::slug($data['name']);
@@ -345,6 +351,7 @@ class ProductController extends Controller
         $data['overselling_qty'] = $request->input('overselling_qty', 0);
         $data['min_stock_level'] = $request->input('min_stock_level', 0);
         $data['is_sku_enabled'] = $request->has('is_sku_enabled');
+        $data['grade'] = $request->input('grade');
 
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
