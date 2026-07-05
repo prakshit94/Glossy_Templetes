@@ -680,7 +680,7 @@
                     </div>
                 </x-ui.card>
 
-                @if($product->activeOffers->count() > 0 || (isset($storeWideOffers) && $storeWideOffers->count() > 0))
+                @if($product->activeOffers->count() > 0 || (isset($storeWideOffers) && $storeWideOffers->count() > 0) || (float) $product->default_discount > 0)
                 {{-- ──────────────────────────────────────────────────
                      ACTIVE OFFERS & DISCOUNTS
                      ────────────────────────────────────────────────── --}}
@@ -692,6 +692,24 @@
                         </div>
                     </x-ui.card-header>
                     <div class="p-5 space-y-4">
+                        {{-- Product Base Discount --}}
+                        @if((float) $product->default_discount > 0)
+                            <div class="space-y-2">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-emerald-500/60">Base Offer</p>
+                                <div class="p-3.5 rounded-2xl bg-card/60 border border-emerald-500/10 hover:border-emerald-500/30 hover:bg-emerald-500/[0.04] transition-all">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="space-y-1 min-w-0">
+                                            <span class="text-xs font-black text-foreground block truncate">Product Base Discount</span>
+                                            <p class="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-widest">Applied automatically to this product at checkout</p>
+                                        </div>
+                                        <span class="text-[10px] font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider shrink-0">
+                                            {{ rtrim(rtrim(number_format((float) $product->default_discount, 2), '0'), '.') }}{{ $product->default_discount_type === 'percent' ? '%' : '₹' }} OFF
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         {{-- Product-Specific Campaigns --}}
                         @if($product->activeOffers->count() > 0)
                             <div class="space-y-2">

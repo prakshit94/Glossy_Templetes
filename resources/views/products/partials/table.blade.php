@@ -130,107 +130,70 @@
                     @php
                         $prodOffersCount = $product->activeOffers->count();
                         $globalOffersCount = isset($storeWideOffers) ? $storeWideOffers->count() : 0;
-                        $totalOffersCount = $prodOffersCount + $globalOffersCount;
+                        $hasBaseDiscount = (float) $product->default_discount > 0;
+                        $totalOffersCount = $prodOffersCount + $globalOffersCount + ($hasBaseDiscount ? 1 : 0);
                         $hasOffers = $totalOffersCount > 0;
                     @endphp
 
-                    <div class="min-h-[48px] flex items-center justify-start max-w-[220px] group/offers">
-                        {{-- Muted indicator shown when NOT hovered --}}
+                    <div class="flex items-center">
                         @if($hasOffers)
-                            <div class="flex items-center gap-2 text-muted-foreground/35 group-hover/offers:hidden transition-all duration-200 w-full">
-                                <div class="size-8 rounded-xl bg-rose-500/[0.04] border border-rose-500/10 flex items-center justify-center text-rose-500/50 shrink-0">
-                                    <x-ui.icon name="tag" size="3.5" />
+                            <button
+                                type="button"
+                                @click="$dispatch('open-offers-modal', {
+                                    productName: @js($product->name),
+                                    productSku: @js($product->sku),
+                                    totalCount: {{ $totalOffersCount }},
+                                    hasBaseDiscount: {{ $hasBaseDiscount ? 'true' : 'false' }},
+                                    baseDiscountValue: @js(rtrim(rtrim(number_format((float) $product->default_discount, 2), '0'), '.')),
+                                    baseDiscountType: @js($product->default_discount_type),
+                                    productOffers: [
+                                        @foreach($product->activeOffers as $offer)
+                                        {
+                                            name: @js($offer->name),
+                                            type: @js($offer->type),
+                                            discountType: @js($offer->discount_type ?? ''),
+                                            value: @js(number_format((float) ($offer->value ?? 0), 2)),
+                                            buyQty: {{ $offer->buy_qty ?? 0 }},
+                                            getQty: {{ $offer->get_qty ?? 0 }},
+                                            priority: {{ $offer->priority ?? 0 }},
+                                            minSpend: @js(number_format((float) ($offer->min_spend ?? 0), 2)),
+                                            maxDiscount: @js(number_format((float) ($offer->max_discount ?? 0), 2)),
+                                            endsAt: @js($offer->ends_at ? $offer->ends_at->format('M d, Y') : null)
+                                        },
+                                        @endforeach
+                                    ],
+                                    globalOffers: [
+                                        @if(isset($storeWideOffers))
+                                        @foreach($storeWideOffers as $offer)
+                                        {
+                                            name: @js($offer->name),
+                                            discountType: @js($offer->discount_type ?? ''),
+                                            value: @js(number_format((float) ($offer->value ?? 0), 2)),
+                                            priority: {{ $offer->priority ?? 0 }},
+                                            minSpend: @js(number_format((float) ($offer->min_spend ?? 0), 2)),
+                                            maxDiscount: @js(number_format((float) ($offer->max_discount ?? 0), 2)),
+                                            endsAt: @js($offer->ends_at ? $offer->ends_at->format('M d, Y') : null)
+                                        },
+                                        @endforeach
+                                        @endif
+                                    ]
+                                })"
+                                class="group/btn flex items-center gap-2 px-3 py-2 rounded-xl border border-rose-500/20 bg-rose-500/[0.03] hover:bg-rose-500/[0.08] hover:border-rose-500/40 transition-all duration-200 cursor-pointer">
+                                <div class="size-6 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500/70 shrink-0">
+                                    <x-ui.icon name="tag" size="3" />
                                 </div>
-                                <div class="flex flex-col min-w-0">
-                                    <span class="text-[9px] font-black text-rose-500/70 uppercase tracking-widest leading-none">
-                                        {{ $totalOffersCount }} {{ Str::plural('Offer', $totalOffersCount) }} Available
+                                <div class="flex flex-col items-start min-w-0">
+                                    <span class="text-[9px] font-black text-rose-500/80 uppercase tracking-widest leading-none whitespace-nowrap">
+                                        {{ $totalOffersCount }} {{ Str::plural('Offer', $totalOffersCount) }}
                                     </span>
-                                    <span class="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-wider mt-1">
-                                        Hover to view
+                                    <span class="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-wider mt-0.5 group-hover/btn:text-rose-500/60 transition-colors whitespace-nowrap">
+                                        View Details
                                     </span>
                                 </div>
-                            </div>
+                                <x-ui.icon name="chevron-right" size="3" class="text-muted-foreground/30 group-hover/btn:text-rose-500/60 transition-colors shrink-0" />
+                            </button>
                         @else
                             <span class="text-[10px] font-bold text-muted-foreground/30 italic">No offers</span>
-                        @endif
-
-                        {{-- Detailed list of offers revealed ONLY on hover --}}
-                        @if($hasOffers)
-                            <div class="hidden group-hover/offers:flex flex-col justify-center gap-1.5 py-1 w-full transition-all duration-200">
-                                {{-- Product-Specific Campaigns --}}
-                                @if($prodOffersCount > 0)
-                                    @foreach($product->activeOffers as $offer)
-                                        <div class="p-2 rounded-xl bg-rose-500/[0.03] border border-rose-500/15 flex flex-col gap-1 hover:bg-rose-500/[0.06] transition-all text-left">
-                                            <div class="flex items-center justify-between gap-2">
-                                                <span class="text-[10px] font-black text-foreground truncate max-w-[130px]" title="{{ $offer->name }}">
-                                                    {{ $offer->name }}
-                                                </span>
-                                                <span class="text-[7px] font-black px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 uppercase tracking-[0.05em] whitespace-nowrap">
-                                                    {{ $offer->type === 'bogo' ? 'BOGO' : 'Discount' }}
-                                                </span>
-                                            </div>
-                                            <div class="text-[11px] font-black text-rose-500 leading-none">
-                                                @if($offer->type === 'bogo')
-                                                    Buy {{ $offer->buy_qty }} Get {{ $offer->get_qty }}
-                                                @else
-                                                    {{ $offer->discount_type === 'percentage'
-                                                        ? rtrim(rtrim(number_format((float) $offer->value, 2), '0'), '.') . '%'
-                                                        : '₹' . number_format((float) $offer->value, 2)
-                                                    }} OFF
-                                                @endif
-                                            </div>
-                                            <div class="flex flex-col gap-0.5 mt-0.5 text-[8px] font-bold text-muted-foreground/65 uppercase tracking-wide">
-                                                <span>Priority {{ $offer->priority }}</span>
-                                                @if($offer->type === 'order_discount')
-                                                    <span>{{ $offer->min_spend > 0 ? 'Min Spend: ₹' . number_format((float) $offer->min_spend, 2) : 'No Min Spend' }}</span>
-                                                    @if($offer->max_discount > 0)
-                                                        <span>Max Disc: ₹{{ number_format((float) $offer->max_discount, 2) }}</span>
-                                                    @endif
-                                                @endif
-                                                @if($offer->ends_at)
-                                                    <span class="text-orange-500/80">Ends: {{ $offer->ends_at->format('M d, Y') }}</span>
-                                                @else
-                                                    <span>No expiry</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                @endif
-
-                                {{-- Global Store Offers --}}
-                                @if($globalOffersCount > 0)
-                                    @foreach($storeWideOffers as $offer)
-                                        <div class="p-2 rounded-xl bg-blue-500/[0.03] border border-blue-500/15 flex flex-col gap-1 hover:bg-blue-500/[0.06] transition-all text-left">
-                                            <div class="flex items-center justify-between gap-2">
-                                                <span class="text-[10px] font-black text-foreground truncate max-w-[130px]" title="{{ $offer->name }}">
-                                                    {{ $offer->name }}
-                                                </span>
-                                                <span class="text-[7px] font-black px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 uppercase tracking-[0.05em] whitespace-nowrap">
-                                                    Global
-                                                </span>
-                                            </div>
-                                            <div class="text-[11px] font-black text-blue-500 leading-none">
-                                                {{ $offer->discount_type === 'percentage'
-                                                    ? rtrim(rtrim(number_format((float) $offer->value, 2), '0'), '.') . '%'
-                                                    : '₹' . number_format((float) $offer->value, 2)
-                                                }} OFF
-                                            </div>
-                                            <div class="flex flex-col gap-0.5 mt-0.5 text-[8px] font-bold text-muted-foreground/65 uppercase tracking-wide">
-                                                <span>Priority {{ $offer->priority }}</span>
-                                                <span>{{ $offer->min_spend > 0 ? 'Min Spend: ₹' . number_format((float) $offer->min_spend, 2) : 'No Min Spend' }}</span>
-                                                @if($offer->max_discount > 0)
-                                                    <span>Max Disc: ₹{{ number_format((float) $offer->max_discount, 2) }}</span>
-                                                @endif
-                                                @if($offer->ends_at)
-                                                    <span class="text-orange-500/80">Ends: {{ $offer->ends_at->format('M d, Y') }}</span>
-                                                @else
-                                                    <span>No expiry</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                @endif
-                            </div>
                         @endif
                     </div>
                 </x-ui.table-cell>
@@ -354,3 +317,195 @@
         {{ $products->links() }}
     </div>
 @endif
+
+{{-- ══════════════════════════════════════════
+     OFFERS MODAL — AlpineJS, no controller change
+     ══════════════════════════════════════════ --}}
+<div
+    x-data="{
+        open: false,
+        productName: '',
+        productSku: '',
+        totalCount: 0,
+        hasBaseDiscount: false,
+        baseDiscountValue: '',
+        baseDiscountType: '',
+        productOffers: [],
+        globalOffers: [],
+        formatDiscount(value, type) {
+            const v = parseFloat(value);
+            const trimmed = v % 1 === 0 ? v.toString() : value.replace(/\.?0+$/, '');
+            return type === 'percentage' ? trimmed + '%' : '₹' + value;
+        }
+    }"
+    x-on:open-offers-modal.window="
+        productName    = $event.detail.productName;
+        productSku     = $event.detail.productSku;
+        totalCount     = $event.detail.totalCount;
+        hasBaseDiscount  = $event.detail.hasBaseDiscount;
+        baseDiscountValue = $event.detail.baseDiscountValue;
+        baseDiscountType  = $event.detail.baseDiscountType;
+        productOffers  = $event.detail.productOffers;
+        globalOffers   = $event.detail.globalOffers;
+        open = true;
+    "
+    x-show="open"
+    x-cloak
+    class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+
+    {{-- Backdrop --}}
+    <div
+        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @click="open = false">
+    </div>
+
+    {{-- Modal Panel --}}
+    <div
+        class="relative z-10 w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl border border-border/60 bg-card/95 backdrop-blur-2xl shadow-2xl overflow-hidden"
+        x-transition:enter="transition ease-out duration-250"
+        x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+        x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+        x-transition:leave-end="opacity-0 scale-95 translate-y-2"
+        @click.stop>
+
+        {{-- Modal Header --}}
+        <div class="flex items-center justify-between gap-3 px-6 py-5 border-b border-border/40 bg-muted/10 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="size-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                    <x-ui.icon name="tag" size="5" class="text-rose-500" />
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-foreground" x-text="productName"></h3>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-[9px] font-mono font-black uppercase tracking-widest text-muted-foreground/60 bg-muted/40 px-2 py-0.5 rounded border border-border/20" x-text="productSku"></span>
+                        <span class="text-[9px] font-black text-rose-500/70 uppercase tracking-widest" x-text="totalCount + ' ' + (totalCount === 1 ? 'Offer' : 'Offers') + ' Available'"></span>
+                    </div>
+                </div>
+            </div>
+            <button
+                type="button"
+                @click="open = false"
+                class="size-9 rounded-xl hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-all shrink-0">
+                <x-ui.icon name="x" size="4" />
+            </button>
+        </div>
+
+        {{-- Modal Body --}}
+        <div class="overflow-y-auto flex-1 p-6 space-y-5">
+
+            {{-- Base Discount --}}
+            <template x-if="hasBaseDiscount">
+                <div class="space-y-2">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-emerald-500/70 flex items-center gap-1.5">
+                        <span class="inline-block size-1.5 rounded-full bg-emerald-500"></span>
+                        Base Offer
+                    </p>
+                    <div class="p-4 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/15 hover:bg-emerald-500/[0.06] transition-all">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="space-y-1">
+                                <p class="text-sm font-black text-foreground">Product Base Discount</p>
+                                <p class="text-[9px] font-bold text-muted-foreground/70 uppercase tracking-widest">Applied automatically to this product at checkout</p>
+                            </div>
+                            <span class="text-xs font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-xl whitespace-nowrap" x-text="baseDiscountValue + (baseDiscountType === 'percent' ? '%' : '₹') + ' OFF'"></span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            {{-- Product Campaigns --}}
+            <template x-if="productOffers.length > 0">
+                <div class="space-y-2">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-rose-500/70 flex items-center gap-1.5">
+                        <span class="inline-block size-1.5 rounded-full bg-rose-500"></span>
+                        Product Campaigns
+                    </p>
+                    <template x-for="offer in productOffers" :key="offer.name">
+                        <div class="p-4 rounded-2xl bg-rose-500/[0.03] border border-rose-500/15 hover:bg-rose-500/[0.06] transition-all">
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <p class="text-sm font-black text-foreground truncate" x-text="offer.name"></p>
+                                </div>
+                                <span
+                                    class="text-[7px] font-black px-2 py-1 rounded-lg uppercase tracking-widest whitespace-nowrap shrink-0"
+                                    :class="offer.type === 'bogo' ? 'bg-violet-500/10 text-violet-600 border border-violet-500/20' : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'"
+                                    x-text="offer.type === 'bogo' ? 'BOGO' : 'Discount'">
+                                </span>
+                            </div>
+                            <p
+                                class="text-base font-black text-rose-500 leading-none mb-3"
+                                x-text="offer.type === 'bogo'
+                                    ? ('Buy ' + offer.buyQty + ' Get ' + offer.getQty + ' Free')
+                                    : (formatDiscount(offer.value, offer.discountType) + ' OFF')">
+                            </p>
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-[8px] font-bold text-muted-foreground/65 uppercase tracking-wide border-t border-border/30 pt-2.5">
+                                <span x-text="'Priority: ' + offer.priority"></span>
+                                <template x-if="parseFloat(offer.minSpend) > 0">
+                                    <span x-text="'Min Spend: ₹' + offer.minSpend"></span>
+                                </template>
+                                <template x-if="parseFloat(offer.maxDiscount) > 0">
+                                    <span x-text="'Max Disc: ₹' + offer.maxDiscount"></span>
+                                </template>
+                                <span
+                                    :class="offer.endsAt ? 'text-orange-500/80' : ''"
+                                    x-text="offer.endsAt ? ('Ends: ' + offer.endsAt) : 'No expiry'">
+                                </span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            {{-- Global Store Offers --}}
+            <template x-if="globalOffers.length > 0">
+                <div class="space-y-2">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-blue-500/70 flex items-center gap-1.5">
+                        <span class="inline-block size-1.5 rounded-full bg-blue-500"></span>
+                        Global Store Offers
+                    </p>
+                    <template x-for="offer in globalOffers" :key="offer.name">
+                        <div class="p-4 rounded-2xl bg-blue-500/[0.03] border border-blue-500/15 hover:bg-blue-500/[0.06] transition-all">
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <p class="text-sm font-black text-foreground truncate" x-text="offer.name"></p>
+                                <span class="text-[7px] font-black px-2 py-1 rounded-lg bg-blue-500/10 text-blue-600 border border-blue-500/20 uppercase tracking-widest whitespace-nowrap shrink-0">Global</span>
+                            </div>
+                            <p class="text-base font-black text-blue-500 leading-none mb-3" x-text="formatDiscount(offer.value, offer.discountType) + ' OFF'"></p>
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-[8px] font-bold text-muted-foreground/65 uppercase tracking-wide border-t border-border/30 pt-2.5">
+                                <span x-text="'Priority: ' + offer.priority"></span>
+                                <template x-if="parseFloat(offer.minSpend) > 0">
+                                    <span x-text="'Min Spend: ₹' + offer.minSpend"></span>
+                                </template>
+                                <template x-if="parseFloat(offer.maxDiscount) > 0">
+                                    <span x-text="'Max Disc: ₹' + offer.maxDiscount"></span>
+                                </template>
+                                <span
+                                    :class="offer.endsAt ? 'text-orange-500/80' : ''"
+                                    x-text="offer.endsAt ? ('Ends: ' + offer.endsAt) : 'No expiry'">
+                                </span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+        </div>
+
+        {{-- Modal Footer --}}
+        <div class="px-6 py-4 border-t border-border/40 bg-muted/10 shrink-0 flex items-center justify-end gap-3">
+            <button
+                type="button"
+                @click="open = false"
+                class="h-10 px-6 rounded-xl border border-border bg-background hover:bg-muted transition-all text-[10px] font-black uppercase tracking-widest">
+                Close
+            </button>
+        </div>
+
+    </div>
+</div>
