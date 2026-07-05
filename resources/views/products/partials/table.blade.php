@@ -319,7 +319,8 @@
 @endif
 
 {{-- ══════════════════════════════════════════
-     OFFERS MODAL — AlpineJS, no controller change
+     OFFERS MODAL — teleported to <body> so it always
+     renders on top regardless of parent overflow/transforms
      ══════════════════════════════════════════ --}}
 <div
     x-data="{
@@ -339,173 +340,180 @@
         }
     }"
     x-on:open-offers-modal.window="
-        productName    = $event.detail.productName;
-        productSku     = $event.detail.productSku;
-        totalCount     = $event.detail.totalCount;
-        hasBaseDiscount  = $event.detail.hasBaseDiscount;
+        productName       = $event.detail.productName;
+        productSku        = $event.detail.productSku;
+        totalCount        = $event.detail.totalCount;
+        hasBaseDiscount   = $event.detail.hasBaseDiscount;
         baseDiscountValue = $event.detail.baseDiscountValue;
         baseDiscountType  = $event.detail.baseDiscountType;
-        productOffers  = $event.detail.productOffers;
-        globalOffers   = $event.detail.globalOffers;
+        productOffers     = $event.detail.productOffers;
+        globalOffers      = $event.detail.globalOffers;
         open = true;
-    "
-    x-show="open"
-    x-cloak
-    class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    ">
 
-    {{-- Backdrop --}}
-    <div
-        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        @click="open = false">
-    </div>
+    {{-- x-teleport moves the overlay DOM node to <body>,
+         breaking out of any overflow:hidden / transform ancestor --}}
+    <template x-teleport="body">
+        <div
+            x-show="open"
+            x-cloak
+            class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
 
-    {{-- Modal Panel --}}
-    <div
-        class="relative z-10 w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl border border-border/60 bg-card/95 backdrop-blur-2xl shadow-2xl overflow-hidden"
-        x-transition:enter="transition ease-out duration-250"
-        x-transition:enter-start="opacity-0 scale-95 translate-y-4"
-        x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-        x-transition:leave-end="opacity-0 scale-95 translate-y-2"
-        @click.stop>
-
-        {{-- Modal Header --}}
-        <div class="flex items-center justify-between gap-3 px-6 py-5 border-b border-border/40 bg-muted/10 shrink-0">
-            <div class="flex items-center gap-3">
-                <div class="size-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
-                    <x-ui.icon name="tag" size="5" class="text-rose-500" />
-                </div>
-                <div>
-                    <h3 class="text-sm font-black text-foreground" x-text="productName"></h3>
-                    <div class="flex items-center gap-2 mt-0.5">
-                        <span class="text-[9px] font-mono font-black uppercase tracking-widest text-muted-foreground/60 bg-muted/40 px-2 py-0.5 rounded border border-border/20" x-text="productSku"></span>
-                        <span class="text-[9px] font-black text-rose-500/70 uppercase tracking-widest" x-text="totalCount + ' ' + (totalCount === 1 ? 'Offer' : 'Offers') + ' Available'"></span>
-                    </div>
-                </div>
+            {{-- Backdrop --}}
+            <div
+                class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                @click="open = false">
             </div>
-            <button
-                type="button"
-                @click="open = false"
-                class="size-9 rounded-xl hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-all shrink-0">
-                <x-ui.icon name="x" size="4" />
-            </button>
-        </div>
 
-        {{-- Modal Body --}}
-        <div class="overflow-y-auto flex-1 p-6 space-y-5">
+            {{-- Modal Panel --}}
+            <div
+                class="relative z-10 w-full max-w-xl max-h-[88vh] flex flex-col rounded-3xl border border-border/50 bg-card shadow-2xl overflow-hidden"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-3"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-2"
+                @click.stop>
 
-            {{-- Base Discount --}}
-            <template x-if="hasBaseDiscount">
-                <div class="space-y-2">
-                    <p class="text-[9px] font-black uppercase tracking-widest text-emerald-500/70 flex items-center gap-1.5">
-                        <span class="inline-block size-1.5 rounded-full bg-emerald-500"></span>
-                        Base Offer
-                    </p>
-                    <div class="p-4 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/15 hover:bg-emerald-500/[0.06] transition-all">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="space-y-1">
-                                <p class="text-sm font-black text-foreground">Product Base Discount</p>
-                                <p class="text-[9px] font-bold text-muted-foreground/70 uppercase tracking-widest">Applied automatically to this product at checkout</p>
-                            </div>
-                            <span class="text-xs font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-xl whitespace-nowrap" x-text="baseDiscountValue + (baseDiscountType === 'percent' ? '%' : '₹') + ' OFF'"></span>
+                {{-- Header — matches Add New Customer style --}}
+                <div class="p-4 border-b border-border/40 bg-muted/10 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-4">
+                        <div class="size-12 rounded-2xl bg-gradient-to-tr from-rose-500/20 to-rose-500/5 border border-rose-500/10 text-rose-500 flex items-center justify-center shadow-inner">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold tracking-tight text-foreground" x-text="productName"></h3>
+                            <p class="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                                <span class="font-mono font-black uppercase tracking-widest bg-muted/40 border border-border/20 px-2 py-0.5 rounded text-[9px]" x-text="productSku"></span>
+                                <span x-text="totalCount + ' ' + (totalCount === 1 ? 'offer' : 'offers') + ' available'"></span>
+                            </p>
                         </div>
                     </div>
+                    <button type="button" @click="open = false" class="size-10 rounded-xl hover:bg-muted flex items-center justify-center transition-colors text-muted-foreground hover:text-foreground">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
                 </div>
-            </template>
 
-            {{-- Product Campaigns --}}
-            <template x-if="productOffers.length > 0">
-                <div class="space-y-2">
-                    <p class="text-[9px] font-black uppercase tracking-widest text-rose-500/70 flex items-center gap-1.5">
-                        <span class="inline-block size-1.5 rounded-full bg-rose-500"></span>
-                        Product Campaigns
-                    </p>
-                    <template x-for="offer in productOffers" :key="offer.name">
-                        <div class="p-4 rounded-2xl bg-rose-500/[0.03] border border-rose-500/15 hover:bg-rose-500/[0.06] transition-all">
-                            <div class="flex items-start justify-between gap-3 mb-2">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <p class="text-sm font-black text-foreground truncate" x-text="offer.name"></p>
+                {{-- Body --}}
+                <div class="p-3 overflow-y-auto flex-1 custom-scrollbar space-y-3">
+
+                    {{-- ── Base Offer section ── --}}
+                    <template x-if="hasBaseDiscount">
+                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-3 shadow-sm">
+                            <div class="flex items-center gap-3 pb-2 mb-2 border-b border-border/40">
+                                <div class="size-6 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                                </div>
+                                <h4 class="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">Base Offer</h4>
+                            </div>
+                            <div class="flex items-center justify-between gap-3 px-1 py-1">
+                                <div class="space-y-0.5">
+                                    <p class="text-xs font-black text-foreground">Product Base Discount</p>
+                                    <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Applied automatically at checkout</p>
                                 </div>
                                 <span
-                                    class="text-[7px] font-black px-2 py-1 rounded-lg uppercase tracking-widest whitespace-nowrap shrink-0"
-                                    :class="offer.type === 'bogo' ? 'bg-violet-500/10 text-violet-600 border border-violet-500/20' : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'"
-                                    x-text="offer.type === 'bogo' ? 'BOGO' : 'Discount'">
-                                </span>
-                            </div>
-                            <p
-                                class="text-base font-black text-rose-500 leading-none mb-3"
-                                x-text="offer.type === 'bogo'
-                                    ? ('Buy ' + offer.buyQty + ' Get ' + offer.getQty + ' Free')
-                                    : (formatDiscount(offer.value, offer.discountType) + ' OFF')">
-                            </p>
-                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-[8px] font-bold text-muted-foreground/65 uppercase tracking-wide border-t border-border/30 pt-2.5">
-                                <span x-text="'Priority: ' + offer.priority"></span>
-                                <template x-if="parseFloat(offer.minSpend) > 0">
-                                    <span x-text="'Min Spend: ₹' + offer.minSpend"></span>
-                                </template>
-                                <template x-if="parseFloat(offer.maxDiscount) > 0">
-                                    <span x-text="'Max Disc: ₹' + offer.maxDiscount"></span>
-                                </template>
-                                <span
-                                    :class="offer.endsAt ? 'text-orange-500/80' : ''"
-                                    x-text="offer.endsAt ? ('Ends: ' + offer.endsAt) : 'No expiry'">
+                                    class="text-xs font-black text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-xl whitespace-nowrap"
+                                    x-text="baseDiscountValue + (baseDiscountType === 'percent' ? '%' : '₹') + ' OFF'">
                                 </span>
                             </div>
                         </div>
                     </template>
-                </div>
-            </template>
 
-            {{-- Global Store Offers --}}
-            <template x-if="globalOffers.length > 0">
-                <div class="space-y-2">
-                    <p class="text-[9px] font-black uppercase tracking-widest text-blue-500/70 flex items-center gap-1.5">
-                        <span class="inline-block size-1.5 rounded-full bg-blue-500"></span>
-                        Global Store Offers
-                    </p>
-                    <template x-for="offer in globalOffers" :key="offer.name">
-                        <div class="p-4 rounded-2xl bg-blue-500/[0.03] border border-blue-500/15 hover:bg-blue-500/[0.06] transition-all">
-                            <div class="flex items-start justify-between gap-3 mb-2">
-                                <p class="text-sm font-black text-foreground truncate" x-text="offer.name"></p>
-                                <span class="text-[7px] font-black px-2 py-1 rounded-lg bg-blue-500/10 text-blue-600 border border-blue-500/20 uppercase tracking-widest whitespace-nowrap shrink-0">Global</span>
+                    {{-- ── Product Campaigns section ── --}}
+                    <template x-if="productOffers.length > 0">
+                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-3 shadow-sm">
+                            <div class="flex items-center gap-3 pb-2 mb-2 border-b border-border/40">
+                                <div class="size-6 rounded-md bg-rose-500/10 flex items-center justify-center text-rose-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+                                </div>
+                                <h4 class="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">Product Campaigns</h4>
                             </div>
-                            <p class="text-base font-black text-blue-500 leading-none mb-3" x-text="formatDiscount(offer.value, offer.discountType) + ' OFF'"></p>
-                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-[8px] font-bold text-muted-foreground/65 uppercase tracking-wide border-t border-border/30 pt-2.5">
-                                <span x-text="'Priority: ' + offer.priority"></span>
-                                <template x-if="parseFloat(offer.minSpend) > 0">
-                                    <span x-text="'Min Spend: ₹' + offer.minSpend"></span>
+                            <div class="space-y-2">
+                                <template x-for="offer in productOffers" :key="offer.name">
+                                    <div class="rounded-xl border border-border/40 bg-background/50 px-3 py-2.5 hover:bg-rose-500/[0.03] hover:border-rose-500/20 transition-all">
+                                        <div class="flex items-start justify-between gap-3 mb-1.5">
+                                            <p class="text-xs font-black text-foreground truncate" x-text="offer.name"></p>
+                                            <span
+                                                class="text-[7px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest whitespace-nowrap shrink-0 border"
+                                                :class="offer.type === 'bogo' ? 'bg-violet-500/10 text-violet-600 border-violet-500/20' : 'bg-rose-500/10 text-rose-600 border-rose-500/20'"
+                                                x-text="offer.type === 'bogo' ? 'BOGO' : 'Discount'">
+                                            </span>
+                                        </div>
+                                        <p class="text-sm font-black text-rose-500 mb-2"
+                                            x-text="offer.type === 'bogo'
+                                                ? ('Buy ' + offer.buyQty + ' Get ' + offer.getQty + ' Free')
+                                                : (formatDiscount(offer.value, offer.discountType) + ' OFF')">
+                                        </p>
+                                        <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-[8px] font-bold text-muted-foreground uppercase tracking-widest border-t border-border/30 pt-1.5">
+                                            <span x-text="'Priority: ' + offer.priority"></span>
+                                            <template x-if="parseFloat(offer.minSpend) > 0">
+                                                <span x-text="'Min Spend: ₹' + offer.minSpend"></span>
+                                            </template>
+                                            <template x-if="parseFloat(offer.maxDiscount) > 0">
+                                                <span x-text="'Max Disc: ₹' + offer.maxDiscount"></span>
+                                            </template>
+                                            <span :class="offer.endsAt ? 'text-orange-500' : ''" x-text="offer.endsAt ? 'Ends: ' + offer.endsAt : 'No expiry'"></span>
+                                        </div>
+                                    </div>
                                 </template>
-                                <template x-if="parseFloat(offer.maxDiscount) > 0">
-                                    <span x-text="'Max Disc: ₹' + offer.maxDiscount"></span>
-                                </template>
-                                <span
-                                    :class="offer.endsAt ? 'text-orange-500/80' : ''"
-                                    x-text="offer.endsAt ? ('Ends: ' + offer.endsAt) : 'No expiry'">
-                                </span>
                             </div>
                         </div>
                     </template>
+
+                    {{-- ── Global Store Offers section ── --}}
+                    <template x-if="globalOffers.length > 0">
+                        <div class="bg-muted/10 rounded-2xl border border-border/50 p-3 shadow-sm">
+                            <div class="flex items-center gap-3 pb-2 mb-2 border-b border-border/40">
+                                <div class="size-6 rounded-md bg-blue-500/10 flex items-center justify-center text-blue-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                                </div>
+                                <h4 class="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">Global Store Offers</h4>
+                            </div>
+                            <div class="space-y-2">
+                                <template x-for="offer in globalOffers" :key="offer.name">
+                                    <div class="rounded-xl border border-border/40 bg-background/50 px-3 py-2.5 hover:bg-blue-500/[0.03] hover:border-blue-500/20 transition-all">
+                                        <div class="flex items-start justify-between gap-3 mb-1.5">
+                                            <p class="text-xs font-black text-foreground truncate" x-text="offer.name"></p>
+                                            <span class="text-[7px] font-black px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 border border-blue-500/20 uppercase tracking-widest whitespace-nowrap shrink-0">Global</span>
+                                        </div>
+                                        <p class="text-sm font-black text-blue-500 mb-2" x-text="formatDiscount(offer.value, offer.discountType) + ' OFF'"></p>
+                                        <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-[8px] font-bold text-muted-foreground uppercase tracking-widest border-t border-border/30 pt-1.5">
+                                            <span x-text="'Priority: ' + offer.priority"></span>
+                                            <template x-if="parseFloat(offer.minSpend) > 0">
+                                                <span x-text="'Min Spend: ₹' + offer.minSpend"></span>
+                                            </template>
+                                            <template x-if="parseFloat(offer.maxDiscount) > 0">
+                                                <span x-text="'Max Disc: ₹' + offer.maxDiscount"></span>
+                                            </template>
+                                            <span :class="offer.endsAt ? 'text-orange-500' : ''" x-text="offer.endsAt ? 'Ends: ' + offer.endsAt : 'No expiry'"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
                 </div>
-            </template>
 
+                {{-- Footer — matches Add New Customer style --}}
+                <div class="p-4 bg-muted/20 border-t border-border/40 flex items-center justify-end gap-4">
+                    <button
+                        type="button"
+                        @click="open = false"
+                        class="flex items-center px-6 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors">
+                        Close
+                    </button>
+                </div>
+
+            </div>
         </div>
-
-        {{-- Modal Footer --}}
-        <div class="px-6 py-4 border-t border-border/40 bg-muted/10 shrink-0 flex items-center justify-end gap-3">
-            <button
-                type="button"
-                @click="open = false"
-                class="h-10 px-6 rounded-xl border border-border bg-background hover:bg-muted transition-all text-[10px] font-black uppercase tracking-widest">
-                Close
-            </button>
-        </div>
-
-    </div>
+    </template>
 </div>
+

@@ -903,6 +903,10 @@ class OrderController extends Controller
             return;
         }
 
+        if ($user->hasAnyRole(['Super Admin', 'Admin']) || $user->can('view_all_order')) {
+            return;
+        }
+
         $today = now()->toDateString();
 
         $query->where(function ($q) use ($user, $today) {
