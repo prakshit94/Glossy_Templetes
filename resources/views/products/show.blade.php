@@ -1,97 +1,282 @@
 <x-layouts.app pageTitle="Product Details">
 
-    <div class="p-6 lg:p-10">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <!-- Left Side: Product Info -->
-            <div class="lg:col-span-2 space-y-8">
-                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
-                    <div class="p-8">
-                        <div class="flex flex-col md:flex-row gap-8">
-                            <div class="w-full md:w-64 aspect-square rounded-3xl bg-muted/20 border border-border/50 overflow-hidden flex items-center justify-center shrink-0">
-                                @if($product->image_path)
-                                    <img src="{{ asset('storage/' . $product->image_path) }}" class="w-full h-full object-cover">
-                                @else
-                                    <x-ui.icon name="package" size="12" class="opacity-10 text-primary" />
-                                @endif
+    {{-- Scoped Styles --}}
+    @push('styles')
+    <style>
+        /* ── Glassmorphism Shimmer Card ────────────────────────────── */
+        .product-hero-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .product-hero-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, hsl(var(--primary) / 0.04) 0%, transparent 50%, hsl(var(--primary) / 0.02) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .product-hero-card > * { position: relative; z-index: 1; }
+
+        /* ── Subtle float animation for image ──────────────────────── */
+        @keyframes floatY {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .product-image-float {
+            animation: floatY 4s ease-in-out infinite;
+        }
+
+        /* ── Fade-in stagger ───────────────────────────────────────── */
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up {
+            animation: fadeSlideUp 0.5s ease-out both;
+        }
+        .fade-in-up:nth-child(1) { animation-delay: 0.05s; }
+        .fade-in-up:nth-child(2) { animation-delay: 0.12s; }
+        .fade-in-up:nth-child(3) { animation-delay: 0.19s; }
+        .fade-in-up:nth-child(4) { animation-delay: 0.26s; }
+        .fade-in-up:nth-child(5) { animation-delay: 0.33s; }
+        .fade-in-up:nth-child(6) { animation-delay: 0.40s; }
+
+        /* ── Info row hover ────────────────────────────────────────── */
+        .info-row {
+            transition: background 0.2s ease, transform 0.2s ease;
+            border-radius: 0.75rem;
+            padding: 0.625rem 0.75rem;
+        }
+        .info-row:hover {
+            background: hsl(var(--muted) / 0.15);
+            transform: translateX(4px);
+        }
+
+        /* ── Toggle pill ───────────────────────────────────────────── */
+        .toggle-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s ease;
+        }
+        .toggle-pill.is-on {
+            background: hsl(142 76% 36% / 0.12);
+            color: hsl(142 76% 36%);
+            border: 1px solid hsl(142 76% 36% / 0.25);
+        }
+        .toggle-pill.is-off {
+            background: hsl(var(--muted) / 0.2);
+            color: hsl(var(--muted-foreground) / 0.5);
+            border: 1px solid hsl(var(--border) / 0.3);
+        }
+        .toggle-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .toggle-pill.is-on .toggle-dot { background: hsl(142 76% 36%); }
+        .toggle-pill.is-off .toggle-dot { background: hsl(var(--muted-foreground) / 0.3); }
+
+        /* ── Stat box ──────────────────────────────────────────────── */
+        .stat-box {
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 1px solid hsl(var(--border) / 0.3);
+            background: hsl(var(--muted) / 0.06);
+            transition: all 0.25s ease;
+        }
+        .stat-box:hover {
+            border-color: hsl(var(--primary) / 0.3);
+            background: hsl(var(--primary) / 0.04);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px hsl(var(--primary) / 0.06);
+        }
+
+        /* ── Price tag ─────────────────────────────────────────────── */
+        .price-tag {
+            background: linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(var(--primary) / 0.03));
+            border: 1px solid hsl(var(--primary) / 0.15);
+            border-radius: 1rem;
+            padding: 1rem 1.25rem;
+            transition: all 0.25s ease;
+        }
+        .price-tag:hover {
+            border-color: hsl(var(--primary) / 0.3);
+            box-shadow: 0 4px 16px hsl(var(--primary) / 0.08);
+        }
+
+        /* ── Warehouse row ─────────────────────────────────────────── */
+        .warehouse-row {
+            transition: all 0.2s ease;
+        }
+        .warehouse-row:hover {
+            background: hsl(var(--muted) / 0.1);
+        }
+
+        /* ── Section label ─────────────────────────────────────────── */
+        .section-label {
+            font-size: 0.6rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: hsl(var(--muted-foreground) / 0.45);
+        }
+
+        /* ── Breadcrumb link ───────────────────────────────────────── */
+        .breadcrumb-link {
+            transition: color 0.2s ease;
+        }
+        .breadcrumb-link:hover {
+            color: hsl(var(--primary));
+        }
+    </style>
+    @endpush
+
+    <div class="p-4 sm:p-6 lg:p-10 max-w-[1400px] mx-auto">
+
+        {{-- ════════════════════════════════════════════════════════════
+             BREADCRUMB & PAGE HEADER
+             ════════════════════════════════════════════════════════════ --}}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 fade-in-up">
+            {{-- Breadcrumb --}}
+            <div>
+                <div class="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <a href="{{ route('products.index') }}" class="breadcrumb-link flex items-center gap-1 font-bold">
+                        <x-ui.icon name="package" size="3" />
+                        Products
+                    </a>
+                    <x-ui.icon name="chevron-right" size="3" class="opacity-30" />
+                    <span class="font-black text-foreground truncate max-w-[200px]">{{ $product->name }}</span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{{ $product->name }}</h1>
+            </div>
+
+            {{-- Actions --}}
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{{ route('products.index') }}">
+                    <x-ui.button variant="outline" class="h-10 rounded-xl font-bold text-xs gap-2 hover:bg-muted/30">
+                        <x-ui.icon name="arrow-left" size="3.5" />
+                        <span class="hidden sm:inline">Back</span>
+                    </x-ui.button>
+                </a>
+                @can('products.edit')
+                <a href="{{ route('products.edit', $product) }}">
+                    <x-ui.button class="h-10 rounded-xl font-bold text-xs gap-2 shadow-lg shadow-primary/20">
+                        <x-ui.icon name="edit-3" size="3.5" />
+                        Edit Product
+                    </x-ui.button>
+                </a>
+                @endcan
+            </div>
+        </div>
+
+        {{-- ════════════════════════════════════════════════════════════
+             MAIN GRID: 2/3 Left + 1/3 Right
+             ════════════════════════════════════════════════════════════ --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+
+            {{-- ═══════════════════════════════════════════════════════
+                 LEFT COLUMN (2 cols)
+                 ═══════════════════════════════════════════════════════ --}}
+            <div class="lg:col-span-2 space-y-6">
+
+                {{-- ──────────────────────────────────────────────────
+                     HERO CARD: Image + Core Info
+                     ────────────────────────────────────────────────── --}}
+                <x-ui.card class="product-hero-card overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <div class="p-6 sm:p-8">
+                        <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+
+                            {{-- Product Image --}}
+                            <div class="w-full md:w-56 lg:w-64 shrink-0">
+                                <div class="aspect-square rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/40 overflow-hidden flex items-center justify-center product-image-float">
+                                    @if($product->image_path)
+                                        <img src="{{ asset('storage/' . $product->image_path) }}" alt="{{ $product->name }}" class="w-full h-full object-cover">
+                                    @else
+                                        <x-ui.icon name="package" size="16" class="opacity-[0.06] text-primary" />
+                                    @endif
+                                </div>
                             </div>
-                            <div class="flex-1 space-y-4">
-                                <div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="px-2 py-1 rounded-lg bg-primary/10 border border-primary/20 text-[10px] font-black text-primary uppercase tracking-widest">
-                                            {{ $product->category?->parent?->name ?? $product->category?->name ?? 'Uncategorized' }}
+
+                            {{-- Core Details --}}
+                            <div class="flex-1 min-w-0 space-y-5">
+
+                                {{-- Category Breadcrumb + Status --}}
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-[10px] font-black text-primary uppercase tracking-widest">
+                                        {{ $product->category?->parent?->name ?? $product->category?->name ?? 'Uncategorized' }}
+                                    </span>
+                                    @if($product->category?->parent)
+                                        <x-ui.icon name="chevron-right" size="3" class="text-muted-foreground opacity-20" />
+                                        <span class="px-2.5 py-1 rounded-lg bg-muted/30 border border-border/40 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                                            {{ $product->category?->name }}
                                         </span>
-                                        @if($product->category?->parent)
-                                            <span class="text-muted-foreground opacity-20"><x-ui.icon name="chevron-right" size="3" /></span>
-                                            <span class="px-2 py-1 rounded-lg bg-muted/30 border border-border/40 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                                                {{ $product->category?->name }}
+                                    @endif
+
+                                    {{-- Status Badge --}}
+                                    @php
+                                        $statusConfig = [
+                                            'active' => ['bg' => 'bg-emerald-500/10', 'text' => 'text-emerald-500', 'border' => 'border-emerald-500/20', 'dot' => 'bg-emerald-500'],
+                                            'draft' => ['bg' => 'bg-blue-500/10', 'text' => 'text-blue-500', 'border' => 'border-blue-500/20', 'dot' => 'bg-blue-500'],
+                                            'out_of_stock' => ['bg' => 'bg-red-500/10', 'text' => 'text-red-500', 'border' => 'border-red-500/20', 'dot' => 'bg-red-500'],
+                                        ];
+                                        $sc = $statusConfig[$product->status] ?? ['bg' => 'bg-muted/40', 'text' => 'text-muted-foreground', 'border' => 'border-border/40', 'dot' => 'bg-muted-foreground'];
+                                    @endphp
+                                    <span class="ml-auto px-2.5 py-1 rounded-full border {{ $sc['bg'] }} {{ $sc['text'] }} {{ $sc['border'] }} text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                                        <span class="size-1.5 rounded-full {{ $sc['dot'] }} animate-pulse"></span>
+                                        {{ str_replace('_', ' ', $product->status) }}
+                                    </span>
+                                </div>
+
+                                {{-- Product Name --}}
+                                <div>
+                                    <h2 class="text-2xl sm:text-3xl font-black text-foreground leading-tight">{{ $product->name }}</h2>
+                                    <div class="flex flex-wrap items-center gap-3 mt-2">
+                                        <span class="text-xs font-mono text-muted-foreground bg-muted/20 px-2 py-0.5 rounded-md border border-border/30">SKU: {{ $product->sku }}</span>
+                                        @if($product->barcode)
+                                            <span class="text-xs font-mono text-muted-foreground bg-muted/20 px-2 py-0.5 rounded-md border border-border/30">
+                                                <x-ui.icon name="maximize" size="3" class="inline -mt-0.5 mr-0.5" />
+                                                {{ $product->barcode }}
                                             </span>
                                         @endif
-                                    </div>
-                                    <h1 class="text-3xl font-black text-foreground mt-2">{{ $product->name }}</h1>
-                                    <div class="flex items-center gap-3 mt-1">
-                                        <p class="text-sm font-mono text-muted-foreground">{{ $product->sku }}</p>
                                         @if($product->hsnCode)
-                                            <span class="text-[9px] px-2 py-0.5 rounded-full bg-muted/30 border border-border/40 text-muted-foreground font-bold uppercase">HSN: {{ $product->hsnCode->code }}</span>
+                                            <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 font-black uppercase">HSN: {{ $product->hsnCode->code }}</span>
                                         @endif
                                     </div>
                                 </div>
-                                
-                                <div class="grid grid-cols-2 gap-6 pt-4">
-                                    <div>
-                                        <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Selling Price</p>
-                                        <div class="flex items-baseline gap-2">
-                                            <p class="text-2xl font-black text-primary">₹{{ number_format($product->selling_price, 2) }}</p>
-                                            @if($product->taxRate)
-                                                <span class="text-[10px] font-bold text-emerald-500/80">+ {{ $product->taxRate->rate }}% {{ $product->taxRate->name }}</span>
-                                            @endif
-                                        </div>
+
+                                {{-- Price Grid --}}
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    <div class="price-tag">
+                                        <p class="section-label mb-1">Selling Price</p>
+                                        <p class="text-xl sm:text-2xl font-black text-primary">₹{{ number_format($product->selling_price, 2) }}</p>
                                     </div>
-                                    <div>
-                                        <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">MRP</p>
-                                        <p class="text-xl font-bold text-foreground opacity-60">₹{{ number_format($product->mrp, 2) }}</p>
+                                    <div class="price-tag">
+                                        <p class="section-label mb-1">MRP</p>
+                                        <p class="text-xl sm:text-2xl font-bold text-foreground/70">₹{{ number_format($product->mrp, 2) }}</p>
                                     </div>
+                                    @role('Super Admin')
+                                    <div class="price-tag">
+                                        <p class="section-label mb-1">Purchase Price</p>
+                                        <p class="text-xl sm:text-2xl font-bold text-foreground/60">₹{{ number_format($product->purchase_price, 2) }}</p>
+                                    </div>
+                                    @endrole
                                 </div>
 
-                                @if($product->attributeValues->count() > 0)
-                                    <div class="pt-6 border-t border-border/30">
-                                        <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Product Attributes</p>
-                                        <div class="flex flex-wrap gap-4">
-                                            @foreach($product->attributeValues->groupBy('attribute_id') as $attrId => $values)
-                                                <div class="space-y-1">
-                                                    <span class="text-[9px] font-black uppercase text-muted-foreground/40">{{ $values->first()?->attribute?->name ?? 'Attribute' }}</span>
-                                                    <div class="flex gap-1.5">
-                                                        @foreach($values as $val)
-                                                            <span class="px-2 py-1 rounded-lg bg-muted/30 border border-border/40 text-[10px] font-bold text-foreground flex items-center gap-2">
-                                                                @if($val->attribute?->type === 'color')
-                                                                    <span class="size-2 rounded-full" style="background-color: {{ $val->color_code }}"></span>
-                                                                @endif
-                                                                {{ $val->value }}
-                                                            </span>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @endif
-
-                                <div class="pt-4">
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Description</p>
-                                    <p class="text-sm text-muted-foreground leading-relaxed">
-                                        {{ $product->description ?: 'No description provided.' }}
-                                    </p>
-                                </div>
-
-                                @if($product->application_instructions)
-                                    <div class="mt-8 p-6 rounded-3xl bg-primary/5 border border-primary/10 space-y-3">
-                                        <div class="flex items-center gap-2 text-primary">
-                                            <x-ui.icon name="info" size="4" />
-                                            <h4 class="text-[10px] font-black uppercase tracking-widest">Application Instructions & Dosage</h4>
-                                        </div>
-                                        <p class="text-sm text-foreground/80 leading-relaxed italic">
-                                            "{{ $product->application_instructions }}"
-                                        </p>
+                                {{-- Tax Info --}}
+                                @if($product->taxRate)
+                                    <div class="flex items-center gap-2 text-xs">
+                                        <span class="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 font-bold flex items-center gap-1.5">
+                                            <x-ui.icon name="percent" size="3" />
+                                            {{ $product->taxRate->name }} — {{ $product->taxRate->rate }}%
+                                        </span>
                                     </div>
                                 @endif
                             </div>
@@ -99,91 +284,416 @@
                     </div>
                 </x-ui.card>
 
-                <!-- Stock by Warehouse -->
-                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
-                    <x-ui.card-header class="border-b border-border/40 bg-muted/5 p-6">
-                        <h3 class="text-sm font-black text-foreground uppercase tracking-widest">Stock Availability</h3>
+                {{-- ──────────────────────────────────────────────────
+                     DETAILED SPECIFICATIONS
+                     ────────────────────────────────────────────────── --}}
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <x-ui.card-header class="border-b border-border/30 bg-muted/5 px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <x-ui.icon name="list" size="4" class="text-primary opacity-60" />
+                            <h3 class="text-xs font-black text-foreground uppercase tracking-widest">Product Specifications</h3>
+                        </div>
+                    </x-ui.card-header>
+                    <x-ui.card-content class="p-4 sm:p-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-0">
+                            {{-- Brand --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">Brand</span>
+                                <span class="text-sm font-bold text-foreground">{{ $product->brand->name ?? '—' }}</span>
+                            </div>
+                            {{-- Category --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">Category</span>
+                                <span class="text-sm font-bold text-foreground">{{ $product->category?->name ?? '—' }}</span>
+                            </div>
+                            {{-- UoM --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">Unit of Measure</span>
+                                <span class="text-sm font-bold text-foreground">{{ $product->uom?->name ?? '—' }}</span>
+                            </div>
+                            {{-- Weight --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">Weight</span>
+                                <span class="text-sm font-bold text-foreground">{{ $product->weight ?? '—' }}</span>
+                            </div>
+                            {{-- Barcode --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">Barcode</span>
+                                <span class="text-sm font-mono font-bold text-foreground">{{ $product->barcode ?? '—' }}</span>
+                            </div>
+                            {{-- HSN Code --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">HSN Code</span>
+                                <span class="text-sm font-mono font-bold text-foreground">{{ $product->hsnCode?->code ?? '—' }}</span>
+                            </div>
+                            {{-- Tax Rate --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">Tax Rate</span>
+                                <span class="text-sm font-bold text-emerald-500">{{ $product->taxRate ? $product->taxRate->name . ' (' . $product->taxRate->rate . '%)' : '—' }}</span>
+                            </div>
+                            {{-- Default Warehouse --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">Default Warehouse</span>
+                                <span class="text-sm font-bold text-foreground">{{ $product->warehouse?->name ?? '—' }}</span>
+                            </div>
+                            {{-- Min Stock Level --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">Min Stock Level</span>
+                                <span class="text-sm font-black text-foreground">{{ $product->min_stock_level ?? 0 }}</span>
+                            </div>
+                            {{-- Slug --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">Slug</span>
+                                <span class="text-sm font-mono text-muted-foreground">{{ $product->slug ?? '—' }}</span>
+                            </div>
+                            {{-- Default Discount --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">Default Discount</span>
+                                <span class="text-sm font-bold text-foreground">
+                                    @if($product->default_discount)
+                                        {{ $product->default_discount }}{{ $product->default_discount_type === 'percent' ? '%' : ' (Flat)' }}
+                                    @else
+                                        —
+                                    @endif
+                                </span>
+                            </div>
+                            {{-- SKU Enabled --}}
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground/60 font-bold">SKU Enabled</span>
+                                <span class="toggle-pill {{ $product->is_sku_enabled ? 'is-on' : 'is-off' }}">
+                                    <span class="toggle-dot"></span>
+                                    {{ $product->is_sku_enabled ? 'Yes' : 'No' }}
+                                </span>
+                            </div>
+                        </div>
+                    </x-ui.card-content>
+                </x-ui.card>
+
+                {{-- ──────────────────────────────────────────────────
+                     INVENTORY & TRACKING SETTINGS
+                     ────────────────────────────────────────────────── --}}
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <x-ui.card-header class="border-b border-border/30 bg-muted/5 px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <x-ui.icon name="settings" size="4" class="text-primary opacity-60" />
+                            <h3 class="text-xs font-black text-foreground uppercase tracking-widest">Inventory & Tracking Settings</h3>
+                        </div>
+                    </x-ui.card-header>
+                    <x-ui.card-content class="p-4 sm:p-6">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            {{-- Manage Stock --}}
+                            <div class="stat-box text-center">
+                                <p class="section-label mb-2">Manage Stock</p>
+                                <span class="toggle-pill {{ $product->manage_stock ? 'is-on' : 'is-off' }}">
+                                    <span class="toggle-dot"></span>
+                                    {{ $product->manage_stock ? 'Enabled' : 'Disabled' }}
+                                </span>
+                            </div>
+                            {{-- Batch Tracking --}}
+                            <div class="stat-box text-center">
+                                <p class="section-label mb-2">Batch Tracking</p>
+                                <span class="toggle-pill {{ $product->batch_tracking ? 'is-on' : 'is-off' }}">
+                                    <span class="toggle-dot"></span>
+                                    {{ $product->batch_tracking ? 'Enabled' : 'Disabled' }}
+                                </span>
+                            </div>
+                            {{-- Expiry Tracking --}}
+                            <div class="stat-box text-center">
+                                <p class="section-label mb-2">Expiry Tracking</p>
+                                <span class="toggle-pill {{ $product->expiry_tracking ? 'is-on' : 'is-off' }}">
+                                    <span class="toggle-dot"></span>
+                                    {{ $product->expiry_tracking ? 'Enabled' : 'Disabled' }}
+                                </span>
+                            </div>
+                            {{-- Allow Overselling --}}
+                            <div class="stat-box text-center">
+                                <p class="section-label mb-2">Overselling</p>
+                                <span class="toggle-pill {{ $product->allow_overselling ? 'is-on' : 'is-off' }}">
+                                    <span class="toggle-dot"></span>
+                                    {{ $product->allow_overselling ? 'Allowed' : 'No' }}
+                                </span>
+                                @if($product->allow_overselling && $product->overselling_qty)
+                                    <p class="text-[10px] text-muted-foreground mt-1.5 font-bold">Limit: {{ $product->overselling_qty }} units</p>
+                                @endif
+                            </div>
+                        </div>
+                    </x-ui.card-content>
+                </x-ui.card>
+
+                {{-- ──────────────────────────────────────────────────
+                     PRODUCT ATTRIBUTES
+                     ────────────────────────────────────────────────── --}}
+                @if($product->attributeValues->count() > 0)
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <x-ui.card-header class="border-b border-border/30 bg-muted/5 px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <x-ui.icon name="sliders" size="4" class="text-primary opacity-60" />
+                            <h3 class="text-xs font-black text-foreground uppercase tracking-widest">Product Attributes</h3>
+                        </div>
+                    </x-ui.card-header>
+                    <x-ui.card-content class="p-4 sm:p-6">
+                        <div class="flex flex-wrap gap-6">
+                            @foreach($product->attributeValues->groupBy('attribute_id') as $attrId => $values)
+                                <div class="space-y-2">
+                                    <span class="section-label">{{ $values->first()?->attribute?->name ?? 'Attribute' }}</span>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($values as $val)
+                                            <span class="px-3 py-1.5 rounded-xl bg-muted/20 border border-border/40 text-xs font-bold text-foreground flex items-center gap-2 transition-all hover:border-primary/30 hover:bg-primary/5">
+                                                @if($val->attribute?->type === 'color')
+                                                    <span class="size-3 rounded-full border border-border/40 shadow-sm" style="background-color: {{ $val->color_code }}"></span>
+                                                @endif
+                                                {{ $val->value }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </x-ui.card-content>
+                </x-ui.card>
+                @endif
+
+                {{-- ──────────────────────────────────────────────────
+                     DESCRIPTION & APPLICATION INSTRUCTIONS
+                     ────────────────────────────────────────────────── --}}
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <x-ui.card-header class="border-b border-border/30 bg-muted/5 px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <x-ui.icon name="file-text" size="4" class="text-primary opacity-60" />
+                            <h3 class="text-xs font-black text-foreground uppercase tracking-widest">Description</h3>
+                        </div>
+                    </x-ui.card-header>
+                    <x-ui.card-content class="p-4 sm:p-6">
+                        <p class="text-sm text-muted-foreground leading-relaxed">
+                            {{ $product->description ?: 'No description provided.' }}
+                        </p>
+                    </x-ui.card-content>
+                </x-ui.card>
+
+                @if($product->application_instructions)
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <div class="p-6 sm:p-8 bg-gradient-to-br from-primary/5 to-transparent">
+                        <div class="flex items-start gap-3">
+                            <div class="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                                <x-ui.icon name="info" size="4.5" class="text-primary" />
+                            </div>
+                            <div>
+                                <h4 class="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Application Instructions & Dosage</h4>
+                                <p class="text-sm text-foreground/80 leading-relaxed italic">
+                                    "{{ $product->application_instructions }}"
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </x-ui.card>
+                @endif
+
+                {{-- ──────────────────────────────────────────────────
+                     STOCK AVAILABILITY BY WAREHOUSE
+                     ────────────────────────────────────────────────── --}}
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <x-ui.card-header class="border-b border-border/30 bg-muted/5 px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <x-ui.icon name="database" size="4" class="text-primary opacity-60" />
+                                <h3 class="text-xs font-black text-foreground uppercase tracking-widest">Stock by Warehouse</h3>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black text-primary">
+                                {{ $product->stocks->count() }} {{ Str::plural('warehouse', $product->stocks->count()) }}
+                            </span>
+                        </div>
                     </x-ui.card-header>
                     <x-ui.card-content class="p-0">
-                        <table class="w-full text-left border-collapse">
+                        @if($product->stocks->count() > 0)
+                        <table class="w-full text-left">
                             <thead>
-                                <tr class="bg-muted/5 border-b border-border/40">
-                                    <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Warehouse</th>
-                                    <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Quantity</th>
-                                    <th class="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-right">Status</th>
+                                <tr class="bg-muted/5 border-b border-border/30">
+                                    <th class="px-6 py-3 section-label">Warehouse</th>
+                                    <th class="px-6 py-3 section-label text-center">Quantity</th>
+                                    <th class="px-6 py-3 section-label text-center">Reserved</th>
+                                    <th class="px-6 py-3 section-label text-center">Dispatched</th>
+                                    <th class="px-6 py-3 section-label text-right">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($product->stocks as $stock)
-                                    <tr class="border-b border-border/30">
-                                        <td class="p-4 font-bold text-sm text-foreground">{{ $stock->warehouse?->name ?? 'Unknown Warehouse' }}</td>
-                                        <td class="p-4 text-center font-black text-lg text-primary">{{ number_format($stock->quantity) }}</td>
-                                        <td class="p-4 text-right">
+                                <tr class="warehouse-row border-b border-border/20 last:border-b-0">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="size-8 rounded-lg bg-muted/20 border border-border/30 flex items-center justify-center">
+                                                <x-ui.icon name="home" size="3.5" class="text-muted-foreground/50" />
+                                            </div>
+                                            <span class="text-sm font-bold text-foreground">{{ $stock->warehouse?->name ?? 'Unknown' }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center font-black text-lg text-primary">{{ number_format($stock->quantity) }}</td>
+                                    <td class="px-6 py-4 text-center font-bold text-sm text-amber-500">{{ number_format($stock->reserved_qty ?? 0) }}</td>
+                                    <td class="px-6 py-4 text-center font-bold text-sm text-blue-500">{{ number_format($stock->dispatched_qty ?? 0) }}</td>
+                                    <td class="px-6 py-4 text-right">
+                                        @php $qty = $stock->quantity - ($stock->reserved_qty ?? 0); @endphp
+                                        @if($qty > 0)
                                             <span class="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-black uppercase">In Stock</span>
-                                        </td>
-                                    </tr>
+                                        @else
+                                            <span class="px-2 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 text-[10px] font-black uppercase">Out of Stock</span>
+                                        @endif
+                                    </td>
+                                </tr>
                                 @endforeach
                             </tbody>
                         </table>
+                        @else
+                            <div class="p-8 text-center">
+                                <x-ui.icon name="inbox" size="8" class="mx-auto opacity-10 text-muted-foreground mb-3" />
+                                <p class="text-sm text-muted-foreground/60 font-bold">No stock entries found</p>
+                            </div>
+                        @endif
                     </x-ui.card-content>
                 </x-ui.card>
+
             </div>
 
-            <!-- Right Side: Actions & Quick Info -->
+            {{-- ═══════════════════════════════════════════════════════
+                 RIGHT COLUMN (1 col) — Sidebar
+                 ═══════════════════════════════════════════════════════ --}}
             <div class="space-y-6">
-                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
-                    <div class="p-6 space-y-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Current Status</span>
-                            @php
-                                $statusColors = [
-                                    'active' => 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-                                    'draft' => 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-                                    'out_of_stock' => 'bg-red-500/10 text-red-500 border-red-500/20',
-                                ];
-                                $colorClass = $statusColors[$product->status] ?? 'bg-muted/40 text-muted-foreground border-border/40';
-                            @endphp
-                            <span class="px-2.5 py-1 rounded-full border {{ $colorClass }} text-[10px] font-black uppercase tracking-widest">
-                                {{ str_replace('_', ' ', $product->status) }}
-                            </span>
-                        </div>
 
-                        @can('products.edit')
-                        <a href="{{ route('products.edit', $product) }}" class="w-full block">
-                            <x-ui.button class="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
-                                <x-ui.icon name="edit-3" size="3.5" class="mr-2" />
-                                Edit Product
-                            </x-ui.button>
-                        </a>
-                        @endcan
-                        <x-ui.button variant="outline" class="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-muted/30">
-                            <x-ui.icon name="refresh-cw" size="3.5" class="mr-2" />
-                            Adjust Inventory
-                        </x-ui.button>
+                {{-- ──────────────────────────────────────────────────
+                     STOCK SUMMARY CARD
+                     ────────────────────────────────────────────────── --}}
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <x-ui.card-header class="border-b border-border/30 bg-muted/5 px-5 py-4">
+                        <div class="flex items-center gap-2">
+                            <x-ui.icon name="activity" size="4" class="text-primary opacity-60" />
+                            <h4 class="text-[10px] font-black uppercase tracking-widest text-foreground">Stock Overview</h4>
+                        </div>
+                    </x-ui.card-header>
+                    <div class="p-5 space-y-3">
+                        <div class="stat-box">
+                            <p class="section-label mb-1">Total Stock</p>
+                            <p class="text-2xl font-black text-primary">{{ number_format($product->total_stock) }}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="stat-box">
+                                <p class="section-label mb-1">Reserved</p>
+                                <p class="text-lg font-black text-amber-500">{{ number_format($product->total_reserved) }}</p>
+                            </div>
+                            <div class="stat-box">
+                                <p class="section-label mb-1">Dispatched</p>
+                                <p class="text-lg font-black text-blue-500">{{ number_format($product->total_dispatched) }}</p>
+                            </div>
+                        </div>
+                        <div class="stat-box border-primary/20 bg-primary/5">
+                            <p class="section-label mb-1">Available Stock</p>
+                            <p class="text-2xl font-black text-emerald-500">{{ number_format($product->available_stock) }}</p>
+                        </div>
                     </div>
                 </x-ui.card>
 
-                <!-- Quick Facts -->
-                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
-                    <x-ui.card-header class="border-b border-border/40 bg-muted/5 p-4">
-                        <h4 class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Quick Facts</h4>
+                {{-- ──────────────────────────────────────────────────
+                     QUICK FACTS CARD
+                     ────────────────────────────────────────────────── --}}
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <x-ui.card-header class="border-b border-border/30 bg-muted/5 px-5 py-4">
+                        <div class="flex items-center gap-2">
+                            <x-ui.icon name="star" size="4" class="text-primary opacity-60" />
+                            <h4 class="text-[10px] font-black uppercase tracking-widest text-foreground">Quick Facts</h4>
+                        </div>
                     </x-ui.card-header>
-                    <div class="p-6 space-y-4">
-                        <div class="flex items-center justify-between">
+                    <div class="p-5 space-y-0">
+                        <div class="info-row flex items-center justify-between">
                             <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Brand</span>
                             <span class="text-xs font-black text-foreground">{{ $product->brand->name ?? 'No Brand' }}</span>
                         </div>
-                        <div class="flex items-center justify-between">
+                        <div class="info-row flex items-center justify-between">
                             <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">HSN Code</span>
-                            <span class="text-xs font-mono font-bold text-foreground">{{ $product->hsnCode->code ?? 'N/A' }}</span>
+                            <span class="text-xs font-mono font-bold text-foreground">{{ $product->hsnCode?->code ?? 'N/A' }}</span>
                         </div>
-                        <div class="flex items-center justify-between">
+                        <div class="info-row flex items-center justify-between">
                             <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Tax Class</span>
                             <span class="text-xs font-bold text-emerald-500">{{ $product->taxRate ? $product->taxRate->name : 'Tax Exempt' }}</span>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Total Stock</span>
-                            <span class="text-sm font-black text-primary">{{ number_format($product->total_stock) }}</span>
+                        <div class="info-row flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">UoM</span>
+                            <span class="text-xs font-bold text-foreground">{{ $product->uom?->name ?? 'N/A' }}</span>
+                        </div>
+                        <div class="info-row flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Weight</span>
+                            <span class="text-xs font-bold text-foreground">{{ $product->weight ?? 'N/A' }}</span>
+                        </div>
+                        <div class="info-row flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Min Stock</span>
+                            <span class="text-xs font-black text-foreground">{{ $product->min_stock_level ?? 0 }}</span>
+                        </div>
+                        @if($product->default_discount)
+                        <div class="info-row flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Discount</span>
+                            <span class="text-xs font-black text-primary">
+                                {{ $product->default_discount }}{{ $product->default_discount_type === 'percent' ? '%' : ' ₹' }}
+                            </span>
+                        </div>
+                        @endif
+                    </div>
+                </x-ui.card>
+
+                {{-- ──────────────────────────────────────────────────
+                     PRICING BREAKDOWN
+                     ────────────────────────────────────────────────── --}}
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <x-ui.card-header class="border-b border-border/30 bg-muted/5 px-5 py-4">
+                        <div class="flex items-center gap-2">
+                            <x-ui.icon name="dollar-sign" size="4" class="text-primary opacity-60" />
+                            <h4 class="text-[10px] font-black uppercase tracking-widest text-foreground">Pricing Breakdown</h4>
+                        </div>
+                    </x-ui.card-header>
+                    <div class="p-5 space-y-0">
+                        @role('Super Admin')
+                        <div class="info-row flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Purchase Price</span>
+                            <span class="text-sm font-black text-foreground">₹{{ number_format($product->purchase_price, 2) }}</span>
+                        </div>
+                        @endrole
+                        <div class="info-row flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Selling Price</span>
+                            <span class="text-sm font-black text-primary">₹{{ number_format($product->selling_price, 2) }}</span>
+                        </div>
+                        <div class="info-row flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">MRP</span>
+                            <span class="text-sm font-bold text-foreground/70">₹{{ number_format($product->mrp, 2) }}</span>
+                        </div>
+                        @if($product->taxRate)
+                        <div class="info-row flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Tax ({{ $product->taxRate->name }})</span>
+                            <span class="text-sm font-bold text-emerald-500">{{ $product->taxRate->rate }}%</span>
+                        </div>
+                        @endif
+                        @role('Super Admin')
+                        @php
+                            $margin = $product->purchase_price > 0 ? round((($product->selling_price - $product->purchase_price) / $product->purchase_price) * 100, 1) : 0;
+                        @endphp
+                        <div class="mt-3 pt-3 border-t border-border/20">
+                            <div class="info-row flex items-center justify-between">
+                                <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Margin</span>
+                                <span class="text-sm font-black {{ $margin >= 0 ? 'text-emerald-500' : 'text-red-500' }}">
+                                    {{ $margin >= 0 ? '+' : '' }}{{ $margin }}%
+                                </span>
+                            </div>
+                        </div>
+                        @endrole
+                    </div>
+                </x-ui.card>
+
+                {{-- ──────────────────────────────────────────────────
+                     TIMESTAMPS
+                     ────────────────────────────────────────────────── --}}
+                <x-ui.card class="overflow-hidden border-border/40 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl fade-in-up">
+                    <div class="p-5 space-y-0">
+                        <div class="info-row flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Created</span>
+                            <span class="text-xs font-bold text-muted-foreground">{{ $product->created_at?->format('d M Y, h:i A') ?? '—' }}</span>
+                        </div>
+                        <div class="info-row flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-muted-foreground/60 uppercase">Last Updated</span>
+                            <span class="text-xs font-bold text-muted-foreground">{{ $product->updated_at?->format('d M Y, h:i A') ?? '—' }}</span>
                         </div>
                     </div>
                 </x-ui.card>
@@ -191,4 +701,5 @@
 
         </div>
     </div>
+
 </x-layouts.app>
