@@ -740,7 +740,7 @@
                     <x-ui.table-cell x-show="visibleColumns.actions" class="text-right align-middle pr-5">
                         @php
                             $canReturnFromLedger = !in_array($order->status, ['returned', 'return_requested'])
-                                && in_array($order->status, array_merge(\App\Models\Order::inTransitStatuses(), ['delivered', 'processing']), true)
+                                && in_array($order->status, \App\Models\Order::inTransitStatuses(), true)
                                 && !$order->returns()->where('status', '!=', 'rejected')->exists();
                         @endphp
                         <div class="flex justify-end gap-1">

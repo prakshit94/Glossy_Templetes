@@ -300,7 +300,10 @@
                         </div>
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Total</p>
-                            <div class="text-2xl font-black tracking-tighter text-foreground" x-text="stats.total"></div>
+                            <div class="text-2xl font-black tracking-tighter text-foreground flex flex-col">
+                                <span x-text="stats.total"></span>
+                                <span class="text-[10px] font-bold text-muted-foreground/80 mt-0.5" x-text="'₹' + Number(stats.total_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -314,7 +317,10 @@
                         </div>
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Future</p>
-                            <div class="text-2xl font-black tracking-tighter text-purple-500" x-text="stats.future_order"></div>
+                            <div class="text-2xl font-black tracking-tighter text-purple-500 flex flex-col">
+                                <span x-text="stats.future_order"></span>
+                                <span class="text-[10px] font-bold text-muted-foreground/80 mt-0.5" x-text="'₹' + Number(stats.future_order_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -328,7 +334,10 @@
                         </div>
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Pending</p>
-                            <div class="text-2xl font-black tracking-tighter text-orange-500" x-text="stats.pending"></div>
+                            <div class="text-2xl font-black tracking-tighter text-orange-500 flex flex-col">
+                                <span x-text="stats.pending"></span>
+                                <span class="text-[10px] font-bold text-muted-foreground/80 mt-0.5" x-text="'₹' + Number(stats.pending_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -342,7 +351,10 @@
                         </div>
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Confirmed</p>
-                            <div class="text-2xl font-black tracking-tighter text-sky-500" x-text="stats.confirmed"></div>
+                            <div class="text-2xl font-black tracking-tighter text-sky-500 flex flex-col">
+                                <span x-text="stats.confirmed"></span>
+                                <span class="text-[10px] font-bold text-muted-foreground/80 mt-0.5" x-text="'₹' + Number(stats.confirmed_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -356,7 +368,10 @@
                         </div>
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Processing</p>
-                            <div class="text-2xl font-black tracking-tighter text-blue-500" x-text="stats.processing"></div>
+                            <div class="text-2xl font-black tracking-tighter text-blue-500 flex flex-col">
+                                <span x-text="stats.processing"></span>
+                                <span class="text-[10px] font-bold text-muted-foreground/80 mt-0.5" x-text="'₹' + Number(stats.processing_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -370,7 +385,10 @@
                         </div>
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Ready</p>
-                            <div class="text-2xl font-black tracking-tighter text-indigo-500" x-text="stats.ready_to_ship"></div>
+                            <div class="text-2xl font-black tracking-tighter text-indigo-500 flex flex-col">
+                                <span x-text="stats.ready_to_ship"></span>
+                                <span class="text-[10px] font-bold text-muted-foreground/80 mt-0.5" x-text="'₹' + Number(stats.ready_to_ship_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -384,7 +402,10 @@
                         </div>
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Dispatched</p>
-                            <div class="text-2xl font-black tracking-tighter text-teal-500" x-text="stats.dispatched"></div>
+                            <div class="text-2xl font-black tracking-tighter text-teal-500 flex flex-col">
+                                <span x-text="stats.dispatched"></span>
+                                <span class="text-[10px] font-bold text-muted-foreground/80 mt-0.5" x-text="'₹' + Number(stats.dispatched_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -398,7 +419,10 @@
                         </div>
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Delivered</p>
-                            <div class="text-2xl font-black tracking-tighter text-emerald-500" x-text="stats.delivered"></div>
+                            <div class="text-2xl font-black tracking-tighter text-emerald-500 flex flex-col">
+                                <span x-text="stats.delivered"></span>
+                                <span class="text-[10px] font-bold text-muted-foreground/80 mt-0.5" x-text="'₹' + Number(stats.delivered_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                            </div>
                         </div>
                     </div>
                 </div>

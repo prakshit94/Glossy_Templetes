@@ -45,6 +45,9 @@ class OrderController extends Controller
         if ($user && !$user->hasAnyRole(['Super Admin', 'Admin']) && !$user->can('view_all_order')) {
             $query->where('created_by', $user->id);
         }
+        if ($user && $user->can('view_all_order') && !$user->hasAnyRole(['Super Admin', 'Admin'])) {
+            $query->where('status', '!=', 'pending');
+        }
         $this->applyOrderActionPermissionScope($query, $user);
 
         if ($request->filled('search')) {
@@ -173,26 +176,44 @@ class OrderController extends Controller
         $statsQuery = clone $query;
         $counts = $statsQuery->select([
             \Illuminate\Support\Facades\DB::raw("COUNT(*) as total"),
+            \Illuminate\Support\Facades\DB::raw("SUM(orders.net_amount) as total_amount"),
             \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'pending' AND orders.is_draft = 1 THEN 1 ELSE 0 END) as future_order"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'pending' AND orders.is_draft = 1 THEN orders.net_amount ELSE 0 END) as future_order_amount"),
             \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'pending' AND (orders.is_draft = 0 OR orders.is_draft IS NULL) THEN 1 ELSE 0 END) as pending"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'pending' AND (orders.is_draft = 0 OR orders.is_draft IS NULL) THEN orders.net_amount ELSE 0 END) as pending_amount"),
             \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'confirmed' THEN 1 ELSE 0 END) as confirmed"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'confirmed' THEN orders.net_amount ELSE 0 END) as confirmed_amount"),
             \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'processing' THEN 1 ELSE 0 END) as processing"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'processing' THEN orders.net_amount ELSE 0 END) as processing_amount"),
             \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'ready_to_ship' THEN 1 ELSE 0 END) as ready_to_ship"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'ready_to_ship' THEN orders.net_amount ELSE 0 END) as ready_to_ship_amount"),
             \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status IN ('dispatched', 'shipped') THEN 1 ELSE 0 END) as dispatched"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status IN ('dispatched', 'shipped') THEN orders.net_amount ELSE 0 END) as dispatched_amount"),
             \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'delivered' THEN 1 ELSE 0 END) as delivered"),
-            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'cancelled' THEN 1 ELSE 0 END) as cancelled")
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'delivered' THEN orders.net_amount ELSE 0 END) as delivered_amount"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'cancelled' THEN 1 ELSE 0 END) as cancelled"),
+            \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN orders.status = 'cancelled' THEN orders.net_amount ELSE 0 END) as cancelled_amount")
         ])->toBase()->first();
 
         $stats = [
-            'total'         => (int) ($counts->total ?? 0),
-            'future_order'  => (int) ($counts->future_order ?? 0),
-            'pending'       => (int) ($counts->pending ?? 0),
-            'confirmed'     => (int) ($counts->confirmed ?? 0),
-            'processing'    => (int) ($counts->processing ?? 0),
-            'ready_to_ship' => (int) ($counts->ready_to_ship ?? 0),
-            'dispatched'    => (int) ($counts->dispatched ?? 0),
-            'delivered'     => (int) ($counts->delivered ?? 0),
-            'cancelled'     => (int) ($counts->cancelled ?? 0),
+            'total'                 => (int) ($counts->total ?? 0),
+            'total_amount'          => (float) ($counts->total_amount ?? 0),
+            'future_order'          => (int) ($counts->future_order ?? 0),
+            'future_order_amount'   => (float) ($counts->future_order_amount ?? 0),
+            'pending'               => (int) ($counts->pending ?? 0),
+            'pending_amount'        => (float) ($counts->pending_amount ?? 0),
+            'confirmed'             => (int) ($counts->confirmed ?? 0),
+            'confirmed_amount'      => (float) ($counts->confirmed_amount ?? 0),
+            'processing'            => (int) ($counts->processing ?? 0),
+            'processing_amount'     => (float) ($counts->processing_amount ?? 0),
+            'ready_to_ship'         => (int) ($counts->ready_to_ship ?? 0),
+            'ready_to_ship_amount'  => (float) ($counts->ready_to_ship_amount ?? 0),
+            'dispatched'            => (int) ($counts->dispatched ?? 0),
+            'dispatched_amount'     => (float) ($counts->dispatched_amount ?? 0),
+            'delivered'             => (int) ($counts->delivered ?? 0),
+            'delivered_amount'      => (float) ($counts->delivered_amount ?? 0),
+            'cancelled'             => (int) ($counts->cancelled ?? 0),
+            'cancelled_amount'      => (float) ($counts->cancelled_amount ?? 0),
         ];
 
         $perPage = (int) $request->get('perPage', 15);
@@ -903,7 +924,7 @@ class OrderController extends Controller
             return;
         }
 
-        if ($user->hasAnyRole(['Super Admin', 'Admin']) || $user->can('view_all_order')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             return;
         }
 
@@ -1015,6 +1036,9 @@ class OrderController extends Controller
         $user = auth()->user();
         if ($user && !$user->hasAnyRole(['Super Admin', 'Admin']) && !$user->can('view_all_order')) {
             $query->where('created_by', $user->id);
+        }
+        if ($user && $user->can('view_all_order') && !$user->hasAnyRole(['Super Admin', 'Admin'])) {
+            $query->where('status', '!=', 'pending');
         }
         $this->applyOrderActionPermissionScope($query, $user);
 
