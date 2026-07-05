@@ -148,7 +148,7 @@ class OrderController extends Controller
                 if ($request->filled('taluka') && auth()->user()->can('orders.filter_taluka')) {
                     $q->whereIn('taluka_name', array_map('trim', explode(',', $request->taluka)));
                 }
-                if ($request->filled('village')) {
+                if ($request->filled('village') && auth()->user()->can('orders.filter_village')) {
                     $q->whereIn('village_name', array_map('trim', explode(',', $request->village)));
                 }
             });

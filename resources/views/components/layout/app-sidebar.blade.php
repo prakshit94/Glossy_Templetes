@@ -133,10 +133,10 @@
          ],
          [
             'title' => 'Access & People',
-            'menus' => [
+            'menus' => array_values(array_filter([
                ['title' => 'Users & Access', 'active' => request()->is('users*') || request()->is('teams*') || request()->is('roles*') || request()->is('permissions*') || request()->is('activities*'), 'items' => $accessControlItems, 'icon' => 'shield-check'],
-               ['title' => 'Customers', 'active' => request()->is('customers*') || request()->is('customer-groups*') || request()->is('reviews*') || request()->is('support-tickets*'), 'items' => $crmItems, 'icon' => 'users'],
-            ],
+               auth()->user()?->hasRole('Super Admin') ? ['title' => 'Customers', 'active' => request()->is('customers*') || request()->is('customer-groups*') || request()->is('reviews*') || request()->is('support-tickets*'), 'items' => $crmItems, 'icon' => 'users'] : null,
+            ])),
          ],
          [
             'title' => 'Core Operations',

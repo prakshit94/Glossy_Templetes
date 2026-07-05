@@ -99,10 +99,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('services', ServiceController::class)->middleware('permission:services.view');
 
     // Catalog & Inventory
-    Route::get('/products-search-api', [ProductController::class, 'searchApi'])->name('products.search.api');
-    Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
-    Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore');
-    Route::delete('/products/{id}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force-delete');
+    Route::get('/products-search-api', [ProductController::class, 'searchApi'])->name('products.search.api')->middleware('permission:products.view');
+    Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete')->middleware('permission:products.delete');
+    Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore')->middleware('permission:products.edit');
+    Route::delete('/products/{id}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force-delete')->middleware('permission:products.delete');
     Route::resource('products', ProductController::class)->middleware('permission:products.view');
     Route::post('/categories/bulk-delete', [CategoryController::class, 'bulkDelete'])->name('categories.bulk-delete');
     Route::resource('categories', CategoryController::class)->middleware('permission:categories.view');

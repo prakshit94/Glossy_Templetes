@@ -478,14 +478,6 @@
                                         Export
                                     </x-ui.button>
                                 @endcan
-                                @can('orders.create')
-                                    <a href="{{ route('orders.create') }}" class="flex-1 sm:flex-none">
-                                        <x-ui.button size="sm" class="w-full rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-lg shadow-primary/25 ring-1 ring-primary/20">
-                                            <x-ui.icon name="plus" size="3" class="mr-2" />
-                                            New Order
-                                        </x-ui.button>
-                                    </a>
-                                @endcan
                             </div>
                         </div>                        <!-- Toolbar: filters and search controls -->
                         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pt-4 border-t border-border/30">

@@ -10,9 +10,11 @@
 <x-ui.table>
     <x-ui.table-header class="bg-muted/20">
         <x-ui.table-row class="border-b border-border/60">
+            @can('products.delete')
             <x-ui.table-head class="w-10">
                 <input type="checkbox" :checked="allSelected" @change="allSelected = $event.target.checked; toggleAll()" class="rounded-xl border-border bg-background text-primary focus:ring-primary/20 transition-all">
             </x-ui.table-head>
+            @endcan
             <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest py-5">Product Identity</x-ui.table-head>
             <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest">Market Value</x-ui.table-head>
             <x-ui.table-head class="text-[10px] font-black uppercase tracking-widest text-center min-w-[220px]">Inventory Metrics</x-ui.table-head>
@@ -38,9 +40,11 @@
             @endphp
 
             <x-ui.table-row x-bind:class="selectedItems.includes({{ $product->id }}) ? 'bg-primary/5 ring-1 ring-primary/10' : 'hover:bg-primary/[0.02]'" class="border-b border-border/40 group transition-all duration-300">
+                @can('products.delete')
                 <x-ui.table-cell>
                     <input type="checkbox" name="product_ids[]" value="{{ $product->id }}" :checked="selectedItems.includes({{ $product->id }})" @change="toggleItem({{ $product->id }}, $event.target.checked)" class="rounded-xl border-border bg-background text-primary focus:ring-primary/20 transition-all">
                 </x-ui.table-cell>
+                @endcan
 
                 <x-ui.table-cell>
                     <div class="flex items-center gap-4">
@@ -152,12 +156,15 @@
                 <x-ui.table-cell class="text-right">
                     <div class="flex justify-end items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity duration-300">
                         @if(method_exists($product, 'trashed') && $product->trashed())
+                            @can('products.edit')
                             <form action="{{ route('products.restore', $product->id) }}" method="POST">
                                 @csrf
                                 <x-ui.button variant="ghost" size="sm" type="submit" class="h-8 px-4 text-[9px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-500/10 rounded-xl border border-transparent hover:border-emerald-500/20 transition-all">
                                     Restore
                                 </x-ui.button>
                             </form>
+                            @endcan
+                            @can('products.delete')
                             <form action="{{ route('products.force-delete', $product->id) }}" method="POST" onsubmit="return confirm('Permanently delete?')">
                                 @csrf
                                 @method('DELETE')
@@ -165,17 +172,21 @@
                                     <x-ui.icon name="trash-2" size="4" />
                                 </x-ui.button>
                             </form>
+                            @endcan
                         @else
                             <a href="{{ route('products.show', $product) }}" title="View Details">
                                 <x-ui.button variant="ghost" size="icon" class="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
                                     <x-ui.icon name="eye" size="4" />
                                 </x-ui.button>
                             </a>
+                            @can('products.edit')
                             <a href="{{ route('products.edit', $product) }}" title="Edit Product">
                                 <x-ui.button variant="ghost" size="icon" class="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
                                     <x-ui.icon name="edit" size="4" />
                                 </x-ui.button>
                             </a>
+                            @endcan
+                            @can('products.delete')
                             <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('Disable product?')">
                                 @csrf
                                 @method('DELETE')
@@ -183,6 +194,7 @@
                                     <x-ui.icon name="slash" size="4" />
                                 </x-ui.button>
                             </form>
+                            @endcan
                         @endif
                     </div>
                 </x-ui.table-cell>

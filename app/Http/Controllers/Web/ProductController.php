@@ -16,6 +16,14 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:products.view')->only(['index', 'show', 'searchApi']);
+        $this->middleware('permission:products.create')->only(['create', 'store']);
+        $this->middleware('permission:products.edit')->only(['edit', 'update', 'restore']);
+        $this->middleware('permission:products.delete')->only(['destroy', 'bulkDelete', 'forceDelete']);
+    }
+
     public function index(Request $request)
     {
         $query = Product::query()->with(['category', 'brand', 'taxRate', 'hsnCode'])

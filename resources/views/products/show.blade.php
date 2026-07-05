@@ -148,12 +148,14 @@
                             </span>
                         </div>
 
+                        @can('products.edit')
                         <a href="{{ route('products.edit', $product) }}" class="w-full block">
                             <x-ui.button class="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
                                 <x-ui.icon name="edit-3" size="3.5" class="mr-2" />
                                 Edit Product
                             </x-ui.button>
                         </a>
+                        @endcan
                         <x-ui.button variant="outline" class="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-muted/30">
                             <x-ui.icon name="refresh-cw" size="3.5" class="mr-2" />
                             Adjust Inventory

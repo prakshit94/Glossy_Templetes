@@ -436,6 +436,7 @@
     <!-- VILLAGE FILTER -->
     <!-- ===================================================== -->
 
+    @can('orders.filter_village')
     <div class="relative" x-data="{ open: false, filter: '' }">
 
         <button
@@ -509,6 +510,7 @@
         </div>
 
     </div>
+    @endcan
 
     <!-- ===================================================== -->
     <!-- CARRIER FILTER -->

@@ -211,6 +211,7 @@
                                     </button>
                             </div>
 
+                            @can('products.delete')
                             <div x-show="selectedItems.length > 0" x-cloak class="flex items-center gap-2">
                                 <x-ui.dropdown width="64">
                                     <x-slot name="trigger">
@@ -232,6 +233,7 @@
                                     </x-slot>
                                 </x-ui.dropdown>
                             </div>
+                            @endcan
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2">
@@ -241,11 +243,13 @@
                             <x-ui.button type="button" variant="outline" size="sm" class="rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] h-10 px-4" onclick="alert('Export feature coming soon!')">
                                 <x-ui.icon name="download" size="3" class="mr-2" /> Export
                             </x-ui.button>
+                            @can('products.create')
                             <a href="{{ route('products.create') }}">
                                 <x-ui.button size="sm" class="rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] h-10 shadow-lg shadow-primary/20 px-4">
                                     <x-ui.icon name="plus" size="3" class="mr-2" /> Add Product
                                 </x-ui.button>
                             </a>
+                            @endcan
                         </div>
                     </div>
 
