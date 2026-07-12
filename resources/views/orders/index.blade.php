@@ -523,120 +523,105 @@
                                 <div x-show="selectedItems.length > 0" x-cloak x-transition
                                     class="flex items-center gap-2 shrink-0 animate-in fade-in slide-in-from-left-4 duration-300">
                                     @canany(['orders.bulk_status', 'orders.bulk_print'])
-                                        <x-ui.dropdown>
-                                            <x-slot name="trigger">
-                                                <x-ui.button variant="outline" size="sm" class="rounded-xl border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap h-9 px-4 text-[10px] uppercase tracking-widest">
-                                                    <span x-text="selectedItems.length"></span> Selected
-                                                    <x-ui.icon name="chevron-down" size="3" class="ml-2" />
-                                                </x-ui.button>
-                                            </x-slot>
-                                            <x-slot name="content">
-                                                <x-ui.dropdown-label>Mass Lifecycle Update</x-ui.dropdown-label>
-                                                <div class="p-1 space-y-1 divide-y divide-border/20">
-                                                    @can('orders.bulk_status')
-                                                        <div class="py-1" x-show="hasBulkFulfillOptions()">
-                                                            <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Fulfillment States</div>
-                                                            {{-- confirmed → verification modal (same as Lifecycle dropdown) --}}
-                                                            <button type="button" x-show="canBulkFulfill('confirmed')"
-                                                                @click="openBulkVerificationModal('confirmed', 'customer_confirmed')"
-                                                                class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                                <span class="size-2 rounded-full bg-indigo-500 mr-2"></span>
-                                                                Confirm Orders
-                                                            </button>
+                                        <div class="rounded-xl border border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest flex items-center gap-1.5 mr-1">
+                                            <span x-text="selectedItems.length"></span> Selected
+                                        </div>
 
-                                                            {{-- processing → verification modal --}}
-                                                            <button type="button" x-show="canBulkFulfill('processing')"
-                                                                @click="openBulkVerificationModal('processing', 'mark_processing')"
-                                                                class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                                <span class="size-2 rounded-full bg-amber-500 mr-2"></span>
-                                                                Mark Processing
-                                                            </button>
+                                        @can('orders.bulk_status')
+                                            {{-- confirmed → verification modal (same as Lifecycle dropdown) --}}
+                                            <button type="button" x-show="canBulkFulfill('confirmed')"
+                                                @click="openBulkVerificationModal('confirmed', 'customer_confirmed')"
+                                                class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500 hover:text-white text-indigo-600 dark:text-indigo-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                <span class="size-2 rounded-full bg-indigo-500"></span>
+                                                Confirm Orders
+                                            </button>
 
-                                                            {{-- ready_to_ship → direct form (no dedicated verification outcome) --}}
-                                                            <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('ready_to_ship')">
-                                                                @csrf
-                                                                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
-                                                                <input type="hidden" name="status" value="ready_to_ship">
-                                                                <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                                    <span class="size-2 rounded-full bg-indigo-500 mr-2"></span>
-                                                                    Mark Ready to Ship
-                                                                </button>
-                                                            </form>
+                                            {{-- processing → verification modal --}}
+                                            <button type="button" x-show="canBulkFulfill('processing')"
+                                                @click="openBulkVerificationModal('processing', 'mark_processing')"
+                                                class="rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500 hover:text-white text-amber-600 dark:text-amber-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                <span class="size-2 rounded-full bg-amber-500"></span>
+                                                Mark Processing
+                                            </button>
 
-                                                            {{-- dispatched → verification modal --}}
-                                                            <button type="button" x-show="canBulkFulfill('dispatched')"
-                                                                @click="openBulkVerificationModal('dispatched', 'dispatch_order')"
-                                                                class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                                <span class="size-2 rounded-full bg-blue-500 mr-2"></span>
-                                                                Dispatch Orders
-                                                            </button>
+                                            {{-- ready_to_ship → restricted in bulk action --}}
+                                            <button type="button" x-show="canBulkFulfill('ready_to_ship')"
+                                                @click="window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'error', message: 'Not permitted: Ready to Ship details are required and must be filled individually. It is not possible to mark as Ready to Ship in bulk.' } }))"
+                                                class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500 hover:text-white text-indigo-600 dark:text-indigo-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                <span class="size-2 rounded-full bg-indigo-500"></span>
+                                                Mark Ready to Ship
+                                            </button>
 
-                                                            {{-- Assign Shipment (unchanged) --}}
-                                                            <button type="button" @click="openAssignModal(null)" x-show="canBulkFulfill('dispatched')"
-                                                                class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                                <span class="size-2 rounded-full bg-blue-500 mr-2"></span>
-                                                                Assign Shipment
-                                                            </button>
+                                            {{-- dispatched → verification modal --}}
+                                            <button type="button" x-show="canBulkFulfill('dispatched')"
+                                                @click="openBulkVerificationModal('dispatched', 'dispatch_order')"
+                                                class="rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500 hover:text-white text-blue-600 dark:text-blue-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                <span class="size-2 rounded-full bg-blue-500"></span>
+                                                Dispatch Orders
+                                            </button>
 
-                                                            {{-- delivered → verification modal --}}
-                                                            <button type="button" x-show="canBulkFulfill('delivered')"
-                                                                @click="openBulkVerificationModal('delivered', 'mark_delivered')"
-                                                                class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                                <span class="size-2 rounded-full bg-emerald-500 mr-2"></span>
-                                                                Deliver Orders
-                                                            </button>
+                                            {{-- Assign Shipment (unchanged) --}}
+                                            <button type="button" @click="openAssignModal(null)" x-show="canBulkFulfill('dispatched')"
+                                                class="rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500 hover:text-white text-blue-600 dark:text-blue-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                <span class="size-2 rounded-full bg-blue-500"></span>
+                                                Assign Shipment
+                                            </button>
 
-                                                            {{-- cancelled → verification modal --}}
-                                                            <button type="button" x-show="canBulkFulfill('cancelled')"
-                                                                @click="openBulkVerificationModal('cancelled', 'cancel_order')"
-                                                                class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-primary/5 hover:text-primary rounded-xl flex items-center text-foreground/80 uppercase tracking-wider transition-colors">
-                                                                <span class="size-2 rounded-full bg-red-500 mr-2"></span>
-                                                                Cancel Orders
-                                                            </button>
-                                                        </div>
-                                                        <div class="py-1" x-show="hasBulkRevertOptions()">
-                                                            <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600/70">Revert / Undo States</div>
-                                                            @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'ready_to_ship' => 'Revert to Ready to Ship', 'dispatched' => 'Revert to Dispatched'] as $status => $label)
-                                                                <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkRevert('{{ $status }}')">
-                                                                    @csrf
-                                                                    <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
-                                                                    <input type="hidden" name="status" value="{{ $status }}">
-                                                                    <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-amber-500/5 hover:text-amber-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
-                                                                        <x-ui.icon name="corner-up-left" size="3.5" class="mr-2 text-amber-500" />
-                                                                        {{ $label }}
-                                                                    </button>
-                                                                </form>
-                                                            @endforeach
-                                                        </div>
-                                                    @endcan
-                                                    @can('orders.bulk_print')
-                                                        <div class="py-1">
-                                                            <div class="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-600/70">Bulk PDF Downloads</div>
-                                                            <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
-                                                                <input type="hidden" name="type" value="invoice">
-                                                                <template x-for="id in selectedItems">
-                                                                    <input type="hidden" name="ids[]" :value="id">
-                                                                </template>
-                                                                <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-blue-500/5 hover:text-blue-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
-                                                                    <x-ui.icon name="file-text" size="3.5" class="mr-2 text-blue-500" />
-                                                                    Bulk Invoice PDF
-                                                                </button>
-                                                            </form>
-                                                            <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank">
-                                                                <input type="hidden" name="type" value="cod">
-                                                                <template x-for="id in selectedItems">
-                                                                    <input type="hidden" name="ids[]" :value="id">
-                                                                </template>
-                                                                <button type="submit" class="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-emerald-500/5 hover:text-emerald-600 rounded-xl flex items-center text-foreground/85 uppercase tracking-wider transition-colors">
-                                                                    <x-ui.icon name="printer" size="3.5" class="mr-2 text-emerald-500" />
-                                                                    Bulk COD PDF
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                    @endcan
-                                                </div>
-                                            </x-slot>
-                                        </x-ui.dropdown>
+                                            {{-- delivered → verification modal --}}
+                                            <button type="button" x-show="canBulkFulfill('delivered')"
+                                                @click="openBulkVerificationModal('delivered', 'mark_delivered')"
+                                                class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white text-emerald-600 dark:text-emerald-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                <span class="size-2 rounded-full bg-emerald-500"></span>
+                                                Deliver Orders
+                                            </button>
+
+                                            {{-- cancelled → verification modal --}}
+                                            <button type="button" x-show="canBulkFulfill('cancelled')"
+                                                @click="openBulkVerificationModal('cancelled', 'cancel_order')"
+                                                class="rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500 hover:text-white text-red-600 dark:text-red-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                <span class="size-2 rounded-full bg-red-500"></span>
+                                                Cancel Orders
+                                            </button>
+
+                                            {{-- Reverts --}}
+                                            @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'ready_to_ship' => 'Revert to Ready to Ship', 'dispatched' => 'Revert to Dispatched'] as $status => $label)
+                                                <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkRevert('{{ $status }}')" class="inline-block">
+                                                    @csrf
+                                                    <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                    <input type="hidden" name="status" value="{{ $status }}">
+                                                    <button type="submit" class="rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500 hover:text-white text-amber-600 dark:text-amber-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                        <x-ui.icon name="corner-up-left" size="3" class="text-amber-500" />
+                                                        {{ $label }}
+                                                    </button>
+                                                </form>
+                                            @endforeach
+                                        @endcan
+
+                                        @can('orders.bulk_print')
+                                            {{-- Bulk Invoice PDF --}}
+                                            <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank" class="inline-block">
+                                                <input type="hidden" name="type" value="invoice">
+                                                <template x-for="id in selectedItems">
+                                                    <input type="hidden" name="ids[]" :value="id">
+                                                </template>
+                                                <button type="submit" class="rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500 hover:text-white text-blue-600 dark:text-blue-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                    <x-ui.icon name="file-text" size="3" class="text-blue-500" />
+                                                    Invoice PDF
+                                                </button>
+                                            </form>
+
+                                            {{-- Bulk COD PDF --}}
+                                            <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank" class="inline-block">
+                                                <input type="hidden" name="type" value="cod">
+                                                <template x-for="id in selectedItems">
+                                                    <input type="hidden" name="ids[]" :value="id">
+                                                </template>
+                                                <button type="submit" class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white text-emerald-600 dark:text-emerald-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                    <x-ui.icon name="printer" size="3" class="text-emerald-500" />
+                                                    COD PDF
+                                                </button>
+                                            </form>
+                                        @endcan
                                     @endcanany
                                 </div>
 
