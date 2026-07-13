@@ -538,6 +538,10 @@ class OrderService
                     'carrier_name' => $carrierName,
                 ]);
             }
+            
+            // Auto-generate invoice if it doesn't exist
+            $invoiceService = app(\App\Services\InvoiceService::class);
+            $invoiceService->generateForOrder($order);
         }
 
         if ($status === 'delivered') {

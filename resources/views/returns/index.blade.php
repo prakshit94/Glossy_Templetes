@@ -14,18 +14,26 @@
         statusesList: @js($statusesList),
         stats: @js($stats),
         isLoading: false,
-        statusUpdateUrl: '',
-        statusReturnNo: '',
-        statusCurrent: '',
-        statusPending: 'requested',
-
-        openReturnStatusModal(id, returnNo, current, isFinalized) {
-            if (isFinalized) return;
-            this.statusUpdateUrl = `{{ $returnsBaseUrl }}/${id}/status`;
-            this.statusReturnNo = returnNo;
-            this.statusCurrent = current;
-            this.statusPending = current;
-            this.$dispatch('open-modal', { name: 'return-status-modal' });
+        canBulkUpdate(targetStatus) {
+            if (this.selectedItems.length === 0) return false;
+            
+            // Check if all selected items can transition to targetStatus
+            const statuses = Object.values(this.selectedStatuses);
+            
+            // basic state transitions
+            if (targetStatus === 'received') {
+                return statuses.every(s => s === 'requested');
+            }
+            if (targetStatus === 'inspected') {
+                return statuses.every(s => s === 'received');
+            }
+            if (targetStatus === 'completed') {
+                return statuses.every(s => s === 'inspected' || s === 'received');
+            }
+            if (targetStatus === 'rejected') {
+                return statuses.every(s => s !== 'completed' && s !== 'rejected');
+            }
+            return false;
         },
 
         toggleAll() {
@@ -182,6 +190,54 @@
                                 <x-ui.button variant="outline" size="sm" class="rounded-xl border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap h-10 px-4 pointer-events-none">
                                     <span x-text="selectedItems.length"></span> Selected
                                 </x-ui.button>
+                                
+                                <form action="{{ route('returns.bulk-status') }}" method="POST" x-show="canBulkUpdate('received')" class="m-0">
+                                    @csrf
+                                    <input type="hidden" name="status" value="received">
+                                    <template x-for="id in selectedItems" :key="id">
+                                        <input type="hidden" name="return_ids[]" :value="id">
+                                    </template>
+                                    <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border border-blue-500/20 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20">
+                                        <x-ui.icon name="box" size="3.5" class="mr-2" />
+                                        Mark Received
+                                    </x-ui.button>
+                                </form>
+
+                                <form action="{{ route('returns.bulk-status') }}" method="POST" x-show="canBulkUpdate('inspected')" class="m-0">
+                                    @csrf
+                                    <input type="hidden" name="status" value="inspected">
+                                    <template x-for="id in selectedItems" :key="id">
+                                        <input type="hidden" name="return_ids[]" :value="id">
+                                    </template>
+                                    <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20">
+                                        <x-ui.icon name="search" size="3.5" class="mr-2" />
+                                        Mark Inspected
+                                    </x-ui.button>
+                                </form>
+
+                                <form action="{{ route('returns.bulk-status') }}" method="POST" x-show="canBulkUpdate('completed')" class="m-0">
+                                    @csrf
+                                    <input type="hidden" name="status" value="completed">
+                                    <template x-for="id in selectedItems" :key="id">
+                                        <input type="hidden" name="return_ids[]" :value="id">
+                                    </template>
+                                    <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20">
+                                        <x-ui.icon name="check-circle" size="3.5" class="mr-2" />
+                                        Complete Return
+                                    </x-ui.button>
+                                </form>
+
+                                <form action="{{ route('returns.bulk-status') }}" method="POST" x-show="canBulkUpdate('rejected')" class="m-0">
+                                    @csrf
+                                    <input type="hidden" name="status" value="rejected">
+                                    <template x-for="id in selectedItems" :key="id">
+                                        <input type="hidden" name="return_ids[]" :value="id">
+                                    </template>
+                                    <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 shadow-sm border border-red-500/20 bg-red-500/10 text-red-600 hover:bg-red-500/20">
+                                        <x-ui.icon name="x-circle" size="3.5" class="mr-2" />
+                                        Reject Return
+                                    </x-ui.button>
+                                </form>
                             </div>
                             
                             <div class="flex items-center gap-2">
@@ -248,8 +304,7 @@
             </x-ui.card>
         </div>
 
-        @include('returns.partials.update-status-modal')
-    </div>
+
 
     <style>
         [x-cloak] { display: none !important; }

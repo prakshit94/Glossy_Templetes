@@ -94,23 +94,11 @@
                             };
                         @endphp
 
-                        @if($returnFinalized)
                         <div class="relative inline-block text-left">
                             <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 {{ $statusChip }}">
                                 <span class="uppercase text-[9px] font-black tracking-[0.12em]">{{ str_replace('_', ' ', $return->status) }}</span>
                             </div>
                         </div>
-                        @else
-                        <button type="button"
-                            title="Update status"
-                            @click="openReturnStatusModal({{ $return->id }}, @js($return->return_no), @js($return->status), false)"
-                            class="relative inline-block text-left group/status transition-transform hover:scale-[1.02] active:scale-[0.98]">
-                            <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 {{ $statusChip }} group-hover/status:ring-primary/30">
-                                <span class="uppercase text-[9px] font-black tracking-[0.12em]">{{ str_replace('_', ' ', $return->status) }}</span>
-                                <x-ui.icon name="chevron-down" size="3" class="opacity-40 group-hover/status:opacity-90 transition-opacity" />
-                            </div>
-                        </button>
-                        @endif
                     </x-ui.table-cell>
 
                     <x-ui.table-cell class="align-middle py-3">
@@ -148,18 +136,7 @@
                     </x-ui.table-cell>
 
                     <x-ui.table-cell class="text-right align-middle pr-5">
-                        @php
-                            $__actionFinal = in_array($return->status, ['completed', 'rejected'], true);
-                        @endphp
-                        <div class="flex justify-end gap-1">
-                            @if(!$__actionFinal)
-                                <button type="button"
-                                    title="Update status"
-                                    class="inline-flex items-center justify-center size-9 rounded-xl border border-transparent text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
-                                    @click="openReturnStatusModal({{ $return->id }}, @js($return->return_no), @js($return->status), false)">
-                                    <x-ui.icon name="refresh-cw" size="4" />
-                                </button>
-                            @endif
+
                             <a href="{{ route('returns.show', $return) }}" title="Visual Dossier">
                                 <x-ui.button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl border border-transparent hover:border-primary/20 transition-all">
                                     <x-ui.icon name="eye" size="4" />

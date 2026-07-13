@@ -45,7 +45,7 @@
                         </x-ui.button>
                     </a>
                     @can('orders.edit')
-                    @if($order->type === 'sale' && $order->party && $order->party->type === 'customer')
+                    @if(in_array($order->status, ['pending', 'confirmed']) && $order->type === 'sale' && $order->party && $order->party->type === 'customer')
                         <a href="{{ route('customers.show', ['customer' => $order->party_id, 'edit_order' => $order->id]) }}">
                             <x-ui.button variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-amber-600 border-amber-600/30 hover:bg-amber-600/10">
                                 <x-ui.icon name="edit-3" size="3" class="mr-2" /> Edit Cart
@@ -84,18 +84,24 @@
                     {{-- Confirm (pending → confirmed) --}}
                     @if($order->status === 'pending' && !$order->is_draft)
                         @can('orders.confirm')
-                            <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'order-verification-modal', outcome: 'customer_confirmed' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
-                                <x-ui.icon name="check-circle" size="3" class="mr-2" /> Confirm Order
-                            </x-ui.button>
+                            <form action="{{ route('orders.confirm', $order) }}" method="POST" class="inline">
+                                @csrf
+                                <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+                                    <x-ui.icon name="check-circle" size="3" class="mr-2" /> Confirm Order
+                                </x-ui.button>
+                            </form>
                         @endcan
                     @endif
 
                     {{-- Mark Processing (confirmed → processing) --}}
                     @if($order->status === 'confirmed')
                         @can('orders.processing')
-                            <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'order-verification-modal', outcome: 'mark_processing' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20">
-                                <x-ui.icon name="loader" size="3" class="mr-2" /> Mark Processing
-                            </x-ui.button>
+                            <form action="{{ route('orders.processing', $order) }}" method="POST" class="inline">
+                                @csrf
+                                <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20">
+                                    <x-ui.icon name="loader" size="3" class="mr-2" /> Mark Processing
+                                </x-ui.button>
+                            </form>
                         @endcan
                         @can('orders.ship')
                             <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'create-shipment-modal' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
@@ -116,27 +122,36 @@
                     {{-- Dispatch Order (ready_to_ship → dispatched) --}}
                     @if($order->status === 'ready_to_ship')
                         @can('orders.dispatch')
-                            <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'order-verification-modal', outcome: 'dispatch_order' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-                                <x-ui.icon name="truck" size="3" class="mr-2" /> Dispatch Order
-                            </x-ui.button>
+                            <form action="{{ route('orders.dispatch', $order) }}" method="POST" class="inline">
+                                @csrf
+                                <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20">
+                                    <x-ui.icon name="truck" size="3" class="mr-2" /> Dispatch Order
+                                </x-ui.button>
+                            </form>
                         @endcan
                     @endif
 
                     {{-- Deliver (dispatched/shipped → delivered) --}}
                     @if(in_array($order->status, \App\Models\Order::inTransitStatuses(), true))
                         @can('orders.deliver')
-                            <x-ui.button size="sm" @click="$dispatch('open-modal', { name: 'order-verification-modal', outcome: 'mark_delivered' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
-                                <x-ui.icon name="check-circle" size="3" class="mr-2" /> Mark Delivered
-                            </x-ui.button>
+                            <form action="{{ route('orders.deliver', $order) }}" method="POST" class="inline">
+                                @csrf
+                                <x-ui.button type="submit" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
+                                    <x-ui.icon name="check-circle" size="3" class="mr-2" /> Mark Delivered
+                                </x-ui.button>
+                            </form>
                         @endcan
                     @endif
 
                     {{-- Cancel (only before stock leaves the warehouse) --}}
                     @if(!in_array($order->status, array_merge(['delivered', 'cancelled', 'returned', 'return_requested'], \App\Models\Order::inTransitStatuses()), true))
                         @can('orders.cancel')
-                            <x-ui.button variant="outline" size="sm" @click="$dispatch('open-modal', { name: 'order-verification-modal', outcome: 'cancel_order' })" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-destructive border-destructive/30 hover:bg-destructive/10">
-                                <x-ui.icon name="x-circle" size="3" class="mr-2" /> Cancel
-                            </x-ui.button>
+                            <form action="{{ route('orders.cancel', $order) }}" method="POST" class="inline">
+                                @csrf
+                                <x-ui.button type="submit" variant="outline" size="sm" class="rounded-xl font-bold uppercase tracking-widest text-[10px] text-destructive border-destructive/30 hover:bg-destructive/10">
+                                    <x-ui.icon name="x-circle" size="3" class="mr-2" /> Cancel
+                                </x-ui.button>
+                            </form>
                         @endcan
                     @endif
                 </div>
@@ -300,45 +315,7 @@
                     </x-ui.card>
                 </div>
 
-                <!-- Order Verification Logs -->
-                <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-3xl p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                            <x-ui.icon name="phone" size="3.5" /> Order Verification Logs
-                        </h4>
-                    </div>
-                    
-                    @if($order->verificationLogs->isEmpty())
-                        <p class="text-xs text-muted-foreground italic py-6 text-center rounded-xl border border-dashed border-border/60">No verification calls logged yet.</p>
-                    @else
-                        <div class="space-y-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
-                            @foreach($order->verificationLogs as $log)
-                                <div class="p-4 rounded-xl border border-border/50 bg-muted/10">
-                                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                        <span class="text-[10px] font-black uppercase tracking-widest text-primary">
-                                            {{ $log->outcome_label }}
-                                        </span>
-                                        <span class="text-[9px] font-bold text-muted-foreground">
-                                            {{ $log->created_at->format('M d, Y h:i A') }}
-                                        </span>
-                                    </div>
-                                    @if($log->remark)
-                                        <p class="text-xs text-foreground/90 font-medium">{{ $log->remark }}</p>
-                                    @endif
-                                    @if($log->follow_up_at)
-                                        <p class="text-[10px] text-muted-foreground mt-2">
-                                            <span class="font-black uppercase tracking-wider">Follow-up:</span>
-                                            <span>{{ $log->follow_up_at->format('M d, Y h:i A') }}</span>
-                                        </p>
-                                    @endif
-                                    <p class="text-[9px] text-muted-foreground/70 mt-1 uppercase tracking-wider font-bold">
-                                        By {{ $log->user->name ?? 'Staff' }}
-                                    </p>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </x-ui.card>
+
 
                 <!-- Addresses -->
                 <x-ui.card class="overflow-hidden border-border/60 shadow-xl bg-card/30 backdrop-blur-xl rounded-3xl">
@@ -659,5 +636,5 @@
     </x-ui.modal>
     @endcan
 
-    @include('orders.partials.verification-modal')
+
 </x-layouts.app>

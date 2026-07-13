@@ -32,7 +32,7 @@ class OrderController extends Controller
         $this->middleware('permission:orders.generate_invoice')->only(['generateInvoice']);
         $this->middleware('permission:orders.cod')->only(['downloadReceipt']);
         $this->middleware('permission:orders.receipt')->only(['receipt']);
-        $this->middleware('permission:orders.bulk_status')->only(['bulkStatus', 'bulkStoreVerification']);
+        $this->middleware('permission:orders.bulk_status')->only(['bulkStatus']);
         $this->middleware('permission:orders.bulk_print')->only(['bulkPrint']);
         $this->middleware('permission:orders.revert_status')->only(['revertStatus']);
     }
@@ -388,106 +388,7 @@ class OrderController extends Controller
         return view('orders.show', compact('order', 'services'));
     }
 
-    public function storeVerification(Request $request, string $id, InventoryService $inventoryService, OrderService $orderService)
-    {
-        $order = Order::with('shipments')->findOrFail($id);
-        $outcomes = array_keys(\App\Models\OrderVerificationLog::OUTCOMES);
 
-        $validated = $request->validate([
-            'outcome'     => 'required|in:' . implode(',', $outcomes),
-            'remark'      => 'nullable|string|max:2000',
-            'follow_up_at'=> 'nullable|date',
-        ]);
-
-        $log = \App\Models\OrderVerificationLog::create([
-            'order_id'    => $order->id,
-            'outcome'     => $validated['outcome'],
-            'remark'      => $validated['remark'] ?? null,
-            'follow_up_at'=> $validated['follow_up_at'] ?? null,
-            'created_by'  => auth()->id(),
-        ]);
-
-        // ── Shipment tracking event ──────────────────────────────────────────
-        $shipment = $order->shipments->first();
-        if ($shipment) {
-            $parts = ['Order verification: ' . $log->outcome_label];
-            if (!empty($validated['remark'])) {
-                $parts[] = $validated['remark'];
-            }
-            if (!empty($validated['follow_up_at'])) {
-                $parts[] = 'Follow-up: ' . \Carbon\Carbon::parse($validated['follow_up_at'])->format('M d, Y h:i A');
-            }
-            $parts[] = 'By: ' . (auth()->user()->name ?? 'Staff');
-
-            \App\Models\ShipmentTrackingEvent::create([
-                'shipment_id' => $shipment->id,
-                'event_name'  => 'Order Verification',
-                'location'    => $order->warehouse ? $order->warehouse->name : 'Warehouse',
-                'description' => implode(' | ', $parts),
-                'occurred_at' => now(),
-            ]);
-        }
-
-        activity('orders')
-            ->performedOn($order)
-            ->causedBy(auth()->user())
-            ->withProperties(['outcome' => $log->outcome])
-            ->log("Order #{$order->order_no} verification call logged: {$log->outcome_label}");
-
-        // ── Outcome-driven status transitions ────────────────────────────────
-        $statusChangedMessage = '';
-
-        try {
-            switch ($validated['outcome']) {
-                case 'customer_confirmed':
-                    if ($order->status === 'pending') {
-                        $inventoryService->confirmOrder($order);
-                        $statusChangedMessage = ' Order confirmed and stock reserved.';
-                    }
-                    break;
-
-                case 'mark_processing':
-                    if ($order->status === 'confirmed') {
-                        $orderService->updateStatus($order, 'processing');
-                        $statusChangedMessage = ' Order moved to processing.';
-                    }
-                    break;
-
-                case 'dispatch_order':
-                    if ($order->status === 'ready_to_ship') {
-                        $inventoryService->dispatchOrder($order);
-                        $statusChangedMessage = ' Order dispatched and inventory updated.';
-                    }
-                    break;
-
-                case 'mark_delivered':
-                    if (in_array($order->status, Order::inTransitStatuses(), true)) {
-                        $inventoryService->deliverOrder($order);
-                        $statusChangedMessage = ' Order marked as delivered.';
-                    }
-                    break;
-
-                case 'cancel_order':
-                    if (!in_array($order->status, array_merge(['delivered', 'cancelled', 'returned'], Order::inTransitStatuses()), true)) {
-                        $inventoryService->cancelOrder($order);
-                        $statusChangedMessage = ' Order cancelled and stock released.';
-                    }
-                    break;
-
-                case 'return_order':
-                    if (in_array($order->status, array_merge(['delivered', 'processing'], Order::inTransitStatuses()), true)) {
-                        $orderReturnController = app(\App\Http\Controllers\Web\OrderReturnController::class);
-                        $orderReturnController->createRequestedReturn($order, $validated['remark'] ?? 'Returned via Order Verification');
-                        $statusChangedMessage = ' Return request created.';
-                    }
-                    break;
-            }
-        } catch (ValidationException $e) {
-            return back()->with('error', 'Call logged, but status transition failed: ' . (collect($e->errors())->flatten()->first() ?? 'Unknown error.'));
-        }
-
-        return back()->with('success', 'Verification call logged.' . $statusChangedMessage);
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     //  Status Transitions – all go through InventoryService / OrderService
@@ -507,7 +408,7 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to confirm order.');
         }
 
-        return back()->with('success', 'Order confirmed and stock reserved.');
+        return redirect()->route('orders.index')->with('success', 'Order confirmed and stock reserved.');
     }
 
     public function ship(string $id, Request $request, InventoryService $inventoryService)
@@ -529,7 +430,7 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to mark order as ready to ship.');
         }
 
-        return back()->with('success', 'Order marked as ready to ship.');
+        return redirect()->route('orders.index')->with('success', 'Order marked as ready to ship.');
     }
 
     public function dispatch(string $id, InventoryService $inventoryService)
@@ -551,7 +452,7 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to dispatch order.');
         }
 
-        return back()->with('success', 'Order dispatched and inventory updated.');
+        return redirect()->route('orders.index')->with('success', 'Order dispatched and inventory updated.');
     }
 
     public function markProcessing(string $id, OrderService $orderService)
@@ -564,7 +465,7 @@ class OrderController extends Controller
 
         $orderService->updateStatus($order, 'processing');
 
-        return back()->with('success', 'Order moved to processing.');
+        return redirect()->route('orders.index')->with('success', 'Order moved to processing.');
     }
 
     public function markDelivered(string $id, InventoryService $inventoryService)
@@ -581,7 +482,7 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to mark order as delivered.');
         }
 
-        return back()->with('success', 'Order marked as delivered.');
+        return redirect()->route('orders.index')->with('success', 'Order marked as delivered.');
     }
 
     public function cancel(string $id, InventoryService $inventoryService)
@@ -594,7 +495,7 @@ class OrderController extends Controller
             return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Unable to cancel order.');
         }
 
-        return back()->with('success', 'Order cancelled and stock released.');
+        return redirect()->route('orders.index')->with('success', 'Order cancelled and stock released.');
     }
 
     public function receipt(string $id, OrderService $orderService)
@@ -722,78 +623,6 @@ class OrderController extends Controller
         }
 
         return back()->with($count > 0 ? 'success' : 'error', $msg);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  Bulk Verification + Status
-    //  Logs a verification call for EVERY selected order, then delegates the
-    //  actual status transitions to the existing bulkStatus() SSOT.
-    // ─────────────────────────────────────────────────────────────────────────
-
-    public function bulkStoreVerification(Request $request, InventoryService $inventoryService, OrderService $orderService)
-    {
-        $outcomes = array_keys(\App\Models\OrderVerificationLog::OUTCOMES);
-
-        $validated = $request->validate([
-            'ids'          => 'required|json',
-            'status'       => 'required|string|in:pending,confirmed,processing,ready_to_ship,dispatched,delivered,cancelled,returned',
-            'outcome'      => 'required|in:' . implode(',', $outcomes),
-            'remark'       => 'nullable|string|max:2000',
-            'follow_up_at' => 'nullable|date',
-        ]);
-
-        $rawIds = json_decode($validated['ids'], true);
-        if (!is_array($rawIds) || empty($rawIds)) {
-            return back()->with('error', 'No orders selected.');
-        }
-        $ids = array_values(array_filter(array_map('intval', $rawIds), fn($id) => $id > 0));
-        if (empty($ids)) {
-            return back()->with('error', 'No valid order IDs provided.');
-        }
-
-        $orders = Order::with(['items', 'shipments', 'warehouse'])->whereIn('id', $ids)->get();
-
-        // ── Log a verification call for every selected order ─────────────────
-        foreach ($orders as $order) {
-            $log = \App\Models\OrderVerificationLog::create([
-                'order_id'     => $order->id,
-                'outcome'      => $validated['outcome'],
-                'remark'       => $validated['remark'] ?? null,
-                'follow_up_at' => $validated['follow_up_at'] ?? null,
-                'created_by'   => auth()->id(),
-            ]);
-
-            // Attach to shipment tracking if a shipment exists
-            $shipment = $order->shipments->first();
-            if ($shipment) {
-                $parts = ['Bulk verification: ' . $log->outcome_label];
-                if (!empty($validated['remark'])) {
-                    $parts[] = $validated['remark'];
-                }
-                if (!empty($validated['follow_up_at'])) {
-                    $parts[] = 'Follow-up: ' . \Carbon\Carbon::parse($validated['follow_up_at'])->format('M d, Y h:i A');
-                }
-                $parts[] = 'By: ' . (auth()->user()->name ?? 'Staff');
-
-                \App\Models\ShipmentTrackingEvent::create([
-                    'shipment_id' => $shipment->id,
-                    'event_name'  => 'Order Verification',
-                    'location'    => $order->warehouse ? $order->warehouse->name : 'Warehouse',
-                    'description' => implode(' | ', $parts),
-                    'occurred_at' => now(),
-                ]);
-            }
-
-            activity('orders')
-                ->performedOn($order)
-                ->causedBy(auth()->user())
-                ->withProperties(['outcome' => $log->outcome])
-                ->log("Order #{$order->order_no} bulk verification call logged: {$log->outcome_label}");
-        }
-
-        // ── Delegate the actual status transitions to the existing bulkStatus ─
-        // We re-use the same request so all validation and SSOT logic is identical.
-        return $this->bulkStatus($request, $inventoryService, $orderService);
     }
 
     public function destroy(Order $order)
@@ -1346,7 +1175,7 @@ class OrderController extends Controller
         $inventoryService->revertDeliveredToDispatched($order);
     }
 
-    return back()->with(
+    return redirect()->route('orders.index')->with(
         'success',
         'Order reverted successfully.'
     );

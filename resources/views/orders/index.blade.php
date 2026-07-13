@@ -12,21 +12,25 @@
         selectedItems: [], 
         selectedStatuses: {},
         allSelected: false,
+        requiredColumns: ['order_identity', 'actions'],
         visibleColumns: (() => {
             const defaults = {
                 order_identity: true,
-                transaction_type: true,
+                transaction_type: false,
                 associated_party: true,
-                fulfillment_node: true,
-                created_by: true,
+                fulfillment_node: false,
+                created_by: false,
                 lifecycle_status: true,
-                carrier_details: true,
+                carrier_details: false,
                 ordered_products: true,
                 financial_total: true,
                 actions: true
             };
             const stored = localStorage.getItem('order_table_visible_columns');
-            return stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
+            let parsed = stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
+            parsed['order_identity'] = true;
+            parsed['actions'] = true;
+            return parsed;
         })(),
         toggleColumn(col) {
             this.visibleColumns[col] = !this.visibleColumns[col];
@@ -61,27 +65,10 @@
         returnOrderId: null,
         returnOrderNo: '',
         returnItems: [],
-        verifyOrderId: '',
-        verifyOrderNo: '',
-        verifyOutcome: '',
-        verifyActionUrl: '',
-        bulkVerifyStatus: '',
-        bulkVerifyOutcome: '',
         get returnRefundTotal() {
             return this.returnItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.price)), 0);
         },
-        openVerificationModal(orderId, orderNo, outcome) {
-            this.verifyOrderId = orderId;
-            this.verifyOrderNo = orderNo;
-            this.verifyOutcome = outcome;
-            this.verifyActionUrl = `{{ route('orders.verification.store', ':id') }}`.replace(':id', orderId);
-            this.$dispatch('open-modal', { name: 'index-verification-modal' });
-        },
-        openBulkVerificationModal(status, outcome) {
-            this.bulkVerifyStatus = status;
-            this.bulkVerifyOutcome = outcome;
-            this.$dispatch('open-modal', { name: 'bulk-verification-modal' });
-        },
+
         openShipModal(orderId, orderNo, carrierName = '') {
             this.shipOrderId = orderId;
             this.shipOrderNo = orderNo;
@@ -486,9 +473,13 @@
                                             </div>
                                             <div class="space-y-0.5">
                                                 <template x-for="(visible, col) in visibleColumns" :key="col">
-                                                    <label class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-primary/5 cursor-pointer transition-colors" x-bind:class="visible ? 'bg-primary/5' : ''">
-                                                        <input type="checkbox" :checked="visible" @change="toggleColumn(col)" class="rounded border-border text-primary focus:ring-primary/25">
-                                                        <span class="text-[10px] font-black uppercase tracking-wider text-foreground/80" x-text="col.replace(/_/g, ' ')"></span>
+                                                    <label class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer" 
+                                                           x-bind:class="[visible ? 'bg-primary/5' : '', requiredColumns.includes(col) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/5']">
+                                                        <input type="checkbox" :checked="visible" @change="if(!requiredColumns.includes(col)) toggleColumn(col)" :disabled="requiredColumns.includes(col)" class="rounded border-border text-primary focus:ring-primary/25 disabled:opacity-50">
+                                                        <span class="text-[10px] font-black uppercase tracking-wider text-foreground/80">
+                                                            <span x-text="col.replace(/_/g, ' ')"></span>
+                                                            <span x-show="requiredColumns.includes(col)" class="text-[8px] text-destructive ml-1">*</span>
+                                                        </span>
                                                     </label>
                                                 </template>
                                             </div>
@@ -521,28 +512,34 @@
 
                                 <!-- Bulk actions trigger -->
                                 <div x-show="selectedItems.length > 0" x-cloak x-transition
-                                    class="flex items-center gap-2 shrink-0 animate-in fade-in slide-in-from-left-4 duration-300">
+                                    class="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-300">
                                     @canany(['orders.bulk_status', 'orders.bulk_print'])
-                                        <div class="rounded-xl border border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest flex items-center gap-1.5 mr-1">
+                                        <div class="rounded-xl border border-primary/20 bg-primary/5 text-primary font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest flex items-center gap-1.5">
                                             <span x-text="selectedItems.length"></span> Selected
                                         </div>
 
                                         @can('orders.bulk_status')
-                                            {{-- confirmed → verification modal (same as Lifecycle dropdown) --}}
-                                            <button type="button" x-show="canBulkFulfill('confirmed')"
-                                                @click="openBulkVerificationModal('confirmed', 'customer_confirmed')"
-                                                class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500 hover:text-white text-indigo-600 dark:text-indigo-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
-                                                <span class="size-2 rounded-full bg-indigo-500"></span>
-                                                Confirm Orders
-                                            </button>
+                                            {{-- confirmed --}}
+                                            <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('confirmed')" class="m-0">
+                                                @csrf
+                                                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                <input type="hidden" name="status" value="confirmed">
+                                                <button type="submit" class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500 hover:text-white text-indigo-600 dark:text-indigo-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                    <span class="size-2 rounded-full bg-indigo-500"></span>
+                                                    Confirm Orders
+                                                </button>
+                                            </form>
 
-                                            {{-- processing → verification modal --}}
-                                            <button type="button" x-show="canBulkFulfill('processing')"
-                                                @click="openBulkVerificationModal('processing', 'mark_processing')"
-                                                class="rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500 hover:text-white text-amber-600 dark:text-amber-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
-                                                <span class="size-2 rounded-full bg-amber-500"></span>
-                                                Mark Processing
-                                            </button>
+                                            {{-- processing --}}
+                                            <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('processing')" class="m-0">
+                                                @csrf
+                                                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                <input type="hidden" name="status" value="processing">
+                                                <button type="submit" class="rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500 hover:text-white text-amber-600 dark:text-amber-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                    <span class="size-2 rounded-full bg-amber-500"></span>
+                                                    Mark Processing
+                                                </button>
+                                            </form>
 
                                             {{-- ready_to_ship → restricted in bulk action --}}
                                             <button type="button" x-show="canBulkFulfill('ready_to_ship')"
@@ -552,13 +549,16 @@
                                                 Mark Ready to Ship
                                             </button>
 
-                                            {{-- dispatched → verification modal --}}
-                                            <button type="button" x-show="canBulkFulfill('dispatched')"
-                                                @click="openBulkVerificationModal('dispatched', 'dispatch_order')"
-                                                class="rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500 hover:text-white text-blue-600 dark:text-blue-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
-                                                <span class="size-2 rounded-full bg-blue-500"></span>
-                                                Dispatch Orders
-                                            </button>
+                                            {{-- dispatched --}}
+                                            <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('dispatched')" class="m-0">
+                                                @csrf
+                                                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                <input type="hidden" name="status" value="dispatched">
+                                                <button type="submit" class="rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500 hover:text-white text-blue-600 dark:text-blue-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                    <span class="size-2 rounded-full bg-blue-500"></span>
+                                                    Dispatch Orders
+                                                </button>
+                                            </form>
 
                                             {{-- Assign Shipment (unchanged) --}}
                                             <button type="button" @click="openAssignModal(null)" x-show="canBulkFulfill('dispatched')"
@@ -567,25 +567,31 @@
                                                 Assign Shipment
                                             </button>
 
-                                            {{-- delivered → verification modal --}}
-                                            <button type="button" x-show="canBulkFulfill('delivered')"
-                                                @click="openBulkVerificationModal('delivered', 'mark_delivered')"
-                                                class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white text-emerald-600 dark:text-emerald-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
-                                                <span class="size-2 rounded-full bg-emerald-500"></span>
-                                                Deliver Orders
-                                            </button>
+                                            {{-- delivered --}}
+                                            <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('delivered')" class="m-0">
+                                                @csrf
+                                                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                <input type="hidden" name="status" value="delivered">
+                                                <button type="submit" class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white text-emerald-600 dark:text-emerald-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                    <span class="size-2 rounded-full bg-emerald-500"></span>
+                                                    Deliver Orders
+                                                </button>
+                                            </form>
 
-                                            {{-- cancelled → verification modal --}}
-                                            <button type="button" x-show="canBulkFulfill('cancelled')"
-                                                @click="openBulkVerificationModal('cancelled', 'cancel_order')"
-                                                class="rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500 hover:text-white text-red-600 dark:text-red-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
-                                                <span class="size-2 rounded-full bg-red-500"></span>
-                                                Cancel Orders
-                                            </button>
+                                            {{-- cancelled --}}
+                                            <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkFulfill('cancelled')" class="m-0">
+                                                @csrf
+                                                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
+                                                <input type="hidden" name="status" value="cancelled">
+                                                <button type="submit" class="rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500 hover:text-white text-red-600 dark:text-red-400 font-bold shadow-sm whitespace-nowrap h-9 px-3 text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                                    <span class="size-2 rounded-full bg-red-500"></span>
+                                                    Cancel Orders
+                                                </button>
+                                            </form>
 
                                             {{-- Reverts --}}
                                             @foreach(['pending' => 'Revert to Pending', 'confirmed' => 'Revert to Confirmed', 'processing' => 'Revert to Processing', 'ready_to_ship' => 'Revert to Ready to Ship', 'dispatched' => 'Revert to Dispatched'] as $status => $label)
-                                                <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkRevert('{{ $status }}')" class="inline-block">
+                                                <form action="{{ route('orders.bulk-status') }}" method="POST" x-show="canBulkRevert('{{ $status }}')" class="m-0">
                                                     @csrf
                                                     <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
                                                     <input type="hidden" name="status" value="{{ $status }}">
@@ -599,7 +605,7 @@
 
                                         @can('orders.bulk_print')
                                             {{-- Bulk Invoice PDF --}}
-                                            <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank" class="inline-block">
+                                            <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank" class="m-0">
                                                 <input type="hidden" name="type" value="invoice">
                                                 <template x-for="id in selectedItems">
                                                     <input type="hidden" name="ids[]" :value="id">
@@ -611,7 +617,7 @@
                                             </form>
 
                                             {{-- Bulk COD PDF --}}
-                                            <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank" class="inline-block">
+                                            <form action="{{ route('orders.bulk-print') }}" method="GET" target="_blank" class="m-0">
                                                 <input type="hidden" name="type" value="cod">
                                                 <template x-for="id in selectedItems">
                                                     <input type="hidden" name="ids[]" :value="id">
@@ -770,144 +776,7 @@
         </form>
     </x-ui.modal>
 
-    <!-- Index Verification Modal -->
-    @php
-        $verificationOutcomes = \App\Models\OrderVerificationLog::OUTCOMES ?? [
-            'customer_confirmed' => 'Customer Confirmed',
-            'customer_cancelled' => 'Customer Cancelled',
-            'no_response' => 'No Response',
-            'call_back' => 'Requested Call Back',
-            'number_busy' => 'Number Busy',
-            'number_unreachable' => 'Number Unreachable',
-            'wrong_number' => 'Wrong Number',
-            'mark_processing' => 'Marked Processing',
-            'dispatch_order' => 'Dispatched Order',
-            'mark_delivered' => 'Marked Delivered',
-            'cancel_order' => 'Cancelled by Staff'
-        ];
-    @endphp
-    <x-ui.modal id="index-verification-modal" maxWidth="lg">
-        <div class="p-6 lg:p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div class="flex items-center justify-between mb-6 sticky top-0 bg-card/95 backdrop-blur-md z-10 pb-4 border-b border-border/40">
-                <div class="flex items-center gap-3">
-                    <div class="size-10 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
-                        <x-ui.icon name="phone" size="5" />
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-black text-foreground uppercase tracking-widest">Order Verification</h3>
-                        <p class="text-[10px] text-muted-foreground font-bold tracking-tight">
-                            Order <span x-text="verifyOrderNo"></span>
-                        </p>
-                    </div>
-                </div>
-                <button type="button" @click="$dispatch('close-modal', { name: 'index-verification-modal' })" class="size-8 rounded-lg hover:bg-muted flex items-center justify-center transition-colors">
-                    <x-ui.icon name="x" size="4" />
-                </button>
-            </div>
 
-            <form method="POST" :action="verifyActionUrl" class="space-y-4 mb-4 p-5 rounded-2xl border border-primary/20 bg-primary/5">
-                @csrf
-                <h4 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                    <x-ui.icon name="phone" size="3.5" /> Log Verification Call
-                </h4>
-                <div class="grid grid-cols-1 gap-4">
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Call Outcome</label>
-                        <select name="outcome" x-model="verifyOutcome" required class="w-full h-11 px-4 rounded-xl border border-border bg-background/80 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none">
-                            <option value="" disabled selected>Select outcome...</option>
-                            @foreach($verificationOutcomes as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Remarks</label>
-                        <textarea name="remark" rows="3" placeholder="Add call notes, customer response..."
-                            class="w-full px-4 py-3 rounded-xl border border-border bg-background/80 text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none resize-none"></textarea>
-                    </div>
-                    
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Next Follow-up (optional)</label>
-                        <input type="datetime-local" name="follow_up_at"
-                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/80 text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none">
-                    </div>
-                </div>
-                
-                <div class="flex justify-end gap-3 pt-2">
-                    <x-ui.button type="button" variant="outline" @click="$dispatch('close-modal', { name: 'index-verification-modal' })" class="rounded-xl font-black uppercase tracking-widest text-[10px]">Close</x-ui.button>
-                    <x-ui.button type="submit" class="rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/25" x-bind:disabled="!verifyOutcome">
-                        <x-ui.icon name="check" size="3" class="mr-1.5" /> Save Verification
-                    </x-ui.button>
-                </div>
-            </form>
-        </div>
-    </x-ui.modal>
-
-    <!-- Bulk Verification Modal (mirrors index-verification-modal for bulk actions) -->
-    <x-ui.modal id="bulk-verification-modal" maxWidth="lg">
-        <div class="p-6 lg:p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div class="flex items-center justify-between mb-6 sticky top-0 bg-card/95 backdrop-blur-md z-10 pb-4 border-b border-border/40">
-                <div class="flex items-center gap-3">
-                    <div class="size-10 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
-                        <x-ui.icon name="phone" size="5" />
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-black text-foreground uppercase tracking-widest">Bulk Order Verification</h3>
-                        <p class="text-[10px] text-muted-foreground font-bold tracking-tight">
-                            Logging call for <span x-text="selectedItems.length"></span> selected order(s)
-                        </p>
-                    </div>
-                </div>
-                <button type="button" @click="$dispatch('close-modal', { name: 'bulk-verification-modal' })" class="size-8 rounded-lg hover:bg-muted flex items-center justify-center transition-colors">
-                    <x-ui.icon name="x" size="4" />
-                </button>
-            </div>
-
-            <form method="POST" action="{{ route('orders.bulk-verification') }}" class="space-y-4 p-5 rounded-2xl border border-primary/20 bg-primary/5">
-                @csrf
-                {{-- Pass the selected IDs and target status into the form --}}
-                <input type="hidden" name="ids" :value="JSON.stringify(selectedItems)">
-                <input type="hidden" name="status" :value="bulkVerifyStatus">
-
-                <h4 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                    <x-ui.icon name="phone" size="3.5" /> Log Verification Call
-                </h4>
-
-                <div class="grid grid-cols-1 gap-4">
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Call Outcome</label>
-                        <select name="outcome" x-model="bulkVerifyOutcome" required
-                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/80 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none">
-                            <option value="" disabled selected>Select outcome...</option>
-                            @foreach($verificationOutcomes as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Remarks</label>
-                        <textarea name="remark" rows="3" placeholder="Add call notes, customer response..."
-                            class="w-full px-4 py-3 rounded-xl border border-border bg-background/80 text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none resize-none"></textarea>
-                    </div>
-
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Next Follow-up (optional)</label>
-                        <input type="datetime-local" name="follow_up_at"
-                            class="w-full h-11 px-4 rounded-xl border border-border bg-background/80 text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none">
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-3 pt-2">
-                    <x-ui.button type="button" variant="outline" @click="$dispatch('close-modal', { name: 'bulk-verification-modal' })" class="rounded-xl font-black uppercase tracking-widest text-[10px]">Close</x-ui.button>
-                    <x-ui.button type="submit" class="rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/25" x-bind:disabled="!bulkVerifyOutcome">
-                        <x-ui.icon name="check" size="3" class="mr-1.5" /> Save & Update Status
-                    </x-ui.button>
-                </div>
-            </form>
-        </div>
-    </x-ui.modal>
 
     <!-- Assign Shipment Modal -->
     <x-ui.modal id="assign-modal" maxWidth="md">

@@ -1,17 +1,6 @@
 <x-layouts.app pageTitle="Return Details">
     <div class="p-6 lg:p-10 space-y-6"
-        x-data="{
-            statusUpdateUrl: @js(route('returns.status', $return)),
-            statusReturnNo: @js($return->return_no),
-            statusCurrent: @js($return->status),
-            statusPending: @js($return->status),
-            statusLocked: @js(in_array($return->status, ['completed', 'rejected'], true)),
-            openReturnDetailStatusModal() {
-                if (this.statusLocked) return;
-                this.statusPending = this.statusCurrent;
-                this.$dispatch('open-modal', { name: 'return-status-modal' });
-            }
-        }">
+        x-data="{}">
         <!-- Header -->
         <x-ui.card class="overflow-hidden border-border/60 shadow-2xl bg-card/30 backdrop-blur-2xl rounded-3xl">
             <div class="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
@@ -152,14 +141,48 @@
                     </div>
                     <div class="p-6 space-y-4">
                         @if(!in_array($return->status, ['completed', 'rejected']))
-                            <p class="text-xs text-muted-foreground leading-relaxed">
+                            <p class="text-xs text-muted-foreground leading-relaxed mb-4">
                                 Move this return through <strong class="text-foreground">requested → received → inspected</strong>, then <strong class="text-emerald-600">complete</strong> to restock and trigger refunds, or <strong class="text-destructive">reject</strong> to close without inventory impact.
                             </p>
-                            <x-ui.button type="button" class="w-full h-12 rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-xl shadow-primary/20" @click="openReturnDetailStatusModal()">
-                                <x-ui.icon name="sliders" size="4" class="mr-2" />
-                                Update status
-                            </x-ui.button>
-                            <p class="text-[9px] font-bold text-muted-foreground text-center">Same workflow as the returns list — opens an improved confirmation panel.</p>
+                            <div class="space-y-3">
+                                @if($return->status === 'requested')
+                                    <form action="{{ route('returns.status', $return) }}" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="status" value="received">
+                                        <x-ui.button type="submit" class="w-full h-12 rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-xl shadow-blue-500/20 bg-blue-500 hover:bg-blue-600 text-white border-blue-600">
+                                            <x-ui.icon name="box" size="4" class="mr-2" />
+                                            Mark Received
+                                        </x-ui.button>
+                                    </form>
+                                @elseif($return->status === 'received')
+                                    <form action="{{ route('returns.status', $return) }}" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="status" value="inspected">
+                                        <x-ui.button type="submit" class="w-full h-12 rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-xl shadow-indigo-500/20 bg-indigo-500 hover:bg-indigo-600 text-white border-indigo-600">
+                                            <x-ui.icon name="search" size="4" class="mr-2" />
+                                            Mark Inspected
+                                        </x-ui.button>
+                                    </form>
+                                @elseif($return->status === 'inspected')
+                                    <form action="{{ route('returns.status', $return) }}" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="status" value="completed">
+                                        <x-ui.button type="submit" class="w-full h-12 rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-xl shadow-emerald-500/20 bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600">
+                                            <x-ui.icon name="check-circle" size="4" class="mr-2" />
+                                            Complete Return
+                                        </x-ui.button>
+                                    </form>
+                                @endif
+
+                                <form action="{{ route('returns.status', $return) }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="status" value="rejected">
+                                    <x-ui.button type="submit" variant="outline" class="w-full h-12 rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-xl shadow-red-500/10 text-red-600 border-red-500/50 hover:bg-red-500/10 hover:text-red-700">
+                                        <x-ui.icon name="x-circle" size="4" class="mr-2" />
+                                        Reject Return
+                                    </x-ui.button>
+                                </form>
+                            </div>
                         @else
                             <div class="p-4 bg-muted/30 rounded-2xl border border-border text-center">
                                 <x-ui.icon name="lock" size="6" class="text-muted-foreground/60 mx-auto mb-2" />
@@ -206,6 +229,4 @@
             </div>
         </div>
 
-        @include('returns.partials.update-status-modal')
-    </div>
 </x-layouts.app>

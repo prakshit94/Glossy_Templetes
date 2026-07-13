@@ -129,7 +129,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('stock-adjustments/{adjustment}/approve', [\App\Http\Controllers\Web\StockAdjustmentController::class, 'approve'])->name('adjustments.approve');
     Route::post('stock-adjustments/{adjustment}/reject', [\App\Http\Controllers\Web\StockAdjustmentController::class, 'reject'])->name('adjustments.reject');
     Route::post('orders/bulk-status', [OrderController::class, 'bulkStatus'])->name('orders.bulk-status');
-    Route::post('orders/bulk-verification', [OrderController::class, 'bulkStoreVerification'])->name('orders.bulk-verification');
     Route::get('orders/bulk-print', [OrderController::class, 'bulkPrint'])->name('orders.bulk-print');
     Route::get('orders/export', [OrderController::class, 'bulkExport'])->name('orders.export');
     Route::post('orders/import', [OrderController::class, 'bulkImport'])->name('orders.import');
@@ -146,11 +145,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('orders/{order}/revert-status', [OrderController::class, 'revertStatus'])->name('orders.revert-status');
     Route::get('orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
-    Route::post('orders/{order}/verification', [OrderController::class, 'storeVerification'])->name('orders.verification.store');
     Route::resource('orders', OrderController::class)->middleware('permission:orders.view');
 
-    Route::resource('returns', OrderReturnController::class)->middleware('permission:returns.view');
+    Route::post('returns/bulk-status', [OrderReturnController::class, 'bulkStatus'])->name('returns.bulk-status');
     Route::post('returns/{return}/status', [OrderReturnController::class, 'updateStatus'])->name('returns.status');
+    Route::resource('returns', OrderReturnController::class)->middleware('permission:returns.view');
 
     Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('payments/search-orders', [\App\Http\Controllers\Web\PaymentController::class, 'searchOrders'])->name('payments.search-orders');

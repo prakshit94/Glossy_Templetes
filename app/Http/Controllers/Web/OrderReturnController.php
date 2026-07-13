@@ -273,4 +273,80 @@ class OrderReturnController extends Controller
 
         return back()->with('success', "Return status updated to {$request->status}.");
     }
+
+    public function bulkStatus(Request $request, InventoryService $inventoryService)
+    {
+        $request->validate([
+            'return_ids' => 'required|array|min:1',
+            'return_ids.*' => 'exists:returns,id',
+            'status' => 'required|in:requested,received,inspected,completed,rejected',
+        ]);
+
+        $returns = OrderReturn::with(['items.orderItem.product', 'order'])->whereIn('id', $request->return_ids)->get();
+        $newStatus = $request->status;
+        $updatedCount = 0;
+
+        foreach ($returns as $return) {
+            if ($return->status === 'completed' || $return->status === 'rejected') {
+                continue;
+            }
+            if ($return->status === $newStatus) {
+                continue;
+            }
+
+            try {
+                DB::transaction(function () use ($return, $newStatus, $inventoryService) {
+                    if ($newStatus === 'completed' && $return->status !== 'completed') {
+                        $return->order->update(['status' => 'returned']);
+                        foreach ($return->items as $returnItem) {
+                            $orderItem = $returnItem->orderItem;
+                            $inventoryService->addStock(
+                                $orderItem->product_id,
+                                $return->order->warehouse_id,
+                                $returnItem->quantity,
+                                \App\Models\OrderReturn::class,
+                                $return->id
+                            );
+                        }
+
+                        if ($return->refund_amount > 0) {
+                            $payments = \App\Models\Payment::where('order_id', $return->order_id)
+                                ->where('status', 'completed')
+                                ->orderBy('id', 'desc')
+                                ->get();
+                            
+                            $amountToRefund = $return->refund_amount;
+
+                            foreach ($payments as $payment) {
+                                if ($amountToRefund <= 0) break;
+                                
+                                $existingRefunds = $payment->refunds()->whereIn('status', ['pending', 'processed'])->sum('amount');
+                                $refundableOnPayment = $payment->amount - $existingRefunds;
+
+                                if ($refundableOnPayment > 0) {
+                                    $refundAmountForThisPayment = min($amountToRefund, $refundableOnPayment);
+
+                                    \App\Models\Refund::create([
+                                        'payment_id' => $payment->id,
+                                        'amount' => $refundAmountForThisPayment,
+                                        'reason' => "Automatic refund for Return {$return->return_no}",
+                                        'status' => 'pending'
+                                    ]);
+
+                                    $amountToRefund -= $refundAmountForThisPayment;
+                                }
+                            }
+                        }
+                    }
+
+                    $return->update(['status' => $newStatus]);
+                });
+                $updatedCount++;
+            } catch (\Exception $e) {
+                // log or ignore
+            }
+        }
+
+        return back()->with('success', "{$updatedCount} return(s) updated to {$newStatus}.");
+    }
 }

@@ -330,27 +330,7 @@
             @endif
         </div>
     @elseif(in_array($lifecycleStatus, ['pending', 'dispatched', 'shipped']))
-        @php
-            $latestLog = $order->verificationLogs->first();
-            $followUpLog = $order->verificationLogs->filter(fn($log) => !empty($log->follow_up_at))->first();
-        @endphp
-        @if($latestLog || $followUpLog)
-            <div class="mt-2 flex flex-col items-center gap-1.5 w-full">
-                @if($followUpLog)
-                    <div class="text-[9px] font-bold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 whitespace-nowrap" title="{{ $followUpLog->outcome_label ?? 'Next Follow-up' }}">
-                        <x-ui.icon name="{{ $followUpLog->outcome === 'reschedule_delivery' ? 'calendar' : 'phone-call' }}" size="2.5" class="inline mr-1 -mt-0.5" />
-                        Recall: {{ \Carbon\Carbon::parse($followUpLog->follow_up_at)->format('M d, Y h:i A') }}
-                    </div>
-                @endif
-                
-                @if($latestLog && (!$followUpLog || $latestLog->id !== $followUpLog->id))
-                    <div class="text-[9px] font-bold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded border border-border/50 whitespace-nowrap max-w-[130px] truncate" title="{{ $latestLog->remark ?? $latestLog->outcome_label }}">
-                        <x-ui.icon name="info" size="2.5" class="inline mr-1 -mt-0.5" />
-                        Log: {{ $latestLog->outcome_label }}
-                    </div>
-                @endif
-            </div>
-        @endif
+
     @endif
 </x-ui.table-cell>
 
